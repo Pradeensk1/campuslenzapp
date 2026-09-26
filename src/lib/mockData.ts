@@ -1,4 +1,13 @@
-import { College, CollegeReview, Post, Community, UserProfile } from '@/types';
+import {
+  College,
+  CollegeReview,
+  Post,
+  Community,
+  UserProfile,
+  DiscordServer,
+  ServerMessage,
+  PrivateGrievanceReport
+} from '@/types';
 
 export const INITIAL_USERS: UserProfile[] = [
   {
@@ -65,7 +74,7 @@ export const INITIAL_USERS: UserProfile[] = [
     id: 'user-meenakshi',
     username: 'dr_meenakshi_staff',
     email: 'meenakshi@psgtech.edu',
-    role: 'staff',
+    role: 'faculty',
     fullName: 'Dr. Meenakshi Sundaram',
     headline: 'Professor & Head of Computer Science @ PSG College of Technology | IEEE Senior Member',
     bio: 'Academic researcher in Distributed Computing and Machine Learning. 18+ years of teaching excellence and mentoring engineering innovators.',
@@ -120,6 +129,41 @@ export const INITIAL_USERS: UserProfile[] = [
     followers: ['user-arun', 'user-junith'],
     following: ['user-arun', 'user-junith', 'user-karthik'],
     createdAt: '2025-03-01T00:00:00Z'
+  },
+  {
+    id: 'user-institution-psg',
+    username: 'psg_institution_admin',
+    email: 'admin@psgtech.edu',
+    role: 'institution',
+    fullName: 'PSG Tech Official Administration',
+    headline: 'Official Administrative Desk • PSG College of Technology',
+    bio: 'Official university administrative channel for announcements, department server management, and verified student feedback review.',
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    department: 'Central Administration',
+    course: 'College Management',
+    graduationBatch: 'Admin Authority',
+    isVerified: true,
+    followersCount: 4200,
+    followingCount: 15,
+    followers: ['user-arun', 'user-junith', 'user-karthik', 'user-deepak', 'user-priya'],
+    following: ['user-karthik'],
+    createdAt: '2020-01-01T00:00:00Z'
+  },
+  {
+    id: 'user-admin-system',
+    username: 'system_admin',
+    email: 'admin@campuslenz.org',
+    role: 'admin',
+    fullName: 'Campus Lenz Super Administrator',
+    headline: 'Platform Trust, Governance & Lead Developer',
+    bio: 'System level operator with complete project management capabilities, developer terminal privileges, and content moderation authority.',
+    isVerified: true,
+    followersCount: 9999,
+    followingCount: 0,
+    followers: [],
+    following: [],
+    createdAt: '2020-01-01T00:00:00Z'
   }
 ];
 
@@ -482,7 +526,7 @@ export const INITIAL_POSTS: Post[] = [
         authorId: 'user-meenakshi',
         authorUsername: 'dr_meenakshi_staff',
         authorName: 'Dr. Meenakshi Sundaram',
-        authorRole: 'staff',
+        authorRole: 'faculty',
         authorHeadline: 'Professor & Head of CSE @ PSG Tech',
         isVerifiedAuthor: true,
         content: 'Very proud of the dedication shown by the team. Keep up the high academic standards!',
@@ -648,5 +692,154 @@ export const INITIAL_COMMUNITIES: Community[] = [
     membersCount: 310,
     category: 'general',
     createdAt: '2025-11-20T00:00:00Z'
+  }
+];
+
+export const INITIAL_DISCORD_SERVERS: DiscordServer[] = [
+  {
+    id: 'server-psg-tech',
+    name: 'PSG Tech Official Campus Server',
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    institutionOwnerId: 'user-institution-psg',
+    description: 'Official institution-governed campus server. Structured department channels, placement guidance, and ragebait-shielded student discussion.',
+    memberCount: 840,
+    antiRagebaitRules: [
+      'Zero harassment, name-calling, or inflammatory rhetoric.',
+      'Constructive academic criticism only with factual references.',
+      'Anti-ragebait cooldown timer: 60 seconds slowmode enabled.',
+      'Personal faculty grievances must be sent via Private Grievance to Institution ID.'
+    ],
+    channels: [
+      {
+        id: 'ch-announcements',
+        name: 'official-announcements',
+        description: 'Direct university broadcasts, exam dates, and semester schedules.',
+        type: 'general',
+        isRagebaitProtected: true
+      },
+      {
+        id: 'ch-anti-ragebait-forum',
+        name: 'ragebait-shielded-campus-hall',
+        description: 'Special discussion space strictly moderated to prevent toxicity & sensationalism.',
+        type: 'anti-ragebait',
+        isRagebaitProtected: true
+      },
+      {
+        id: 'ch-cse-mca-dept',
+        name: 'dept-computer-science-mca',
+        description: 'Department projects, syllabus inquiries, and research lab coordination.',
+        type: 'department',
+        isRagebaitProtected: false
+      },
+      {
+        id: 'ch-placement-desk',
+        name: 'placement-interview-intel',
+        description: 'Real-time company interview reports, interview rounds, and alumni tips.',
+        type: 'placements',
+        isRagebaitProtected: true
+      },
+      {
+        id: 'ch-alumni-mentoring',
+        name: 'alumni-career-guidance',
+        description: 'Alumni sharing industry experiences and resume advice for junior students.',
+        type: 'alumni-guide',
+        isRagebaitProtected: false
+      }
+    ]
+  },
+  {
+    id: 'server-ceg-hub',
+    name: 'CEG Anna University Campus Grid',
+    collegeId: 'col-ceg',
+    collegeName: 'College of Engineering, Guindy (CEG)',
+    institutionOwnerId: 'user-institution-psg',
+    description: 'Official campus server for Anna University CEG students, alumni mentors, and faculty.',
+    memberCount: 650,
+    antiRagebaitRules: [
+      'Maintain collegiate decorum at all times.',
+      'Strict prohibition of partisan hostility or unverified rumors.'
+    ],
+    channels: [
+      {
+        id: 'ch-ceg-general',
+        name: 'campus-general',
+        description: 'General student discussions and campus life questions.',
+        type: 'general',
+        isRagebaitProtected: false
+      },
+      {
+        id: 'ch-ceg-ragebait',
+        name: 'moderated-student-concerns',
+        description: 'Shielded channel for campus queries with strict moderation.',
+        type: 'anti-ragebait',
+        isRagebaitProtected: true
+      }
+    ]
+  }
+];
+
+export const INITIAL_SERVER_MESSAGES: ServerMessage[] = [
+  {
+    id: 'smsg-1',
+    channelId: 'ch-announcements',
+    authorId: 'user-institution-psg',
+    authorName: 'PSG Tech Official Administration',
+    authorRole: 'institution',
+    authorHeadline: 'Official Administrative Desk',
+    content: '🚨 Notice: End-semester lab practical schedules for MCA and B.Tech departments have been published on the student portal. Exam forms close this Friday at 5:00 PM.',
+    createdAt: '2026-09-26T10:00:00Z',
+    isFlaggedForRagebait: false
+  },
+  {
+    id: 'smsg-2',
+    channelId: 'ch-anti-ragebait-forum',
+    authorId: 'user-junith',
+    authorName: 'Junith S',
+    authorRole: 'student',
+    authorHeadline: 'B.Tech AI & DS @ PSG Tech',
+    content: 'Reminder to all juniors: When discussing hostel food issues, please submit the specific mess hall number and date so the student welfare committee can present it constructively.',
+    createdAt: '2026-09-26T14:15:00Z',
+    isFlaggedForRagebait: false
+  },
+  {
+    id: 'smsg-3',
+    channelId: 'ch-placement-desk',
+    authorId: 'user-karthik',
+    authorName: 'Karthik Raja',
+    authorRole: 'alumni',
+    authorHeadline: 'Software Engineer II @ Microsoft',
+    content: 'For everyone asking about the Microsoft campus drive: Expect 1 online assessment (OA) on HackerRank (3 questions: Array, Graph/Tree, and DP) followed by 3 technical rounds focusing on clean code, edge cases, and time/space complexity.',
+    createdAt: '2026-09-26T16:20:00Z',
+    isFlaggedForRagebait: false
+  },
+  {
+    id: 'smsg-4',
+    channelId: 'ch-cse-mca-dept',
+    authorId: 'user-meenakshi',
+    authorName: 'Dr. Meenakshi Sundaram',
+    authorRole: 'faculty',
+    authorHeadline: 'Professor & Head of CSE @ PSG Tech',
+    content: 'The Department of Computer Science is conducting an open review session for final year project abstracts tomorrow from 2:00 PM to 4:30 PM in Lab 3.',
+    createdAt: '2026-09-26T18:00:00Z',
+    isFlaggedForRagebait: false
+  }
+];
+
+export const INITIAL_GRIEVANCE_REPORTS: PrivateGrievanceReport[] = [
+  {
+    id: 'grv-1',
+    studentId: 'user-arun',
+    studentName: 'Arun Prakash',
+    isAnonymousToFaculty: true,
+    targetInstitutionId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    category: 'classroom_issue',
+    targetFacultyName: 'Department Faculty Coordinator',
+    subjectOrCourse: 'Advanced Data Structures (MCA-204)',
+    detailedComplaint: 'The laboratory projector and AC system in CSE Room 304 have been malfunctioning for the last three weeks, causing difficulties during live code walkthroughs.',
+    submittedAt: '2026-09-25T11:00:00Z',
+    status: 'action_taken',
+    institutionRemarks: 'Maintenance work order #4102 issued. Projector replaced by campus IT department.'
   }
 ];

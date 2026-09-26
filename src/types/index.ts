@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'alumni' | 'staff' | 'institution' | 'admin';
+export type UserRole = 'student' | 'alumni' | 'institution' | 'faculty' | 'staff' | 'admin';
 
 export type ReviewerType = 'student' | 'alumni';
 
@@ -192,6 +192,16 @@ export interface Post {
   sharesCount: number;
   createdAt: string;
   moderationStatus: ModerationStatus;
+  repostedByInstitution?: {
+    institutionId: string;
+    institutionName: string;
+    repostedAt: string;
+  };
+  reportedByInstitution?: {
+    reportedAt: string;
+    reason: string;
+    institutionName: string;
+  };
 }
 
 export interface Community {
@@ -241,4 +251,58 @@ export interface VerificationRequest {
   status: VerificationStatus;
   submittedAt: string;
   adminNotes?: string;
+}
+
+// ------------------------------------------------------------------------
+// DISCORD-STYLE CAMPUS SERVER & CHANNEL MODELS
+// ------------------------------------------------------------------------
+export interface ServerMessage {
+  id: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorHeadline: string;
+  content: string;
+  createdAt: string;
+  isFlaggedForRagebait?: boolean;
+}
+
+export interface ServerChannel {
+  id: string;
+  name: string;
+  description: string;
+  type: 'general' | 'department' | 'placements' | 'alumni-guide' | 'anti-ragebait';
+  isRagebaitProtected: boolean;
+}
+
+export interface DiscordServer {
+  id: string;
+  name: string;
+  collegeId: string;
+  collegeName: string;
+  institutionOwnerId: string;
+  description: string;
+  memberCount: number;
+  channels: ServerChannel[];
+  antiRagebaitRules: string[];
+}
+
+// ------------------------------------------------------------------------
+// PRIVATE GRIEVANCE & FACULTY REPORT MODEL (Students -> Institution ID)
+// ------------------------------------------------------------------------
+export interface PrivateGrievanceReport {
+  id: string;
+  studentId: string;
+  studentName: string;
+  isAnonymousToFaculty: boolean;
+  targetInstitutionId: string;
+  collegeName: string;
+  category: 'classroom_issue' | 'faculty_conduct' | 'lab_infrastructure' | 'grading_dispute';
+  targetFacultyName?: string;
+  subjectOrCourse: string;
+  detailedComplaint: string;
+  submittedAt: string;
+  status: 'under_investigation' | 'resolved' | 'action_taken';
+  institutionRemarks?: string;
 }
