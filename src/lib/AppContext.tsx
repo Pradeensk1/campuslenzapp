@@ -12,7 +12,8 @@ import {
   DiscordServer,
   ServerChannel,
   ServerMessage,
-  PrivateGrievanceReport
+  PrivateGrievanceReport,
+  DirectMessage
 } from '@/types';
 import {
   INITIAL_USERS,
@@ -22,7 +23,8 @@ import {
   INITIAL_COMMUNITIES,
   INITIAL_DISCORD_SERVERS,
   INITIAL_SERVER_MESSAGES,
-  INITIAL_GRIEVANCE_REPORTS
+  INITIAL_GRIEVANCE_REPORTS,
+  INITIAL_DIRECT_MESSAGES
 } from './mockData';
 
 export interface RegisterPayload {
@@ -79,6 +81,9 @@ interface AppContextType {
   communities: Community[];
   servers: DiscordServer[];
   serverMessages: ServerMessage[];
+  directMessages: DirectMessage[];
+  sendDirectMessage: (receiverId: string, content: string) => DirectMessage;
+  toggleLikeDirectMessage: (messageId: string) => void;
   grievanceReports: PrivateGrievanceReport[];
   savedCollegeIds: string[];
   toggleSaveCollege: (collegeId: string) => void;
@@ -102,6 +107,10 @@ interface AppContextType {
     channels: ServerChannel[],
     antiRagebaitRules: string[]
   ) => DiscordServer;
+  addChannelToCommunity: (
+    serverId: string,
+    channel: Omit<ServerChannel, 'id'>
+  ) => ServerChannel;
   submitGrievanceReport: (
     data: Omit<PrivateGrievanceReport, 'id' | 'submittedAt' | 'status'>
   ) => PrivateGrievanceReport;
@@ -125,6 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [communities] = useState<Community[]>(INITIAL_COMMUNITIES);
   const [servers, setServers] = useState<DiscordServer[]>(INITIAL_DISCORD_SERVERS);
   const [serverMessages, setServerMessages] = useState<ServerMessage[]>(INITIAL_SERVER_MESSAGES);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>(INITIAL_DIRECT_MESSAGES);
   const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
   const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>(['col-psg']);
 
@@ -609,9 +619,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  // Discord-style Campus Servers: Send Message
+  // WhatsApp Community / Campus Servers: Send Message
   const sendServerMessage = (channelId: string, content: string) => {
     if (!content.trim()) return { success: false, message: 'Message cannot be empty.' };
+
+    // Check if channel is announcement-only and user is not an institution/admin
+    const currentServer = servers.find(s => s.channels.some(c => c.id === channelId));
+    const targetChannel = currentServer?.channels.find(c => c.id === channelId);
+    if (
+      targetChannel?.isAnnouncementOnly &&
+      currentUser.role !== 'institution' &&
+      currentUser.role !== 'admin'
+    ) {
+      return {
+        success: false,
+        message: 'Only Community Admins can post to this announcement group.'
+      };
+    }
 
     const toxicKeywords = ['rage', 'scam', 'hate', 'fraud', 'kill', 'idiot', 'dump'];
     const lower = content.toLowerCase();
@@ -631,6 +655,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setServerMessages(prev => [...prev, newMessage]);
     return { success: true };
+  };
+
+  // Instagram-style Direct Messages: Send Message
+  const sendDirectMessage = (receiverId: string, content: string): DirectMessage => {
+    const sortedIds = [currentUser.id, receiverId].sort();
+    const conversationId = `conv-${sortedIds[0]}-${sortedIds[1]}`;
+    const newMsg: DirectMessage = {
+      id: `dm-${Date.now()}`,
+      conversationId,
+      senderId: currentUser.id,
+      receiverId,
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+      isRead: false
+    };
+    setDirectMessages(prev => [...prev, newMsg]);
+    return newMsg;
+  };
+
+  // Instagram-style Direct Messages: Toggle Heart Reaction
+  const toggleLikeDirectMessage = (messageId: string) => {
+    setDirectMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, liked: !m.liked } : m))
+    );
   };
 
   // Institution Server Builder
@@ -675,6 +723,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setServers(prev => [newServer, ...prev]);
     return newServer;
+  };
+
+  // Add Sub-Group / Channel to WhatsApp Community
+  const addChannelToCommunity = (
+    serverId: string,
+    channelData: Omit<ServerChannel, 'id'>
+  ): ServerChannel => {
+    const newChannel: ServerChannel = {
+      ...channelData,
+      id: `ch-${Date.now()}`
+    };
+    setServers(prev =>
+      prev.map(s => {
+        if (s.id === serverId) {
+          return {
+            ...s,
+            channels: [...s.channels, newChannel]
+          };
+        }
+        return s;
+      })
+    );
+    return newChannel;
   };
 
   // Private Student Grievance Submission to Institution ID
@@ -841,6 +912,9 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         communities,
         servers,
         serverMessages,
+        directMessages,
+        sendDirectMessage,
+        toggleLikeDirectMessage,
         grievanceReports,
         savedCollegeIds,
         toggleSaveCollege,
@@ -858,6 +932,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         deletePost,
         sendServerMessage,
         createDiscordServer,
+        addChannelToCommunity,
         submitGrievanceReport,
         resolveGrievanceReport,
         executeAdminTerminalCommand

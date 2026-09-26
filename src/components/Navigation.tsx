@@ -19,7 +19,9 @@ import {
   Building2,
   Briefcase,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  Send,
+  Users
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion } from 'framer-motion';
@@ -39,7 +41,8 @@ export default function Navigation() {
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Explore', href: '/explore', icon: Compass },
     { label: 'Compare', href: '/compare', icon: Scale },
-    { label: 'Servers', href: '/servers', icon: MessageSquare },
+    { label: 'Communities', href: '/servers', icon: Users },
+    { label: 'Messages', href: '/messages', icon: Send },
     { label: 'Grievance', href: '/grievance', icon: Shield },
     ...(currentUser.role === 'admin'
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]
@@ -186,13 +189,14 @@ export default function Navigation() {
 
       {/* Mobile-First Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-[#E2E8F0] bg-white shadow-lg md:hidden">
-        <div className="grid h-16 grid-cols-6 items-center px-1">
+        <div className="grid h-16 grid-cols-7 items-center px-1">
           {[
             { label: 'Home', href: '/', icon: Home },
             { label: 'Search', href: '/search', icon: Search },
             { label: 'Explore', href: '/explore', icon: Compass },
             { label: 'Compare', href: '/compare', icon: Scale },
-            { label: 'Servers', href: '/servers', icon: MessageSquare },
+            { label: 'Groups', href: '/servers', icon: Users },
+            { label: 'DMs', href: '/messages', icon: Send },
             { label: 'Profile', href: `/user/${currentUser.username}`, icon: User }
           ].map((item) => {
             const Icon = item.icon;

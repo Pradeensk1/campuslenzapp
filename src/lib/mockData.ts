@@ -6,7 +6,8 @@ import {
   UserProfile,
   DiscordServer,
   ServerMessage,
-  PrivateGrievanceReport
+  PrivateGrievanceReport,
+  DirectMessage
 } from '@/types';
 
 export const INITIAL_USERS: UserProfile[] = [
@@ -713,38 +714,44 @@ export const INITIAL_DISCORD_SERVERS: DiscordServer[] = [
     channels: [
       {
         id: 'ch-announcements',
-        name: 'official-announcements',
+        name: 'Official Announcements',
         description: 'Direct university broadcasts, exam dates, and semester schedules.',
-        type: 'general',
-        isRagebaitProtected: true
+        type: 'announcements',
+        isRagebaitProtected: true,
+        isAnnouncementOnly: true,
+        memberCount: 840
       },
       {
         id: 'ch-anti-ragebait-forum',
         name: 'ragebait-shielded-campus-hall',
         description: 'Special discussion space strictly moderated to prevent toxicity & sensationalism.',
         type: 'anti-ragebait',
-        isRagebaitProtected: true
+        isRagebaitProtected: true,
+        memberCount: 790
       },
       {
         id: 'ch-cse-mca-dept',
         name: 'dept-computer-science-mca',
         description: 'Department projects, syllabus inquiries, and research lab coordination.',
         type: 'department',
-        isRagebaitProtected: false
+        isRagebaitProtected: false,
+        memberCount: 312
       },
       {
         id: 'ch-placement-desk',
         name: 'placement-interview-intel',
         description: 'Real-time company interview reports, interview rounds, and alumni tips.',
         type: 'placements',
-        isRagebaitProtected: true
+        isRagebaitProtected: true,
+        memberCount: 650
       },
       {
         id: 'ch-alumni-mentoring',
         name: 'alumni-career-guidance',
         description: 'Alumni sharing industry experiences and resume advice for junior students.',
         type: 'alumni-guide',
-        isRagebaitProtected: false
+        isRagebaitProtected: false,
+        memberCount: 420
       }
     ]
   },
@@ -762,18 +769,29 @@ export const INITIAL_DISCORD_SERVERS: DiscordServer[] = [
     ],
     channels: [
       {
+        id: 'ch-ceg-announcements',
+        name: 'CEG Official Broadcasts',
+        description: 'Official Anna University & CEG Dean office announcements.',
+        type: 'announcements',
+        isRagebaitProtected: true,
+        isAnnouncementOnly: true,
+        memberCount: 650
+      },
+      {
         id: 'ch-ceg-general',
         name: 'campus-general',
         description: 'General student discussions and campus life questions.',
         type: 'general',
-        isRagebaitProtected: false
+        isRagebaitProtected: false,
+        memberCount: 580
       },
       {
         id: 'ch-ceg-ragebait',
         name: 'moderated-student-concerns',
         description: 'Shielded channel for campus queries with strict moderation.',
         type: 'anti-ragebait',
-        isRagebaitProtected: true
+        isRagebaitProtected: true,
+        memberCount: 430
       }
     ]
   }
@@ -843,3 +861,81 @@ export const INITIAL_GRIEVANCE_REPORTS: PrivateGrievanceReport[] = [
     institutionRemarks: 'Maintenance work order #4102 issued. Projector replaced by campus IT department.'
   }
 ];
+
+export const INITIAL_DIRECT_MESSAGES: DirectMessage[] = [
+  {
+    id: 'dm-1',
+    conversationId: 'conv-junith-karthik',
+    senderId: 'user-junith',
+    receiverId: 'user-karthik',
+    content: 'Hi Karthik bro! Wanted to ask about the coding interview rounds for the Microsoft campus drive.',
+    createdAt: '2026-09-26T09:30:00Z',
+    isRead: true
+  },
+  {
+    id: 'dm-2',
+    conversationId: 'conv-junith-karthik',
+    senderId: 'user-karthik',
+    receiverId: 'user-junith',
+    content: 'Hey Junith! Happy to guide you. Focus heavily on Trees, Graphs, and DP problems on LeetCode. Also be prepared to explain your Next.js project architecture in detail!',
+    createdAt: '2026-09-26T09:35:00Z',
+    isRead: true,
+    liked: true
+  },
+  {
+    id: 'dm-3',
+    conversationId: 'conv-junith-karthik',
+    senderId: 'user-junith',
+    receiverId: 'user-karthik',
+    content: 'That is super helpful! How was the system design round for new grads?',
+    createdAt: '2026-09-26T09:40:00Z',
+    isRead: true
+  },
+  {
+    id: 'dm-4',
+    conversationId: 'conv-junith-karthik',
+    senderId: 'user-karthik',
+    receiverId: 'user-junith',
+    content: 'For freshers, system design focuses on clean OOP design, RESTful APIs, and DB schema modeling. Keep it structured and handle edge cases.',
+    createdAt: '2026-09-26T09:45:00Z',
+    isRead: true
+  },
+  {
+    id: 'dm-5',
+    conversationId: 'conv-junith-meenakshi',
+    senderId: 'user-junith',
+    receiverId: 'user-meenakshi',
+    content: 'Good evening Professor, submitted the final year research paper abstract on LLM Agent Systems.',
+    createdAt: '2026-09-26T16:00:00Z',
+    isRead: true
+  },
+  {
+    id: 'dm-6',
+    conversationId: 'conv-junith-meenakshi',
+    senderId: 'user-meenakshi',
+    receiverId: 'user-junith',
+    content: 'Good evening Junith. Reviewed your abstract. The methodology looks solid. Let us schedule the department demo this Thursday at 3:00 PM in Lab 3.',
+    createdAt: '2026-09-26T16:20:00Z',
+    isRead: true,
+    liked: true
+  },
+  {
+    id: 'dm-7',
+    conversationId: 'conv-junith-priya',
+    senderId: 'user-priya',
+    receiverId: 'user-junith',
+    content: 'Hey Junith! Are you attending the KRIYA symposium hackathon this weekend?',
+    createdAt: '2026-09-26T17:15:00Z',
+    isRead: true
+  },
+  {
+    id: 'dm-8',
+    conversationId: 'conv-junith-priya',
+    senderId: 'user-junith',
+    receiverId: 'user-priya',
+    content: 'Yes Priya! Our team is finalizing our prototype. Let us connect at the CSE seminar hall.',
+    createdAt: '2026-09-26T17:18:00Z',
+    isRead: true
+  }
+];
+

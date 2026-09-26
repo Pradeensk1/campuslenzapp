@@ -226,6 +226,7 @@ export interface DirectMessage {
   content: string;
   createdAt: string;
   isRead: boolean;
+  liked?: boolean;
 }
 
 export interface MessageRequest {
@@ -272,8 +273,10 @@ export interface ServerChannel {
   id: string;
   name: string;
   description: string;
-  type: 'general' | 'department' | 'placements' | 'alumni-guide' | 'anti-ragebait';
+  type: 'general' | 'department' | 'placements' | 'alumni-guide' | 'anti-ragebait' | 'announcements';
   isRagebaitProtected: boolean;
+  isAnnouncementOnly?: boolean;
+  memberCount?: number;
 }
 
 export interface DiscordServer {
