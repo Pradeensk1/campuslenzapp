@@ -109,7 +109,7 @@ const ROLE_TABS: RoleTab[] = [
 
 export default function ProfessionalLoginPage() {
   const router = useRouter();
-  const { loginUser } = useApp();
+  const { loginUser, allUsers, initializeTestUser } = useApp();
 
   const [selectedPortal, setSelectedPortal] = useState<UserRole>('student');
   const [identifier, setIdentifier] = useState('');
@@ -133,6 +133,16 @@ export default function ProfessionalLoginPage() {
     setIdentifier(tab.demoUsername);
     setPassword('demo1234');
     setErrorMessage(null);
+  };
+
+  const handleInstantLaunch = (role: UserRole) => {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    const result = initializeTestUser(role);
+    setSuccessMessage(`${result.message} Directing to destination...`);
+    setTimeout(() => {
+      router.push(result.redirectUrl);
+    }, 500);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -225,6 +235,26 @@ export default function ProfessionalLoginPage() {
                 <p className="text-xs text-slate-500 mt-1">{activeTab.tagline}</p>
               </div>
             </div>
+
+            {/* Fresh Platform Reset Banner */}
+            {allUsers.length === 0 && (
+              <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-sky-950 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-sky-600 shrink-0" />
+                  <div>
+                    <span className="font-bold text-sky-900">Database is Fresh & Empty (0 users).</span>
+                    <p className="text-[11px] text-sky-700">Register a new profile or launch an instant test session.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleInstantLaunch(selectedPortal)}
+                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-1 shadow-xs"
+                >
+                  <span>⚡ Launch Test {activeTab.label}</span>
+                </button>
+              </div>
+            )}
 
             {/* Error & Success Feedback */}
             {errorMessage && (

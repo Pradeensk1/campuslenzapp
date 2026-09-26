@@ -11,7 +11,7 @@ interface PinterestModalProps {
   onClose: () => void;
   onLike: (postId: string) => void;
   onComment: (postId: string, text: string) => void;
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
 }
 
 export default function PinterestImageModal({
@@ -26,10 +26,11 @@ export default function PinterestImageModal({
 
   if (!post || !post.imageUrl) return null;
 
-  const isLiked = post.likes.includes(currentUser.id);
+  const isLiked = currentUser ? post.likes.includes(currentUser.id) : false;
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     if (!commentText.trim()) return;
     onComment(post.id, commentText);
     setCommentText('');

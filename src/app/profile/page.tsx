@@ -18,6 +18,34 @@ export default function ProfilePage() {
   const [docNotes, setDocNotes] = useState('');
   const [verificationSubmitted, setVerificationSubmitted] = useState(false);
 
+  if (!currentUser) {
+    return (
+      <div className="apple-card p-12 text-center max-w-lg mx-auto space-y-4 my-12">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-2xl font-bold">
+          <User className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Sign In to View Profile</h2>
+        <p className="text-xs text-slate-500">
+          Your profile, saved colleges, and verification details are linked to your authenticated account.
+        </p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Link
+            href="/login"
+            className="apple-button-primary text-xs font-bold py-2.5 px-5"
+          >
+            Sign In to Account
+          </Link>
+          <Link
+            href="/register"
+            className="apple-button-secondary text-xs font-bold py-2.5 px-5"
+          >
+            Register Fresh
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}

@@ -60,7 +60,7 @@ Developer environment initialized. Type 'help' to view available system commands
     terminalBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [terminalHistory]);
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
 
   const handleTerminalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +163,11 @@ Developer environment initialized. Type 'help' to view available system commands
               Administrative Verification Required
             </div>
             <p className="text-xs leading-relaxed text-amber-800">
-              You are currently authenticated as <strong>{currentUser.fullName} ({currentUser.role})</strong>.
+              {currentUser ? (
+                <>You are currently authenticated as <strong>{currentUser.fullName} ({currentUser.role})</strong>.</>
+              ) : (
+                <>You are currently browsing as a <strong>Guest Visitor</strong>.</>
+              )}{' '}
               Developer terminal features and global post deletion authority are restricted to the <strong>Super Administrator</strong> role.
             </p>
             <Link

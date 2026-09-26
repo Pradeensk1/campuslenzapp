@@ -143,8 +143,8 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
   const canPostInCommunityGroup =
     !isAnnouncementGroup ||
-    currentUser.role === 'institution' ||
-    currentUser.role === 'admin';
+    currentUser?.role === 'institution' ||
+    currentUser?.role === 'admin';
 
   const announcementGroups = useMemo(() => {
     return (
@@ -287,6 +287,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   // TAB 2: INSTAGRAM DIRECT MESSAGES STATE & LOGIC
   // =========================================================================
   const initialPartnerId = useMemo(() => {
+    if (!currentUser) return null;
     const lastMsg = directMessages
       .filter((m) => m.senderId === currentUser.id || m.receiverId === currentUser.id)
       .slice(-1)[0];
@@ -297,7 +298,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     }
     const otherUser = allUsers.find((u) => u.id !== currentUser.id);
     return otherUser ? otherUser.id : null;
-  }, [directMessages, currentUser.id, allUsers]);
+  }, [directMessages, currentUser?.id, allUsers]);
 
   const [activePartnerId, setActivePartnerId] = useState<string | null>(initialPartnerId);
   const activePartner = useMemo(() => {
@@ -312,6 +313,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   const directMessagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConversations = useMemo(() => {
+    if (!currentUser) return [];
     const partnerMap = new Map<string, DirectMessage[]>();
 
     directMessages.forEach((msg) => {
@@ -352,7 +354,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     );
 
     return list;
-  }, [directMessages, currentUser.id, allUsers]);
+  }, [directMessages, currentUser?.id, allUsers]);
 
   const filteredConversations = useMemo(() => {
     if (!conversationsSearch.trim()) return activeConversations;
@@ -366,7 +368,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   }, [activeConversations, conversationsSearch]);
 
   const currentChatMessages = useMemo(() => {
-    if (!activePartner) return [];
+    if (!activePartner || !currentUser) return [];
     return directMessages
       .filter(
         (m) =>
@@ -374,7 +376,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
           (m.senderId === activePartner.id && m.receiverId === currentUser.id)
       )
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [directMessages, currentUser.id, activePartner]);
+  }, [directMessages, currentUser?.id, activePartner]);
 
   useEffect(() => {
     if (activeTab === 'messages') {
@@ -383,6 +385,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   }, [currentChatMessages, activeTab]);
 
   const candidateUsers = useMemo(() => {
+    if (!currentUser) return [];
     const list = allUsers.filter((u) => u.id !== currentUser.id);
     if (!userSearchQuery.trim()) return list;
     const q = userSearchQuery.toLowerCase();
@@ -393,7 +396,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
         u.collegeName?.toLowerCase().includes(q) ||
         u.role.toLowerCase().includes(q)
     );
-  }, [allUsers, currentUser.id, userSearchQuery]);
+  }, [allUsers, currentUser?.id, userSearchQuery]);
 
   const handleSendDirectMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +421,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   // TAB 3: PRIVATE GRIEVANCE STATE & LOGIC
   // =========================================================================
   const [targetCollegeId, setTargetCollegeId] = useState(
-    currentUser.collegeId || colleges[0]?.id || 'col-psg'
+    currentUser?.collegeId || colleges[0]?.id || 'col-psg'
   );
   const [category, setCategory] = useState<PrivateGrievanceReport['category']>('faculty_conduct');
   const [targetFacultyName, setTargetFacultyName] = useState('');
@@ -434,13 +437,13 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   >('action_taken');
 
   const isInstitutionOrAdmin =
-    currentUser.role === 'institution' || currentUser.role === 'admin';
+    currentUser?.role === 'institution' || currentUser?.role === 'admin';
 
-  const studentReports = grievanceReports.filter(
-    (r) => r.studentId === currentUser.id
-  );
+  const studentReports = currentUser
+    ? grievanceReports.filter((r) => r.studentId === currentUser.id)
+    : [];
 
-  const institutionReports = isInstitutionOrAdmin
+  const institutionReports = isInstitutionOrAdmin && currentUser
     ? currentUser.role === 'admin'
       ? grievanceReports
       : grievanceReports.filter(
@@ -453,7 +456,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
   const handleStudentGrievanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!detailedComplaint.trim() || !subjectOrCourse.trim()) return;
+    if (!currentUser || !detailedComplaint.trim() || !subjectOrCourse.trim()) return;
 
     const matchedCollege = colleges.find((c) => c.id === targetCollegeId);
 
@@ -504,6 +507,39 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
         return 'bg-blue-50 text-blue-700 border-blue-200';
     }
   };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto text-center bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-sm">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xs">
+            <MessageSquare className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-3">
+            Campus Connect Hub
+          </h2>
+          <p className="text-slate-600 max-w-md mx-auto mb-8 text-sm leading-relaxed">
+            Join institution community channels, engage in Instagram-style direct chats with verified peers, or submit confidential grievances to college administrations.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition shadow-xs flex items-center justify-center gap-2"
+            >
+              Sign In to Your Account
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/register"
+              className="w-full sm:w-auto px-6 py-3 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200 transition flex items-center justify-center"
+            >
+              Create Fresh Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-4 px-2 sm:px-6 lg:px-8">

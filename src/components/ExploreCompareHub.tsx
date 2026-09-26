@@ -503,7 +503,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {trendingPosts.slice(0, 4).map((post, idx) => {
-                  const isLiked = post.likes.includes(currentUser.id);
+                  const isLiked = currentUser ? post.likes.includes(currentUser.id) : false;
                   return (
                     <div key={post.id} className="apple-card apple-card-hover p-6 flex flex-col justify-between space-y-3">
                       <div>
@@ -649,7 +649,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {featuredMentors.map(mentor => {
-                  const isFollowing = currentUser.following.includes(mentor.id);
+                  const isFollowing = currentUser ? currentUser.following.includes(mentor.id) : false;
                   return (
                     <div key={mentor.id} className="apple-card p-5 text-center flex flex-col justify-between space-y-4">
                       <div>

@@ -36,33 +36,37 @@ export default function Navigation() {
     router.push('/login');
   };
 
+  const isAdmin = currentUser?.role === 'admin';
+
   const navItems = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Explore & Compare', href: '/explore', icon: Compass },
     { label: 'Connect Hub', href: '/connect', icon: MessageSquare },
-    ...(currentUser.role === 'admin'
+    ...(isAdmin
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]
       : []),
-    { label: 'Profile', href: `/user/${currentUser.username}`, icon: User },
+    ...(currentUser
+      ? [{ label: 'Profile', href: `/user/${currentUser.username}`, icon: User }]
+      : []),
   ];
 
   const roleColorBadge =
-    currentUser.role === 'institution'
+    currentUser?.role === 'institution'
       ? 'bg-purple-50 text-purple-700 border-purple-200'
-      : currentUser.role === 'alumni'
+      : currentUser?.role === 'alumni'
       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      : currentUser.role === 'faculty'
+      : currentUser?.role === 'faculty'
       ? 'bg-amber-50 text-amber-700 border-amber-200'
-      : currentUser.role === 'admin'
+      : currentUser?.role === 'admin'
       ? 'bg-rose-50 text-rose-700 border-rose-200'
       : 'bg-blue-50 text-blue-700 border-blue-200';
 
   const RoleIcon =
-    currentUser.role === 'institution' ? Building2 :
-    currentUser.role === 'alumni' ? Briefcase :
-    currentUser.role === 'faculty' ? BookOpen :
-    currentUser.role === 'admin' ? Terminal :
+    currentUser?.role === 'institution' ? Building2 :
+    currentUser?.role === 'alumni' ? Briefcase :
+    currentUser?.role === 'faculty' ? BookOpen :
+    currentUser?.role === 'admin' ? Terminal :
     GraduationCap;
 
   return (
@@ -134,7 +138,7 @@ export default function Navigation() {
 
           {/* Professional User Authentication Section (No Inbuilt Role Switcher!) */}
           <div className="flex items-center space-x-2 flex-shrink-0">
-            {isAuthenticated ? (
+            {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2">
                 {/* User Info Capsule */}
                 <Link
@@ -198,7 +202,9 @@ export default function Navigation() {
             { label: 'Search', href: '/search', icon: Search },
             { label: 'Explore', href: '/explore', icon: Compass },
             { label: 'Connect', href: '/connect', icon: MessageSquare },
-            { label: 'Profile', href: `/user/${currentUser.username}`, icon: User }
+            currentUser
+              ? { label: 'Profile', href: `/user/${currentUser.username}`, icon: User }
+              : { label: 'Sign In', href: '/login', icon: LogIn }
           ].map((item) => {
             const Icon = item.icon;
             const isConnect = item.href === '/connect';

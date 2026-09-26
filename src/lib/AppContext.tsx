@@ -60,11 +60,12 @@ export const getRedirectUrlForRole = (role: UserRole): string => {
 };
 
 interface AppContextType {
-  currentUser: UserProfile;
+  currentUser: UserProfile | null;
   isAuthenticated: boolean;
-  setCurrentUser: (user: UserProfile) => void;
+  setCurrentUser: (user: UserProfile | null) => void;
   switchRole: (role: UserRole, targetUsername?: string) => void;
   loginAsRole: (role: UserRole, specificUsername?: string) => void;
+  initializeTestUser: (role: UserRole) => { user: UserProfile; redirectUrl: string; message: string };
   loginUser: (
     identifier: string,
     password?: string,
@@ -205,47 +206,53 @@ const DYNAMIC_CAMPUS_FEED_POOL: Array<Omit<Post, 'id' | 'createdAt' | 'likes' | 
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [colleges] = useState<College[]>(INITIAL_COLLEGES);
   const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
-  const [communities] = useState<Community[]>(INITIAL_COMMUNITIES);
+  const [communities, setCommunities] = useState<Community[]>(INITIAL_COMMUNITIES);
   const [servers, setServers] = useState<DiscordServer[]>(INITIAL_DISCORD_SERVERS);
   const [serverMessages, setServerMessages] = useState<ServerMessage[]>(INITIAL_SERVER_MESSAGES);
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>(INITIAL_DIRECT_MESSAGES);
   const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
-  const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>(['col-psg']);
+  const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>([]);
 
   // Dynamic Live Feed & Real-Time Engine State
   const [hasHydrated, setHasHydrated] = useState<boolean>(false);
-  const [isLiveFeedActive, setIsLiveFeedActive] = useState<boolean>(true);
+  const [isLiveFeedActive, setIsLiveFeedActive] = useState<boolean>(false);
   const [stagedLivePosts, setStagedLivePosts] = useState<Post[]>([]);
 
   // 1. Hydrate and Clean Legacy Storage on Initial Client Mount
   useEffect(() => {
     try {
       // Clean legacy mock user traces if present
-      if (!localStorage.getItem('campuslenz_v4_purged')) {
+      if (!localStorage.getItem('CL_FRESH_DB_V5_PURGED')) {
         localStorage.removeItem('campus_lenz_user');
         localStorage.removeItem('campus_lenz_auth');
         localStorage.removeItem('campus_lenz_saved');
+        localStorage.removeItem('campuslenz_v4_purged');
         localStorage.removeItem('CL_DYNAMIC_DB_V3');
-        localStorage.setItem('campuslenz_v4_purged', 'true');
+        localStorage.removeItem('CL_DYNAMIC_DB_V4');
+        localStorage.setItem('CL_FRESH_DB_V5_PURGED', 'true');
       }
 
-      const rawDb = localStorage.getItem('CL_DYNAMIC_DB_V4');
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V5');
       if (rawDb) {
         const parsed = JSON.parse(rawDb);
-        if (parsed.allUsers && parsed.allUsers.length > 0) setAllUsers(parsed.allUsers);
-        if (parsed.currentUser) setCurrentUser(parsed.currentUser);
-        if (parsed.posts && parsed.posts.length > 0) setPosts(parsed.posts);
-        if (parsed.reviews) setReviews(parsed.reviews);
-        if (parsed.servers) setServers(parsed.servers);
-        if (parsed.serverMessages) setServerMessages(parsed.serverMessages);
-        if (parsed.directMessages) setDirectMessages(parsed.directMessages);
-        if (parsed.grievanceReports) setGrievanceReports(parsed.grievanceReports);
-        if (parsed.savedCollegeIds) setSavedCollegeIds(parsed.savedCollegeIds);
+        if (parsed.allUsers && Array.isArray(parsed.allUsers)) setAllUsers(parsed.allUsers);
+        if (parsed.currentUser) {
+          setCurrentUser(parsed.currentUser);
+          setIsAuthenticated(true);
+        }
+        if (parsed.posts && Array.isArray(parsed.posts)) setPosts(parsed.posts);
+        if (parsed.reviews && Array.isArray(parsed.reviews)) setReviews(parsed.reviews);
+        if (parsed.communities && Array.isArray(parsed.communities)) setCommunities(parsed.communities);
+        if (parsed.servers && Array.isArray(parsed.servers)) setServers(parsed.servers);
+        if (parsed.serverMessages && Array.isArray(parsed.serverMessages)) setServerMessages(parsed.serverMessages);
+        if (parsed.directMessages && Array.isArray(parsed.directMessages)) setDirectMessages(parsed.directMessages);
+        if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports)) setGrievanceReports(parsed.grievanceReports);
+        if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) setSavedCollegeIds(parsed.savedCollegeIds);
       }
     } catch (e) {
       console.error('Storage hydration error:', e);
@@ -263,15 +270,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         posts,
         reviews,
+        communities,
         servers,
         serverMessages,
         directMessages,
         grievanceReports,
         savedCollegeIds
       };
-      localStorage.setItem('CL_DYNAMIC_DB_V4', JSON.stringify(dataToSave));
-      localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
-      localStorage.setItem('campus_lenz_auth', isAuthenticated ? 'true' : 'false');
+      localStorage.setItem('CL_FRESH_DB_V5', JSON.stringify(dataToSave));
+      if (currentUser) {
+        localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
+        localStorage.setItem('campus_lenz_auth', 'true');
+      } else {
+        localStorage.removeItem('campus_lenz_user');
+        localStorage.setItem('campus_lenz_auth', 'false');
+      }
     } catch {}
   }, [
     hasHydrated,
@@ -280,6 +293,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     posts,
     reviews,
+    communities,
     servers,
     serverMessages,
     directMessages,
@@ -308,9 +322,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         moderationStatus: 'normal'
       };
 
-      // Automatically apply new dynamic update directly to the live feed!
       setPosts(prev => [newPost, ...prev]);
-    }, 28000); // New dynamic event every 28 seconds automatically
+    }, 28000);
 
     return () => clearInterval(interval);
   }, [hasHydrated, isLiveFeedActive]);
@@ -342,23 +355,100 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Complete Data Wipe & Reset Engine
   const resetAllUserData = () => {
     try {
+      localStorage.removeItem('CL_FRESH_DB_V5');
       localStorage.removeItem('CL_DYNAMIC_DB_V4');
       localStorage.removeItem('campus_lenz_user');
       localStorage.removeItem('campus_lenz_auth');
       localStorage.removeItem('campus_lenz_saved');
     } catch {}
 
-    setAllUsers(INITIAL_USERS);
-    setCurrentUser(INITIAL_USERS[0]);
-    setIsAuthenticated(true);
-    setPosts(INITIAL_POSTS);
-    setReviews(INITIAL_REVIEWS);
-    setServers(INITIAL_DISCORD_SERVERS);
-    setServerMessages(INITIAL_SERVER_MESSAGES);
-    setDirectMessages(INITIAL_DIRECT_MESSAGES);
-    setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
-    setSavedCollegeIds(['col-psg']);
+    setAllUsers([]);
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setPosts([]);
+    setReviews([]);
+    setCommunities([]);
+    setServers([]);
+    setServerMessages([]);
+    setDirectMessages([]);
+    setGrievanceReports([]);
+    setSavedCollegeIds([]);
     setStagedLivePosts([]);
+    setIsLiveFeedActive(false);
+  };
+
+  // Initialize a fresh test persona on demand for seamless instant role testing
+  const initializeTestUser = (
+    role: UserRole
+  ): { user: UserProfile; redirectUrl: string; message: string } => {
+    const existing = allUsers.find(u => u.role === role);
+    if (existing) {
+      setCurrentUser(existing);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('campus_lenz_user', JSON.stringify(existing));
+        localStorage.setItem('campus_lenz_auth', 'true');
+      } catch {}
+      return {
+        user: existing,
+        redirectUrl: getRedirectUrlForRole(existing.role),
+        message: `Signed in as [${role.toUpperCase()}]: ${existing.fullName}`
+      };
+    }
+
+    const testPersona: UserProfile = {
+      id: `user-${role}-${Date.now()}`,
+      username: `${role}_demo`,
+      email: `${role}@campuslenz.edu`,
+      role,
+      fullName:
+        role === 'student'
+          ? 'Verified Campus Student'
+          : role === 'alumni'
+          ? 'Alumni Industry Mentor'
+          : role === 'institution'
+          ? 'PSG Tech Administration'
+          : role === 'faculty'
+          ? 'Dr. Academic Faculty Guide'
+          : 'Campus Lenz Super Admin',
+      headline:
+        role === 'student'
+          ? 'B.Tech CSE @ PSG Tech | Aspiring Software Engineer'
+          : role === 'alumni'
+          ? 'Senior Software Engineer | Campus Alumnus & Mentor'
+          : role === 'institution'
+          ? 'Official Campus Administration Desk • PSG Tech'
+          : role === 'faculty'
+          ? 'Professor & Head of Department'
+          : 'Platform Lead Developer & Trust Administrator',
+      bio: `Active ${role} profile on Campus Lenz.`,
+      collegeId: 'col-psg',
+      collegeName: 'PSG College of Technology',
+      department: 'Computer Science & Engineering',
+      course: role === 'student' ? 'B.Tech CSE' : undefined,
+      graduationBatch: role === 'student' ? '2026' : role === 'alumni' ? '2023' : undefined,
+      isVerified: true,
+      followersCount: 0,
+      followingCount: 0,
+      followers: [],
+      following: [],
+      createdAt: new Date().toISOString()
+    };
+
+    setAllUsers(prev => [testPersona, ...prev]);
+    setCurrentUser(testPersona);
+    setIsAuthenticated(true);
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(testPersona));
+      localStorage.setItem('campus_lenz_auth', 'true');
+    } catch {}
+
+    return {
+      user: testPersona,
+      redirectUrl: getRedirectUrlForRole(testPersona.role),
+      message: `Initialized and signed in as [${testPersona.role.toUpperCase()}]: ${testPersona.fullName}!`
+    };
   };
 
   // Professional Login Method: verifies identifier against database & computes proper destination
@@ -381,7 +471,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
     );
 
-    // 2. If not matched by exact text, check if identifier matches demo handles or role fallback
+    // 2. If not matched by exact text, check if identifier matches portalRole
     if (!matched && portalRole) {
       matched = allUsers.find(u => u.role === portalRole);
     }
@@ -390,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return {
         success: false,
         redirectUrl: '/login',
-        message: `Account "${identifier}" not found. Please verify your credentials or register a test account.`
+        message: `Account "${identifier}" not found in database. Please register your account or click "Quick Initialize Test Account".`
       };
     }
 
@@ -450,17 +540,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : 'Campus Lenz Super Administrator'),
       bio:
         data.bio?.trim() ||
-        `Verified ${data.role} account created on Campus Lenz for platform testing.`,
+        `Verified ${data.role} account created on Campus Lenz.`,
       collegeId: data.collegeId || 'col-psg',
       collegeName: data.collegeName || 'PSG College of Technology',
       department: data.department?.trim() || 'Computer Science',
       course: data.course?.trim(),
       graduationBatch: data.graduationBatch?.trim() || '2026',
       isVerified: true,
-      followersCount: 1,
-      followingCount: 1,
-      followers: ['user-alumni-demo'],
-      following: ['user-alumni-demo'],
+      followersCount: 0,
+      followingCount: 0,
+      followers: [],
+      following: [],
       createdAt: new Date().toISOString()
     };
 
@@ -499,47 +589,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('campus_lenz_auth', 'true');
       } catch {}
     } else {
-      const tempUser: UserProfile = {
-        id: `user-${role}-${Date.now()}`,
-        username: `${role}_portal`,
-        email: `${role}@campuslenz.org`,
-        role,
-        fullName:
-          role === 'institution'
-            ? 'PSG Tech Administration'
-            : role === 'faculty'
-            ? 'Dr. Academic Faculty'
-            : role === 'alumni'
-            ? 'Alumni Mentor'
-            : role === 'admin'
-            ? 'Super Administrator'
-            : 'Verified Student',
-        headline:
-          role === 'institution'
-            ? 'Official Campus Administration Desk'
-            : role === 'faculty'
-            ? 'Senior Assistant Professor & Academic Guide'
-            : role === 'alumni'
-            ? 'Distinguished Alumnus & Senior Engineer'
-            : role === 'admin'
-            ? 'Platform Lead Developer & Trust Admin'
-            : 'Enthusiastic Engineering Student',
-        collegeId: 'col-psg',
-        collegeName: 'PSG College of Technology',
-        isVerified: true,
-        followersCount: 150,
-        followingCount: 40,
-        followers: [],
-        following: [],
-        createdAt: new Date().toISOString()
-      };
-      setCurrentUser(tempUser);
-      setIsAuthenticated(true);
-      setAllUsers(prev => [tempUser, ...prev]);
-      try {
-        localStorage.setItem('campus_lenz_user', JSON.stringify(tempUser));
-        localStorage.setItem('campus_lenz_auth', 'true');
-      } catch {}
+      initializeTestUser(role);
     }
   };
 
@@ -549,12 +599,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setIsAuthenticated(false);
+    setCurrentUser(null);
     try {
       localStorage.removeItem('campus_lenz_user');
       localStorage.setItem('campus_lenz_auth', 'false');
     } catch {}
-    // Reset to base persona for type safety on unauthenticated fallback views
-    setCurrentUser(INITIAL_USERS[0]);
   };
 
   const toggleSaveCollege = (collegeId: string) => {
@@ -580,6 +629,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Student Posting Capability Check
   const addPost = (newPost: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => {
+    if (!currentUser) {
+      return {
+        success: false,
+        message: 'Please sign in or register to publish a post.'
+      };
+    }
     if (currentUser.role === 'institution') {
       return {
         success: false,
@@ -606,41 +661,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setPosts(prev => [post, ...prev]);
 
-    // Live Social Interaction Simulation (like LinkedIn & Instagram)
-    if (isLiveFeedActive) {
-      setTimeout(() => {
-        setPosts(currentPosts =>
-          currentPosts.map(p => {
-            if (p.id !== post.id) return p;
-            const simComment: Comment = {
-              id: `comment-sim-${Date.now()}`,
-              postId: post.id,
-              authorId: 'user-alumni-demo',
-              authorUsername: 'alumni_mentor',
-              authorName: 'Alumni Industry Mentor',
-              authorRole: 'alumni',
-              authorHeadline: 'Senior Software Engineer @ Microsoft',
-              isVerifiedAuthor: true,
-              content: 'Great initiative! Really proud to see students building and sharing practical updates. Keep up the high momentum!',
-              createdAt: new Date().toISOString(),
-              likesCount: 2
-            };
-            return {
-              ...p,
-              likes: p.likes.includes('user-alumni-demo') ? p.likes : [...p.likes, 'user-alumni-demo'],
-              likesCount: p.likesCount + 1,
-              comments: [...p.comments, simComment],
-              commentsCount: p.commentsCount + 1
-            };
-          })
-        );
-      }, 5000);
-    }
-
     return { success: true };
   };
 
   const toggleLikePost = (postId: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to like posts.' };
     setPosts(prev =>
       prev.map(p => {
         if (p.id !== postId) return p;
@@ -659,6 +684,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addComment = (postId: string, content: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to comment.' };
     if (!content.trim()) return { success: false, message: 'Comment cannot be blank.' };
 
     const newComment: Comment = {
@@ -670,7 +696,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       authorRole: currentUser.role,
       authorHeadline: currentUser.headline,
       isVerifiedAuthor: currentUser.isVerified,
-      content,
+      content: content.trim(),
       createdAt: new Date().toISOString(),
       likesCount: 0
     };
@@ -690,7 +716,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Institution Repost Right
   const repostToInstitution = (postId: string) => {
-    if (currentUser.role !== 'institution' && currentUser.role !== 'admin') {
+    if (!currentUser || (currentUser.role !== 'institution' && currentUser.role !== 'admin')) {
       return {
         success: false,
         message: 'Only authorized Institution accounts can repost student posts to the official university profile.'
@@ -723,7 +749,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Institution False Information Report Right
   const reportFalseInfoPost = (postId: string, reason: string) => {
-    if (currentUser.role !== 'institution' && currentUser.role !== 'admin') {
+    if (!currentUser || (currentUser.role !== 'institution' && currentUser.role !== 'admin')) {
       return {
         success: false,
         message: 'Only registered Institutions and Admins can file institutional false information flags.'
@@ -754,15 +780,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deletePost = (postId: string) => {
-    if (currentUser.role !== 'admin') {
-      return { success: false, message: 'Only super administrators can delete posts globally.' };
+    const postToDelete = posts.find(p => p.id === postId);
+    if (!postToDelete) return { success: false, message: 'Post not found.' };
+
+    const isAuthor = currentUser && postToDelete.authorId === currentUser.id;
+    const isAdmin = currentUser?.role === 'admin';
+
+    if (!isAuthor && !isAdmin) {
+      return { success: false, message: 'Only post authors or administrators can delete posts.' };
     }
+
     setPosts(prev => prev.filter(p => p.id !== postId));
-    return { success: true, message: 'Post deleted permanently by Administrator.' };
+    return { success: true, message: 'Post deleted permanently.' };
   };
 
   const toggleFollowUser = (targetUserId: string) => {
-    if (targetUserId === currentUser.id) return;
+    if (!currentUser || targetUserId === currentUser.id) return;
 
     setAllUsers(prev =>
       prev.map(u => {
@@ -793,6 +826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     setCurrentUser(prev => {
+      if (!prev) return null;
       const isFollowing = prev.following.includes(targetUserId);
       const nextFollowing = isFollowing
         ? prev.following.filter(id => id !== targetUserId)
@@ -832,6 +866,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProfile = (updatedData: Partial<UserProfile>) => {
+    if (!currentUser) return;
     const updatedUser = { ...currentUser, ...updatedData };
     setCurrentUser(updatedUser);
     
@@ -857,6 +892,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // WhatsApp Community / Campus Servers: Send Message
   const sendServerMessage = (channelId: string, content: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to send messages.' };
     if (!content.trim()) return { success: false, message: 'Message cannot be empty.' };
 
     // Check if channel is announcement-only and user is not an institution/admin
@@ -895,12 +931,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Instagram-style Direct Messages: Send Message
   const sendDirectMessage = (receiverId: string, content: string): DirectMessage => {
-    const sortedIds = [currentUser.id, receiverId].sort();
+    const senderId = currentUser?.id || 'guest';
+    const sortedIds = [senderId, receiverId].sort();
     const conversationId = `conv-${sortedIds[0]}-${sortedIds[1]}`;
     const newMsg: DirectMessage = {
       id: `dm-${Date.now()}`,
       conversationId,
-      senderId: currentUser.id,
+      senderId,
       receiverId,
       content: content.trim(),
       createdAt: new Date().toISOString(),
@@ -930,8 +967,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: `server-${Date.now()}`,
       name,
       collegeId,
-      collegeName: matchedCol?.name || currentUser.collegeName || 'Official Institution Campus',
-      institutionOwnerId: currentUser.id,
+      collegeName: matchedCol?.name || currentUser?.collegeName || 'Official Institution Campus',
+      institutionOwnerId: currentUser?.id || 'inst-owner',
       description,
       memberCount: 1,
       channels: channels.length > 0 ? channels : [
@@ -1055,6 +1092,9 @@ Ragebait Shield : Active (Strict automated lexical filter + Cooldown timer)
 Grievance Tunnel: E2E Institution-Only Routed (Student PII protected)`;
 
       case 'whoami':
+        if (!currentUser) {
+          return `USER SESSION CONTEXT: No active authenticated user (Guest / Unauthenticated).`;
+        }
         return `USER SESSION CONTEXT:
   Username : ${currentUser.username}
   Full Name: ${currentUser.fullName}
@@ -1142,6 +1182,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         setCurrentUser,
         switchRole,
         loginAsRole,
+        initializeTestUser,
         loginUser,
         registerUser,
         logout,

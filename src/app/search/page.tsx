@@ -109,13 +109,15 @@ export default function SearchPage() {
 
             {matchedUsers.length === 0 ? (
               <p className="text-xs text-[#94A3B8] py-4 text-center">
-                No accounts found matching "{query}". Try searching "Junith" or "Karthik".
+                {allUsers.length === 0
+                  ? 'No accounts registered yet on the platform.'
+                  : `No accounts found matching "${query}".`}
               </p>
             ) : (
               <div className="divide-y divide-[#F1F5F9]">
                 {matchedUsers.map(user => {
-                  const isFollowing = currentUser.following.includes(user.id);
-                  const isSelf = user.id === currentUser.id;
+                  const isFollowing = currentUser ? currentUser.following.includes(user.id) : false;
+                  const isSelf = currentUser ? user.id === currentUser.id : false;
 
                   return (
                     <div

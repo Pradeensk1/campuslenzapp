@@ -42,8 +42,8 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
     notFound();
   }
 
-  const isSelf = profileUser.id === currentUser.id;
-  const isFollowing = currentUser.following.includes(profileUser.id);
+  const isSelf = currentUser ? profileUser.id === currentUser.id : false;
+  const isFollowing = currentUser ? currentUser.following.includes(profileUser.id) : false;
 
   // Get all posts authored by this specific user
   const userPosts = posts.filter((p) => p.authorId === profileUser.id);
@@ -202,7 +202,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
             </div>
           ) : (
             userPosts.map((post) => {
-              const isLiked = post.likes.includes(currentUser.id);
+              const isLiked = currentUser ? post.likes.includes(currentUser.id) : false;
               return (
                 <div key={post.id} className="apple-card p-6 space-y-3">
                   <div className="flex items-center justify-between text-xs text-[#64748B]">
@@ -292,12 +292,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
       />
 
       {/* EDIT PROFILE MODAL */}
-      <EditProfileModal
-        isOpen={isEditingProfile}
-        onClose={() => setIsEditingProfile(false)}
-        currentUser={currentUser}
-        onSave={updateProfile}
-      />
+      {currentUser && (
+        <EditProfileModal
+          isOpen={isEditingProfile}
+          onClose={() => setIsEditingProfile(false)}
+          currentUser={currentUser}
+          onSave={updateProfile}
+        />
+      )}
     </div>
   );
 }
