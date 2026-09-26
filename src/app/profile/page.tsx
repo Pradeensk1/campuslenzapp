@@ -7,7 +7,7 @@ import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 
 export default function ProfilePage() {
-  const { currentUser, colleges, savedCollegeIds, switchRole, updateProfile } = useApp();
+  const { currentUser, colleges, savedCollegeIds, updateProfile } = useApp();
   const [activeTab, setActiveTab] = useState<'details' | 'saved' | 'verification'>('details');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
@@ -57,25 +57,35 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Role Switching shortcuts */}
+          {/* Account Security & Sign Out Section */}
           <div className="flex flex-col space-y-2 text-xs">
             <span className="font-semibold text-[#64748B] uppercase tracking-wider text-[10px]">
-              Switch Testing Persona:
+              Active Session:
             </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(['student', 'alumni', 'institution', 'admin'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => switchRole(r)}
-                  className={`rounded-lg px-3 py-1.5 font-bold uppercase text-[10px] transition-all duration-200 ${
-                    currentUser?.role === r
-                      ? 'bg-[#2563EB] text-white shadow-xs'
-                      : 'border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]'
-                  }`}
+            <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-[#0F172A] capitalize">
+                  {currentUser?.role} Account
+                </span>
+                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Active
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 pt-1">
+                <Link
+                  href="/login"
+                  className="apple-button-secondary text-[10px] !py-1 !px-2.5 font-bold flex-1 text-center"
                 >
-                  {r}
-                </button>
-              ))}
+                  Switch Account
+                </Link>
+                <Link
+                  href="/login"
+                  className="apple-button-primary text-[10px] !py-1 !px-2.5 font-bold flex items-center justify-center gap-1"
+                >
+                  <LogOut className="h-3 w-3" />
+                  <span>Sign Out</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -167,7 +167,7 @@ export default function CampusServersPage() {
               href="/login"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors"
             >
-              Switch Role ({currentUser.role})
+              Sign Out
             </Link>
           </div>
         </div>
@@ -291,9 +291,9 @@ export default function CampusServersPage() {
               </div>
               <Link
                 href="/login"
-                className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-2 py-1 rounded-md hover:bg-slate-200/60"
+                className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2 py-1 rounded-md hover:bg-slate-200/60"
               >
-                Switch
+                Sign Out
               </Link>
             </div>
           </div>

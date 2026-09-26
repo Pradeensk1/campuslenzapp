@@ -152,7 +152,7 @@ export default function HomePage() {
                 className="w-full text-[11px] py-1.5 px-3 rounded-xl border border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1 font-semibold"
               >
                 <Lock className="w-3 h-3" />
-                <span>Switch Portal (5 Roles)</span>
+                <span>Switch Account / Sign In</span>
               </Link>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function HomePage() {
             href="/login"
             className="text-[11px] font-bold text-blue-600 hover:text-blue-800 whitespace-nowrap"
           >
-            Change Role
+            Switch Account
           </Link>
         </div>
 

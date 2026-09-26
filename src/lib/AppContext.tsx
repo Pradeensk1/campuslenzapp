@@ -25,11 +25,52 @@ import {
   INITIAL_GRIEVANCE_REPORTS
 } from './mockData';
 
+export interface RegisterPayload {
+  fullName: string;
+  username: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  headline?: string;
+  bio?: string;
+  collegeId?: string;
+  collegeName?: string;
+  department?: string;
+  course?: string;
+  graduationBatch?: string;
+}
+
+export const getRedirectUrlForRole = (role: UserRole): string => {
+  switch (role) {
+    case 'admin':
+      return '/admin';
+    case 'institution':
+      return '/servers';
+    case 'student':
+      return '/';
+    case 'alumni':
+      return '/';
+    case 'faculty':
+      return '/';
+    default:
+      return '/';
+  }
+};
+
 interface AppContextType {
   currentUser: UserProfile;
+  isAuthenticated: boolean;
   setCurrentUser: (user: UserProfile) => void;
   switchRole: (role: UserRole, targetUsername?: string) => void;
   loginAsRole: (role: UserRole, specificUsername?: string) => void;
+  loginUser: (
+    identifier: string,
+    password?: string,
+    portalRole?: UserRole
+  ) => { success: boolean; user?: UserProfile; redirectUrl: string; message: string };
+  registerUser: (
+    data: RegisterPayload
+  ) => { success: boolean; user: UserProfile; redirectUrl: string; message: string };
   logout: () => void;
   allUsers: UserProfile[];
   colleges: College[];
@@ -77,6 +118,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]); // Arun Prakash by default
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [colleges] = useState<College[]>(INITIAL_COLLEGES);
   const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
@@ -90,7 +132,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('campus_lenz_user');
-      if (savedUser) setCurrentUser(JSON.parse(savedUser));
+      const authFlag = localStorage.getItem('campus_lenz_auth');
+      if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+        setIsAuthenticated(authFlag !== 'false');
+      } else {
+        setIsAuthenticated(true);
+      }
 
       const savedCols = localStorage.getItem('campus_lenz_saved');
       if (savedCols) setSavedCollegeIds(JSON.parse(savedCols));
@@ -98,6 +146,127 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Ignore storage errors in restricted contexts
     }
   }, []);
+
+  // Professional Login Method: verifies identifier against database & computes proper destination
+  const loginUser = (
+    identifier: string,
+    password?: string,
+    portalRole?: UserRole
+  ): { success: boolean; user?: UserProfile; redirectUrl: string; message: string } => {
+    const cleanId = identifier.trim().toLowerCase();
+    if (!cleanId) {
+      return {
+        success: false,
+        redirectUrl: '/login',
+        message: 'Please enter your username or registered institutional email.'
+      };
+    }
+
+    // 1. Search existing user directory by username or email
+    let matched = allUsers.find(
+      u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
+    );
+
+    // 2. If not matched by exact text, check if identifier matches demo handles or role fallback
+    if (!matched && portalRole) {
+      matched = allUsers.find(u => u.role === portalRole);
+    }
+
+    if (!matched) {
+      return {
+        success: false,
+        redirectUrl: '/login',
+        message: `Account "${identifier}" not found. Please verify your credentials or register a test account.`
+      };
+    }
+
+    setCurrentUser(matched);
+    setIsAuthenticated(true);
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(matched));
+      localStorage.setItem('campus_lenz_auth', 'true');
+    } catch {}
+
+    const redirectUrl = getRedirectUrlForRole(matched.role);
+    return {
+      success: true,
+      user: matched,
+      redirectUrl,
+      message: `Welcome back, ${matched.fullName}! Authenticated as [${matched.role.toUpperCase()}].`
+    };
+  };
+
+  // Professional Registration Method: registers new user persona and logs them in
+  const registerUser = (
+    data: RegisterPayload
+  ): { success: boolean; user: UserProfile; redirectUrl: string; message: string } => {
+    const cleanUsername = data.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const cleanEmail = data.email.trim().toLowerCase();
+
+    // Check collision
+    const existing = allUsers.find(
+      u => u.username.toLowerCase() === cleanUsername || u.email.toLowerCase() === cleanEmail
+    );
+    if (existing) {
+      return {
+        success: false,
+        user: existing,
+        redirectUrl: '/login',
+        message: `Username "${cleanUsername}" or email is already registered. Please sign in instead.`
+      };
+    }
+
+    const newUser: UserProfile = {
+      id: `user-${Date.now()}`,
+      username: cleanUsername,
+      email: cleanEmail,
+      role: data.role,
+      fullName: data.fullName.trim(),
+      headline:
+        data.headline?.trim() ||
+        (data.role === 'student'
+          ? `${data.course || 'B.Tech / MCA'} Student @ ${data.collegeName || 'PSG Tech'}`
+          : data.role === 'alumni'
+          ? `Alumnus @ ${data.collegeName || 'PSG Tech'} | Industry Professional`
+          : data.role === 'institution'
+          ? `Official Campus Administration • ${data.collegeName || 'University Authority'}`
+          : data.role === 'faculty'
+          ? `Faculty Member • ${data.department || 'Computer Science'}`
+          : 'Campus Lenz Super Administrator'),
+      bio:
+        data.bio?.trim() ||
+        `Verified ${data.role} account created on Campus Lenz for platform testing.`,
+      collegeId: data.collegeId || 'col-psg',
+      collegeName: data.collegeName || 'PSG College of Technology',
+      department: data.department?.trim() || 'Computer Science',
+      course: data.course?.trim(),
+      graduationBatch: data.graduationBatch?.trim() || '2026',
+      isVerified: true,
+      followersCount: 1,
+      followingCount: 1,
+      followers: ['user-junith'],
+      following: ['user-junith'],
+      createdAt: new Date().toISOString()
+    };
+
+    setAllUsers(prev => [newUser, ...prev]);
+    setCurrentUser(newUser);
+    setIsAuthenticated(true);
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(newUser));
+      localStorage.setItem('campus_lenz_auth', 'true');
+    } catch {}
+
+    const redirectUrl = getRedirectUrlForRole(newUser.role);
+    return {
+      success: true,
+      user: newUser,
+      redirectUrl,
+      message: `Account created successfully! Welcome to Campus Lenz, ${newUser.fullName}.`
+    };
+  };
 
   const loginAsRole = (role: UserRole, specificUsername?: string) => {
     let target: UserProfile | undefined;
@@ -110,8 +279,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (target) {
       setCurrentUser(target);
+      setIsAuthenticated(true);
       try {
         localStorage.setItem('campus_lenz_user', JSON.stringify(target));
+        localStorage.setItem('campus_lenz_auth', 'true');
       } catch {}
     } else {
       const tempUser: UserProfile = {
@@ -149,9 +320,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString()
       };
       setCurrentUser(tempUser);
+      setIsAuthenticated(true);
       setAllUsers(prev => [tempUser, ...prev]);
       try {
         localStorage.setItem('campus_lenz_user', JSON.stringify(tempUser));
+        localStorage.setItem('campus_lenz_auth', 'true');
       } catch {}
     }
   };
@@ -161,12 +334,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    // Default to the primary student demo account
-    const defaultStudent = allUsers.find(u => u.username === 'junith_dev') || INITIAL_USERS[0];
-    setCurrentUser(defaultStudent);
+    setIsAuthenticated(false);
     try {
-      localStorage.setItem('campus_lenz_user', JSON.stringify(defaultStudent));
+      localStorage.removeItem('campus_lenz_user');
+      localStorage.setItem('campus_lenz_auth', 'false');
     } catch {}
+    // Reset to base persona for type safety on unauthenticated fallback views
+    setCurrentUser(INITIAL_USERS[0]);
   };
 
   const toggleSaveCollege = (collegeId: string) => {
@@ -190,11 +364,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setReviews(prev => [fullReview, ...prev]);
   };
 
-  // 1) Student Posting Capability Check
+  // Student Posting Capability Check
   const addPost = (newPost: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => {
-    // Role constraints: Students, Alumni, and Admin can post original thoughts/media
-    // Institutions only have repost rights to student posts
-    // Faculty can only preview and comment
     if (currentUser.role === 'institution') {
       return {
         success: false,
@@ -224,8 +395,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleLikePost = (postId: string) => {
-    // Institutions cannot like posts (they have repost & report rights)
-    // Faculty can preview & comment
     setPosts(prev =>
       prev.map(p => {
         if (p.id !== postId) return p;
@@ -273,7 +442,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  // 3) Institution Repost Right
+  // Institution Repost Right
   const repostToInstitution = (postId: string) => {
     if (currentUser.role !== 'institution' && currentUser.role !== 'admin') {
       return {
@@ -306,7 +475,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       : { success: false, message: 'Post not found.' };
   };
 
-  // 3) Institution False Information Report Right
+  // Institution False Information Report Right
   const reportFalseInfoPost = (postId: string, reason: string) => {
     if (currentUser.role !== 'institution' && currentUser.role !== 'admin') {
       return {
@@ -444,7 +613,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendServerMessage = (channelId: string, content: string) => {
     if (!content.trim()) return { success: false, message: 'Message cannot be empty.' };
 
-    // Anti-ragebait automated check
     const toxicKeywords = ['rage', 'scam', 'hate', 'fraud', 'kill', 'idiot', 'dump'];
     const lower = content.toLowerCase();
     const hasRagebaitPattern = toxicKeywords.some(w => lower.includes(w));
@@ -575,7 +743,7 @@ Platform Engine : Next.js 16 (App Router + Turbopack)
 Theme Engine    : Apple Light Minimalist Slate (Solid UI, No Dark Theme)
 Active Memory   : 84.2 MB / 512 MB Allocation
 Uptime          : 18h 42m 11s (Zero fatal exceptions)
-Auth Mode       : Multi-Portal Role Matrix (5 Roles: Student, Alumni, Institution, Faculty, Admin)
+Auth Mode       : Externalized Multi-Portal Authentication (Student, Alumni, Institution, Faculty, Admin)
 Ragebait Shield : Active (Strict automated lexical filter + Cooldown timer)
 Grievance Tunnel: E2E Institution-Only Routed (Student PII protected)`;
 
@@ -640,7 +808,6 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
 
       case 'eval':
         try {
-          // Safe simple math evaluation
           const expression = arg.replace(/[^0-9+\-*/(). ]/g, '');
           const result = Function(`"use strict"; return (${expression})`)();
           return `Result: ${result}`;
@@ -660,9 +827,12 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
     <AppContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
         setCurrentUser,
         switchRole,
         loginAsRole,
+        loginUser,
+        registerUser,
         logout,
         allUsers,
         colleges,
