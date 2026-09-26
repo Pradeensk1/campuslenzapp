@@ -62,28 +62,28 @@ export default function MessagesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="apple-card p-6 sm:p-8">
-        <div className="flex items-center space-x-2 text-[#38E6A5]">
+        <div className="flex items-center space-x-2 text-[#2563EB]">
           <Shield className="h-5 w-5" />
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F8FAFC]">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
             Direct Messaging & Networking
           </h1>
         </div>
-        <p className="mt-2 text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+        <p className="mt-2 text-xs sm:text-sm text-[#64748B] leading-relaxed">
           Protected by Campus Lenz Message Requests: Unconnected users cannot message directly into your inbox until accepted.
         </p>
 
         {/* Tab switch */}
-        <div className="mt-6 flex space-x-2 border-b border-[#1F3653] pb-3 text-xs">
+        <div className="mt-6 flex space-x-2 border-b border-[#F1F5F9] pb-3 text-xs">
           <button
             onClick={() => setActiveTab('requests')}
             className={`flex items-center space-x-2 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'requests'
-                ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-[#2563EB] text-white shadow-xs'
+                : 'text-[#64748B] hover:text-[#0F172A]'
             }`}
           >
             <span>Message Requests</span>
-            <span className="rounded-full bg-[#192D48] px-2 py-0.5 text-[10px] font-black text-[#38E6A5]">
+            <span className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-black text-[#2563EB]">
               {requests.filter(r => r.status === 'pending').length}
             </span>
           </button>
@@ -91,8 +91,8 @@ export default function MessagesPage() {
             onClick={() => setActiveTab('chats')}
             className={`rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'chats'
-                ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+                ? 'bg-[#2563EB] text-white shadow-xs'
+                : 'text-[#64748B] hover:text-[#0F172A]'
             }`}
           >
             Active Conversations
@@ -106,20 +106,20 @@ export default function MessagesPage() {
             <div key={req.id} className="apple-card p-6 text-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#192D48] font-bold text-[#38E6A5]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] font-bold text-[#2563EB]">
                     {req.senderName[0]}
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-[#F8FAFC]">{req.senderName}</p>
+                    <p className="font-bold text-sm text-[#0F172A]">{req.senderName}</p>
                     <p className="text-[10px] uppercase font-semibold text-[#64748B]">{req.senderRole}</p>
                   </div>
                 </div>
-                <span className="rounded-md bg-[#192D48] px-2.5 py-1 text-[10px] font-bold uppercase text-[#F59E0B]">
+                <span className="rounded-md bg-[#FEF3C7] px-2.5 py-1 text-[10px] font-bold uppercase text-[#D97706]">
                   {req.status}
                 </span>
               </div>
 
-              <div className="rounded-xl border border-[#1F3653] bg-[#192D48] p-4 text-[#F8FAFC] leading-relaxed">
+              <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-[#1E293B] leading-relaxed">
                 "{req.previewMessage}"
               </div>
 
@@ -134,7 +134,7 @@ export default function MessagesPage() {
                   </button>
                   <button
                     onClick={() => setRequests(requests.filter(r => r.id !== req.id))}
-                    className="apple-button-secondary text-xs text-[#94A3B8] hover:text-red-400"
+                    className="apple-button-secondary text-xs text-[#64748B] hover:text-red-500"
                   >
                     Decline
                   </button>
@@ -145,10 +145,10 @@ export default function MessagesPage() {
         </div>
       ) : (
         <div className="apple-card flex flex-col h-[460px] overflow-hidden">
-          <div className="border-b border-[#1F3653] bg-[#192D48] px-6 py-4 text-xs flex items-center justify-between">
+          <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-6 py-4 text-xs flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-sm text-[#F8FAFC]">Karthik Raja</span>
-              <span className="rounded-md bg-[#38E6A5]/15 px-2 py-0.5 text-[10px] font-bold text-[#38E6A5]">
+              <span className="font-bold text-sm text-[#0F172A]">Karthik Raja</span>
+              <span className="rounded-md bg-[#ECFDF5] px-2 py-0.5 text-[10px] font-bold text-[#059669]">
                 Verified Alumni
               </span>
             </div>
@@ -164,12 +164,12 @@ export default function MessagesPage() {
                 <div
                   className={`max-w-[75%] rounded-2xl p-4 leading-relaxed ${
                     msg.sender === 'You'
-                      ? 'bg-[#38E6A5] text-[#0B1320] font-medium rounded-br-none shadow-sm'
-                      : 'bg-[#192D48] text-[#F8FAFC] rounded-bl-none border border-[#1F3653]'
+                      ? 'bg-[#2563EB] text-white font-medium rounded-br-none shadow-xs'
+                      : 'bg-[#F1F5F9] text-[#0F172A] rounded-bl-none border border-[#E2E8F0]'
                   }`}
                 >
                   <p>{msg.text}</p>
-                  <span className={`mt-1.5 block text-right text-[9px] ${msg.sender === 'You' ? 'text-[#0B1320]/75' : 'text-[#64748B]'}`}>
+                  <span className={`mt-1.5 block text-right text-[9px] ${msg.sender === 'You' ? 'text-white/80' : 'text-[#64748B]'}`}>
                     {msg.time}
                   </span>
                 </div>
@@ -177,13 +177,13 @@ export default function MessagesPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSendMessage} className="flex border-t border-[#1F3653] p-3 bg-[#192D48]">
+          <form onSubmit={handleSendMessage} className="flex border-t border-[#E2E8F0] p-3 bg-[#F8FAFC]">
             <input
               type="text"
               value={inputMsg}
               onChange={(e) => setInputMsg(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 rounded-xl border border-[#1F3653] bg-[#132238] px-4 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-[#38E6A5] transition-colors"
+              className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-xs text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-colors"
             />
             <button
               type="submit"

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function CreateContentPage() {
   const router = useRouter();
@@ -91,13 +90,13 @@ export default function CreateContentPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Segmented Control */}
-      <div className="flex rounded-2xl border border-[#1F3653] bg-[#132238] p-1.5 text-xs shadow-md">
+      <div className="flex rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9] p-1.5 text-xs shadow-xs">
         <button
           onClick={() => setActiveTab('post')}
           className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'post'
-              ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
-              : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+              ? 'bg-white text-[#0F172A] shadow-xs'
+              : 'text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
           Share Campus Post
@@ -106,8 +105,8 @@ export default function CreateContentPage() {
           onClick={() => setActiveTab('review')}
           className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'review'
-              ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
-              : 'text-[#94A3B8] hover:text-[#F8FAFC]'
+              ? 'bg-white text-[#0F172A] shadow-xs'
+              : 'text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
           Write Structured Review
@@ -117,8 +116,8 @@ export default function CreateContentPage() {
       {activeTab === 'post' ? (
         <form onSubmit={handlePostSubmit} className="apple-card p-6 sm:p-8 space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-[#F8FAFC]">Create a Community Post</h2>
-            <p className="mt-1 text-xs text-[#94A3B8]">
+            <h2 className="text-lg font-bold text-[#0F172A]">Create a Community Post</h2>
+            <p className="mt-1 text-xs text-[#64748B]">
               Connect with students and alumni across campuses on placements, hostel realities, and academics.
             </p>
           </div>
@@ -130,10 +129,10 @@ export default function CreateContentPage() {
             <select
               value={postCollegeId}
               onChange={(e) => setPostCollegeId(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none transition-colors"
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
             >
               {colleges.map((c) => (
-                <option key={c.id} value={c.id} className="bg-[#132238]">{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -145,12 +144,12 @@ export default function CreateContentPage() {
             <select
               value={postTopic}
               onChange={(e) => setPostTopic(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none transition-colors"
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
             >
-              <option value="Campus Life" className="bg-[#132238]">Campus Life & Hostels</option>
-              <option value="Placements & Prep" className="bg-[#132238]">Placements & Company Drives</option>
-              <option value="Alumni Mentorship" className="bg-[#132238]">Alumni Mentorship & Advice</option>
-              <option value="Admissions & Cutoffs" className="bg-[#132238]">Admissions & Counseling</option>
+              <option value="Campus Life">Campus Life & Hostels</option>
+              <option value="Placements & Prep">Placements & Company Drives</option>
+              <option value="Alumni Mentorship">Alumni Mentorship & Advice</option>
+              <option value="Admissions & Cutoffs">Admissions & Counseling</option>
             </select>
           </div>
 
@@ -163,22 +162,22 @@ export default function CreateContentPage() {
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
               placeholder="What questions or experiences would you like to share?"
-              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:border-[#38E6A5] focus:outline-none transition-colors"
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#2563EB] focus:outline-none transition-colors"
               required
             />
           </div>
 
           {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#1F3653] bg-[#192D48] p-4 text-xs">
+          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
             <input
               type="checkbox"
               id="anonPost"
               checked={postAnonymous}
               onChange={(e) => setPostAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#38E6A5] cursor-pointer"
+              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
             />
-            <label htmlFor="anonPost" className="text-[#94A3B8] cursor-pointer">
-              Post as <strong className="text-[#F8FAFC]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
+            <label htmlFor="anonPost" className="text-[#64748B] cursor-pointer font-medium">
+              Post as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
             </label>
           </div>
 
@@ -186,14 +185,14 @@ export default function CreateContentPage() {
             type="submit"
             className="apple-button-primary w-full text-xs font-bold py-3"
           >
-            Publish to Campus Stream
+            Publish to Campus Feed
           </button>
         </form>
       ) : (
         <form onSubmit={handleReviewSubmit} className="apple-card p-6 sm:p-8 space-y-5">
-          <div className="border-b border-[#1F3653] pb-4">
-            <h2 className="text-lg font-bold text-[#F8FAFC]">Structured College Review</h2>
-            <p className="mt-1 text-xs text-[#94A3B8]">
+          <div className="border-b border-[#F1F5F9] pb-4">
+            <h2 className="text-lg font-bold text-[#0F172A]">Structured College Review</h2>
+            <p className="mt-1 text-xs text-[#64748B]">
               Multi-dimensional evaluation. Honest criticism is protected from institutional deletion.
             </p>
           </div>
@@ -204,10 +203,10 @@ export default function CreateContentPage() {
               <select
                 value={reviewCollegeId}
                 onChange={(e) => setReviewCollegeId(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC] focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A] focus:outline-none"
               >
                 {colleges.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-[#132238]">{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -220,14 +219,14 @@ export default function CreateContentPage() {
                   value={reviewCourse}
                   onChange={(e) => setReviewCourse(e.target.value)}
                   placeholder="Course (e.g. MCA)"
-                  className="w-1/2 rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
+                  className="w-1/2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
                 />
                 <input
                   type="text"
                   value={reviewBatch}
                   onChange={(e) => setReviewBatch(e.target.value)}
                   placeholder="Batch (2025)"
-                  className="w-1/2 rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
+                  className="w-1/2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
                 />
               </div>
             </div>
@@ -238,14 +237,14 @@ export default function CreateContentPage() {
             <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">
               Evaluation Dimensions (1 to 5 Stars)
             </label>
-            <div className="grid grid-cols-2 gap-3 text-xs bg-[#192D48] p-4 rounded-xl border border-[#1F3653]">
+            <div className="grid grid-cols-2 gap-3 text-xs bg-[#F8FAFC] p-4 rounded-xl border border-[#E2E8F0]">
               {Object.entries(ratings).map(([key, val]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="capitalize text-[#F8FAFC] font-medium">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="capitalize text-[#0F172A] font-semibold">{key.replace(/([A-Z])/g, ' $1')}</span>
                   <select
                     value={val}
                     onChange={(e) => setRatings({ ...ratings, [key]: Number(e.target.value) })}
-                    className="rounded-lg bg-[#0B1320] border border-[#1F3653] px-2.5 py-1 text-xs text-[#F59E0B] font-bold"
+                    className="rounded-lg bg-white border border-[#CBD5E1] px-2.5 py-1 text-xs text-[#D97706] font-bold"
                   >
                     {[5, 4, 3, 2, 1].map((s) => (
                       <option key={s} value={s}>{s} ★</option>
@@ -263,7 +262,7 @@ export default function CreateContentPage() {
               value={reviewTitle}
               onChange={(e) => setReviewTitle(e.target.value)}
               placeholder="e.g. Excellent placement records, but hostel facilities need overhaul"
-              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs sm:text-sm text-[#F8FAFC]"
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs sm:text-sm text-[#0F172A]"
               required
             />
           </div>
@@ -275,45 +274,45 @@ export default function CreateContentPage() {
               value={reviewExperience}
               onChange={(e) => setReviewExperience(e.target.value)}
               placeholder="Provide realistic, honest insights on faculty teaching, syllabus, and campus life..."
-              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs sm:text-sm text-[#F8FAFC]"
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs sm:text-sm text-[#0F172A]"
               required
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-[#38E6A5]">Pros (Comma separated)</label>
+              <label className="block text-xs font-semibold text-[#059669]">Pros (Comma separated)</label>
               <input
                 type="text"
                 value={reviewPros}
                 onChange={(e) => setReviewPros(e.target.value)}
                 placeholder="High placements, top faculty"
-                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
+                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#F59E0B]">Cons (Comma separated)</label>
+              <label className="block text-xs font-semibold text-[#D97706]">Cons (Comma separated)</label>
               <input
                 type="text"
                 value={reviewCons}
                 onChange={(e) => setReviewCons(e.target.value)}
                 placeholder="Strict attendance, mess food"
-                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
+                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
               />
             </div>
           </div>
 
           {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#1F3653] bg-[#192D48] p-4 text-xs">
+          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
             <input
               type="checkbox"
               id="anonRev"
               checked={reviewAnonymous}
               onChange={(e) => setReviewAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#38E6A5] cursor-pointer"
+              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
             />
-            <label htmlFor="anonRev" className="text-[#94A3B8] cursor-pointer">
-              Publish as <strong className="text-[#F8FAFC]">Anonymous Contributor</strong>
+            <label htmlFor="anonRev" className="text-[#64748B] cursor-pointer font-medium">
+              Publish as <strong className="text-[#0F172A]">Anonymous Contributor</strong>
             </label>
           </div>
 

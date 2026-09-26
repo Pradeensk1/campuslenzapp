@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-[#0B1320] text-[#F8FAFC] antialiased">
+      <body className="bg-[#F8FAFC] text-[#0F172A] antialiased">
         <AppProvider>
           <div className="flex min-h-screen flex-col pb-20 md:pb-0">
             <Navigation />

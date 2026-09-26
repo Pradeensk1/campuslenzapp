@@ -30,13 +30,13 @@ export default function ComparePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="apple-card p-6 sm:p-8">
-        <div className="flex items-center space-x-2 text-[#38E6A5]">
+        <div className="flex items-center space-x-2 text-[#2563EB]">
           <Scale className="h-5 w-5" />
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F8FAFC]">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
             Objective Comparison Matrix
           </h1>
         </div>
-        <p className="mt-2 text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
+        <p className="mt-2 text-xs sm:text-sm text-[#64748B] leading-relaxed">
           Compare up to three institutions side-by-side. Campus Lenz strictly follows transparent data presentation without synthetic AI scores.
         </p>
 
@@ -51,8 +51,8 @@ export default function ComparePage() {
                 onClick={() => toggleSelect(col.id)}
                 className={`rounded-xl px-3.5 py-1.5 font-semibold transition-all duration-200 ${
                   isChosen
-                    ? 'bg-[#38E6A5] text-[#0B1320] shadow-md shadow-[#38E6A5]/20 scale-102'
-                    : 'bg-[#192D48] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#203756]'
+                    ? 'bg-[#2563EB] text-white shadow-sm scale-102'
+                    : 'bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A] hover:bg-[#E2E8F0]'
                 }`}
               >
                 {col.name.split(' ')[0]} {isChosen ? '✓' : '+'}
@@ -64,85 +64,85 @@ export default function ComparePage() {
 
       {/* Comparison Matrix Table */}
       {selectedColleges.length === 0 ? (
-        <div className="apple-card p-10 text-center text-xs text-[#94A3B8]">
+        <div className="apple-card p-10 text-center text-xs text-[#64748B]">
           No colleges selected. Please choose up to three colleges from above to view the side-by-side comparison.
         </div>
       ) : (
         <div className="apple-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#1F3653] bg-[#192D48] text-[#F8FAFC]">
+              <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]">
                 <tr>
                   <th className="p-4 sm:p-5 font-bold uppercase tracking-wider text-[10px] text-[#64748B] w-1/4">
                     Evaluation Dimension
                   </th>
                   {selectedColleges.map((col) => (
                     <th key={col.id} className="p-4 sm:p-5 font-bold text-sm">
-                      <Link href={`/colleges/${col.slug}`} className="hover:text-[#38E6A5] transition-colors">
+                      <Link href={`/colleges/${col.slug}`} className="hover:text-[#2563EB] transition-colors">
                         {col.name}
                       </Link>
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1F3653] text-[#F8FAFC]">
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Institution Type</td>
+              <tbody className="divide-y divide-[#E2E8F0] text-[#0F172A]">
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Institution Type</td>
                   {selectedColleges.map((col) => (
                     <td key={col.id} className="p-4 sm:p-5">{col.collegeType}</td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Location & State</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Location & State</td>
                   {selectedColleges.map((col) => (
                     <td key={col.id} className="p-4 sm:p-5">{col.location}, {col.state}</td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Student Rating</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Student Rating</td>
                   {selectedColleges.map((col) => (
                     <td key={col.id} className="p-4 sm:p-5">
-                      <span className="font-black text-[#F59E0B]">★ {col.ratingAverage || 'No ratings'}</span>
-                      <span className="text-[#64748B] ml-1.5">({col.reviewCount} reviews)</span>
+                      <span className="font-black text-[#D97706]">★ {col.ratingAverage || 'No ratings'}</span>
+                      <span className="text-[#94A3B8] ml-1.5">({col.reviewCount} reviews)</span>
                     </td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Annual Fee Range</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Annual Fee Range</td>
                   {selectedColleges.map((col) => (
-                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#38E6A5]">
+                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#059669]">
                       ₹{col.feesMin?.toLocaleString()} — ₹{col.feesMax?.toLocaleString()}
                     </td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Highest Package</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Highest Package</td>
                   {selectedColleges.map((col) => (
-                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#F8FAFC]">
+                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#0F172A]">
                       {col.placementStats?.highestPackage || 'Information not available yet.'}
                     </td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Average Package</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Average Package</td>
                   {selectedColleges.map((col) => (
-                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#38E6A5]">
+                    <td key={col.id} className="p-4 sm:p-5 font-bold text-[#059669]">
                       {col.placementStats?.averagePackage || 'Information not available yet.'}
                     </td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Placement Rate</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Placement Rate</td>
                   {selectedColleges.map((col) => (
                     <td key={col.id} className="p-4 sm:p-5">
                       {col.placementStats?.placementRate || 'Information not available yet.'}
                     </td>
                   ))}
                 </tr>
-                <tr className="hover:bg-[#192D48]/50 transition-colors">
-                  <td className="p-4 sm:p-5 font-medium text-[#94A3B8]">Campus Facilities</td>
+                <tr className="hover:bg-[#F8FAFC] transition-colors">
+                  <td className="p-4 sm:p-5 font-medium text-[#64748B]">Campus Facilities</td>
                   {selectedColleges.map((col) => (
-                    <td key={col.id} className="p-4 sm:p-5 text-[#94A3B8]">
+                    <td key={col.id} className="p-4 sm:p-5 text-[#475569]">
                       {col.facilities.join(', ')}
                     </td>
                   ))}

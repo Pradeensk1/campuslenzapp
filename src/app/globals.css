@@ -1,24 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0B1320;
-  --surface: #132238;
-  --surface-hover: #192D48;
-  --surface-active: #203756;
-  --border-subtle: #1F3653;
-  --border-focus: #38E6A5;
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-tertiary: #64748B;
-  --accent-mint: #38E6A5;
-  --accent-mint-hover: #2ED594;
-  --accent-blue: #3B82F6;
-  --accent-amber: #F59E0B;
-  --accent-violet: #8B5CF6;
+  /* Crisp Modern Clean Palette (Light/Neutral Premium Slate) */
+  --bg-app: #F8FAFC;            /* Clean crisp background */
+  --surface-white: #FFFFFF;     /* Solid pure white card surfaces */
+  --surface-subtle: #F1F5F9;    /* Soft background accents */
+  --surface-hover: #E2E8F0;     /* Interactive hover state */
+  --border-subtle: #E2E8F0;     /* Crisp fine border */
+  --border-active: #CBD5E1;     /* Emphasized border */
+
+  /* Deep High-Contrast Typography */
+  --text-primary: #0F172A;      /* Deep slate 900 */
+  --text-secondary: #475569;    /* Slate 600 */
+  --text-muted: #94A3B8;        /* Slate 400 */
+
+  /* Vibrant Accent Tokens */
+  --accent-primary: #2563EB;    /* Royal Blue */
+  --accent-primary-hover: #1D4ED8;
+  --accent-teal: #0D9488;       /* Deep Teal */
+  --accent-emerald: #059669;    /* Trust Emerald */
+  --accent-amber: #D97706;      /* Star Amber */
+  --accent-indigo: #4F46E5;     /* Community Indigo */
 }
 
 body {
-  background-color: var(--background);
+  background-color: var(--bg-app);
   color: var(--text-primary);
   min-height: 100vh;
   margin: 0;
@@ -29,25 +35,25 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Premium Apple-like Solid Surfaces (Strictly No Liquid Glass / No Blurs) */
+/* Premium Apple-style Solid Card (No Glassmorphism, Crisp Light Shadows) */
 .apple-card {
-  background-color: var(--surface);
+  background-color: var(--surface-white);
   border: 1px solid var(--border-subtle);
   border-radius: 1rem;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .apple-card-hover:hover {
-  background-color: var(--surface-hover);
-  border-color: rgba(56, 230, 165, 0.4);
+  border-color: #CBD5E1;
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 }
 
+/* Apple-style Buttons */
 .apple-button-primary {
-  background-color: var(--accent-mint);
-  color: #07111F;
+  background-color: var(--accent-primary);
+  color: #FFFFFF;
   font-weight: 600;
   border-radius: 0.75rem;
   padding: 0.5rem 1.25rem;
@@ -58,9 +64,9 @@ body {
 }
 
 .apple-button-primary:hover {
-  background-color: var(--accent-mint-hover);
+  background-color: var(--accent-primary-hover);
   transform: scale(1.02);
-  box-shadow: 0 4px 14px rgba(56, 230, 165, 0.35);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 
 .apple-button-primary:active {
@@ -68,22 +74,22 @@ body {
 }
 
 .apple-button-secondary {
-  background-color: var(--surface-hover);
+  background-color: var(--surface-white);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
   border-radius: 0.75rem;
   padding: 0.5rem 1.25rem;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .apple-button-secondary:hover {
-  background-color: var(--surface-active);
-  border-color: var(--text-secondary);
+  background-color: var(--surface-subtle);
+  border-color: var(--border-active);
   transform: translateY(-1px);
 }
 
-/* Subtle Apple-style scrollbar */
+/* Subtle clean scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -92,9 +98,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1F3653;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #38E6A5;
+  background: #94A3B8;
 }
