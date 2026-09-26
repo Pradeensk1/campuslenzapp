@@ -16,17 +16,23 @@ import {
   Check,
   ArrowLeft,
   GraduationCap,
-  Sparkles,
-  Heart
+  Heart,
+  Edit3,
+  ZoomIn
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Post } from '@/types';
+import EditProfileModal from '@/components/EditProfileModal';
+import PinterestImageModal from '@/components/PinterestImageModal';
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const resolvedParams = use(params);
-  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost } = useApp();
+  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile } = useApp();
 
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
 
   const profileUser = allUsers.find(
     (u) => u.username.toLowerCase() === resolvedParams.username.toLowerCase()
@@ -104,9 +110,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                     </Link>
                   </>
                 ) : (
-                  <span className="rounded-lg bg-[#F1F5F9] px-3 py-1.5 text-xs font-bold text-[#64748B]">
-                    Your Account
-                  </span>
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="apple-button-secondary text-xs !py-1.5 !px-3 font-semibold flex items-center space-x-1.5 hover:border-[#2563EB]"
+                  >
+                    <Edit3 className="h-3.5 w-3.5 text-[#2563EB]" />
+                    <span>Edit Profile</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -204,15 +214,22 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                     {post.content}
                   </p>
 
-                  {/* High Resolution Post Image */}
+                  {/* High Resolution Post Image with Zoom Trigger */}
                   {post.imageUrl && (
-                    <div className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC]">
+                    <div
+                      onClick={() => setZoomedPost(post)}
+                      className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] relative group cursor-zoom-in"
+                    >
                       <img
                         src={post.imageUrl}
                         alt="Post media attachment"
                         loading="lazy"
-                        className="w-full max-h-[360px] object-cover rounded-xl"
+                        className="w-full max-h-[360px] object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
                       />
+                      <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1">
+                        <ZoomIn className="h-3 w-3" />
+                        <span>Zoom</span>
+                      </div>
                     </div>
                   )}
 
@@ -264,6 +281,23 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           </div>
         </div>
       )}
+
+      {/* PINTEREST ZOOM LIGHTBOX MODAL */}
+      <PinterestImageModal
+        post={zoomedPost}
+        onClose={() => setZoomedPost(null)}
+        onLike={toggleLikePost}
+        onComment={addComment}
+        currentUser={currentUser}
+      />
+
+      {/* EDIT PROFILE MODAL */}
+      <EditProfileModal
+        isOpen={isEditingProfile}
+        onClose={() => setIsEditingProfile(false)}
+        currentUser={currentUser}
+        onSave={updateProfile}
+      />
     </div>
   );
 }

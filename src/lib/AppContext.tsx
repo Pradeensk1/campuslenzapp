@@ -23,6 +23,7 @@ interface AppContextType {
   addInstitutionReply: (reviewId: string, replyText: string) => void;
   getUserByUsername: (username: string) => UserProfile | undefined;
   getUserById: (id: string) => UserProfile | undefined;
+  updateProfile: (updatedData: Partial<UserProfile>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -230,6 +231,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return allUsers.find(u => u.id === id);
   };
 
+  const updateProfile = (updatedData: Partial<UserProfile>) => {
+    const updatedUser = { ...currentUser, ...updatedData };
+    setCurrentUser(updatedUser);
+    
+    // Also update in allUsers array so changes appear across the whole system
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...updatedData } : u));
+    
+    // Also update authorName/authorHeadline on existing posts authored by this user
+    if (updatedData.fullName || updatedData.headline) {
+      setPosts(prev => prev.map(p => {
+        if (p.authorId === currentUser.id) {
+          return {
+            ...p,
+            authorName: updatedData.fullName || p.authorName,
+            authorHeadline: updatedData.headline || p.authorHeadline
+          };
+        }
+        return p;
+      }));
+    }
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+    } catch {}
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -250,7 +277,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleFollowUser,
         addInstitutionReply,
         getUserByUsername,
-        getUserById
+        getUserById,
+        updateProfile
       }}
     >
       {children}

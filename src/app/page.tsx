@@ -19,9 +19,12 @@ import {
   FileText,
   UserPlus,
   UserMinus,
-  ArrowRight
+  ArrowRight,
+  ZoomIn
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
+import { Post } from '@/types';
+import PinterestImageModal from '@/components/PinterestImageModal';
 
 export default function HomePage() {
   const { posts, toggleLikePost, addComment, currentUser, communities, toggleFollowUser, allUsers } = useApp();
@@ -29,6 +32,9 @@ export default function HomePage() {
   // Track open comment trays per post
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  
+  // Track Pinterest-style zoomed post
+  const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
 
   // Filter posts by students and alumni only (Phase 1 Spec requirement)
   const studentAndAlumniPosts = posts.filter(
@@ -264,15 +270,23 @@ export default function HomePage() {
                       {post.content}
                     </div>
 
-                    {/* High-Resolution Uncompressed Post Image Display */}
+                    {/* High-Resolution Uncompressed Post Image Display with Pinterest Zoom Click */}
                     {post.imageUrl && (
-                      <div className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC]">
+                      <div
+                        onClick={() => setZoomedPost(post)}
+                        className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] relative group cursor-zoom-in"
+                      >
                         <img
                           src={post.imageUrl}
                           alt="Post media attachment"
                           loading="lazy"
-                          className="w-full max-h-[460px] object-cover rounded-xl transition-transform duration-300 hover:scale-[1.01]"
+                          className="w-full max-h-[460px] object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
                         />
+                        {/* Pinterest Zoom Badge Indicator */}
+                        <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1">
+                          <ZoomIn className="h-3.5 w-3.5" />
+                          <span>Click to Zoom</span>
+                        </div>
                       </div>
                     )}
 
@@ -458,6 +472,15 @@ export default function HomePage() {
           </div>
         </div>
       </aside>
+
+      {/* PINTEREST-STYLE ZOOM LIGHTBOX MODAL */}
+      <PinterestImageModal
+        post={zoomedPost}
+        onClose={() => setZoomedPost(null)}
+        onLike={toggleLikePost}
+        onComment={addComment}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

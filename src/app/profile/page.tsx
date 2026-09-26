@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/AppContext';
-import { User, ShieldCheck, Bookmark, Building, LogOut, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, ShieldCheck, Bookmark, Building, LogOut, CheckCircle2, AlertCircle, Edit3 } from 'lucide-react';
 import Link from 'next/link';
+import EditProfileModal from '@/components/EditProfileModal';
 
 export default function ProfilePage() {
-  const { currentUser, colleges, savedCollegeIds, switchRole } = useApp();
+  const { currentUser, colleges, savedCollegeIds, switchRole, updateProfile } = useApp();
   const [activeTab, setActiveTab] = useState<'details' | 'saved' | 'verification'>('details');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const savedColleges = colleges.filter(c => savedCollegeIds.includes(c.id));
 
@@ -42,6 +44,15 @@ export default function ProfilePage() {
                 </span>
                 <span className="text-[#CBD5E1]">•</span>
                 <span className="text-[#64748B] font-medium">{currentUser?.collegeName}</span>
+              </div>
+              <div className="mt-2.5">
+                <button
+                  onClick={() => setIsEditingProfile(true)}
+                  className="apple-button-secondary text-xs !py-1 !px-3 font-semibold flex items-center space-x-1.5 hover:border-[#2563EB]"
+                >
+                  <Edit3 className="h-3 w-3 text-[#2563EB]" />
+                  <span>Edit Profile</span>
+                </button>
               </div>
             </div>
           </div>
@@ -224,6 +235,14 @@ export default function ProfilePage() {
           )}
         </div>
       )}
+
+      {/* EDIT PROFILE MODAL */}
+      <EditProfileModal
+        isOpen={isEditingProfile}
+        onClose={() => setIsEditingProfile(false)}
+        currentUser={currentUser}
+        onSave={updateProfile}
+      />
     </div>
   );
 }
