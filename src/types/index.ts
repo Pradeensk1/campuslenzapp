@@ -23,12 +23,12 @@ export interface Comment {
 
 export interface UserProfile {
   id: string;
-  username: string; // e.g. "junith_dev", "arun_prakash"
+  username: string;
   email: string;
   role: UserRole;
   fullName: string;
   avatarUrl?: string;
-  headline: string; // e.g. "MCA Student @ PSG Tech | AI Enthusiast" or "Senior Staff / Professor @ Dept of CSE"
+  headline: string;
   bio?: string;
   collegeId?: string;
   collegeName?: string;
@@ -38,9 +38,55 @@ export interface UserProfile {
   isVerified: boolean;
   followersCount: number;
   followingCount: number;
-  followers: string[]; // array of userIds
-  following: string[]; // array of userIds
+  followers: string[];
+  following: string[];
   createdAt: string;
+}
+
+export interface PlacementDetails {
+  highestPackage: string;
+  averagePackage: string;
+  medianPackage: string;
+  placementRate: string;
+  topRecruiters: string[];
+  internshipOffers: string;
+  placementTraining: string;
+  tier1HiresCount: number;
+}
+
+export interface FeeDetails {
+  tuitionAnnual: string;
+  hostelAnnual: string;
+  messMonthly: string;
+  examAndLabAnnual: string;
+  scholarshipsAvailable: string;
+  roiRating: string;
+}
+
+export interface AcademicDetails {
+  studentFacultyRatio: string;
+  phdFacultyPercent: string;
+  curriculumFlexibility: string;
+  researchFundingAnnual: string;
+  labEquipmentGrade: string;
+  academicsRating: number;
+}
+
+export interface CampusDetails {
+  wifiSpeed: string;
+  hostelCurfew: string;
+  messFoodRating: number;
+  sportsComplex: string;
+  medicalFacility: string;
+  gymAndFitness: string;
+}
+
+export interface ActivityDetails {
+  annualFestName: string;
+  techClubsCount: number;
+  incubationCenter: string;
+  hackathonsOrganizedAnnual: number;
+  industryMoUs: number;
 }
 
 export interface College {
@@ -69,6 +115,21 @@ export interface College {
   officialOverview?: string;
   ratingAverage: number | null;
   reviewCount: number;
+
+  // Granular Multi-Dimension Compare Attributes
+  placementDetails: PlacementDetails;
+  feeDetails: FeeDetails;
+  academicDetails: AcademicDetails;
+  campusDetails: CampusDetails;
+  activityDetails: ActivityDetails;
+  overallScore: {
+    total: number; // e.g. 94 out of 100
+    placementsScore: number;
+    feesRoiScore: number;
+    academicsScore: number;
+    campusLifeScore: number;
+    badge: string;
+  };
 }
 
 export interface ReviewDimensions {
@@ -124,7 +185,7 @@ export interface Post {
   content: string;
   topic?: string;
   imageUrl?: string;
-  likes: string[]; // user IDs who liked
+  likes: string[];
   likesCount: number;
   comments: Comment[];
   commentsCount: number;
