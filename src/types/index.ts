@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'alumni' | 'institution' | 'admin';
+export type UserRole = 'student' | 'alumni' | 'staff' | 'institution' | 'admin';
 
 export type ReviewerType = 'student' | 'alumni';
 
@@ -6,18 +6,40 @@ export type VerificationStatus = 'pending' | 'admin_review' | 'approved' | 'reje
 
 export type ModerationStatus = 'normal' | 'sensitive' | 'harmful';
 
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorUsername: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorAvatar?: string;
+  authorHeadline: string;
+  isVerifiedAuthor: boolean;
+  content: string;
+  createdAt: string;
+  likesCount: number;
+}
+
 export interface UserProfile {
   id: string;
+  username: string; // e.g. "junith_dev", "arun_prakash"
   email: string;
   role: UserRole;
   fullName: string;
   avatarUrl?: string;
+  headline: string; // e.g. "MCA Student @ PSG Tech | AI Enthusiast" or "Senior Staff / Professor @ Dept of CSE"
+  bio?: string;
   collegeId?: string;
   collegeName?: string;
   department?: string;
   course?: string;
   graduationBatch?: string;
   isVerified: boolean;
+  followersCount: number;
+  followingCount: number;
+  followers: string[]; // array of userIds
+  following: string[]; // array of userIds
   createdAt: string;
 }
 
@@ -27,7 +49,7 @@ export interface College {
   name: string;
   location: string;
   state: string;
-  collegeType: string; // e.g., 'Autonomous', 'Private', 'Government'
+  collegeType: string;
   establishedYear?: number;
   contactEmail?: string;
   contactPhone?: string;
@@ -66,6 +88,7 @@ export interface CollegeReview {
   userId: string;
   reviewerType: ReviewerType;
   authorName: string;
+  authorUsername?: string;
   isAnonymous: boolean;
   overallRating: number;
   dimensions: ReviewDimensions;
@@ -89,8 +112,11 @@ export interface CollegeReview {
 export interface Post {
   id: string;
   authorId: string;
+  authorUsername: string;
   authorName: string;
   authorRole: UserRole;
+  authorAvatar?: string;
+  authorHeadline: string;
   isVerifiedAuthor: boolean;
   isAnonymous: boolean;
   collegeId?: string;
@@ -98,21 +124,13 @@ export interface Post {
   content: string;
   topic?: string;
   imageUrl?: string;
+  likes: string[]; // user IDs who liked
   likesCount: number;
+  comments: Comment[];
   commentsCount: number;
   sharesCount: number;
   createdAt: string;
   moderationStatus: ModerationStatus;
-}
-
-export interface Comment {
-  id: string;
-  postId: string;
-  authorId: string;
-  authorName: string;
-  isVerifiedAuthor: boolean;
-  content: string;
-  createdAt: string;
 }
 
 export interface Community {

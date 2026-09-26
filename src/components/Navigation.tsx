@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, PlusCircle, MessageSquare, User, Scale } from 'lucide-react';
+import { Home, Compass, Search, PlusCircle, MessageSquare, User, Scale } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion } from 'framer-motion';
 
@@ -12,18 +12,19 @@ export default function Navigation() {
 
   const navItems = [
     { label: 'Home', href: '/', icon: Home },
+    { label: 'Search', href: '/search', icon: Search },
     { label: 'Explore', href: '/explore', icon: Compass },
     { label: 'Compare', href: '/compare', icon: Scale },
     { label: 'Create', href: '/create', icon: PlusCircle },
     { label: 'Messages', href: '/messages', icon: MessageSquare },
-    { label: 'Profile', href: '/profile', icon: User },
+    { label: 'Profile', href: `/user/${currentUser.username}`, icon: User },
   ];
 
   return (
     <>
       {/* Top Header Bar */}
       <header className="sticky top-0 z-50 w-full border-b border-[#E2E8F0] bg-white/95 backdrop-blur-none shadow-xs">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 sm:px-6 py-3.5">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 sm:px-6 py-3">
           <Link href="/" className="group flex items-center space-x-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2563EB] text-white font-black text-lg transition-transform group-hover:scale-105 shadow-sm">
               CL
@@ -38,6 +39,17 @@ export default function Navigation() {
             </div>
           </Link>
 
+          {/* Quick Search Shortcut Bar (Instagram-Inspired in Header) */}
+          <div className="hidden sm:block flex-1 max-w-xs mx-6">
+            <Link
+              href="/search"
+              className="flex items-center space-x-2 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3.5 py-1.5 text-xs text-[#94A3B8] hover:border-[#2563EB] hover:text-[#0F172A] transition-all"
+            >
+              <Search className="h-3.5 w-3.5 text-[#2563EB]" />
+              <span className="truncate">Search students (e.g. Junith), alumni, staff...</span>
+            </Link>
+          </div>
+
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
@@ -47,7 +59,7 @@ export default function Navigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
                       ? 'text-[#2563EB] bg-[#EFF6FF]'
                       : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]'
@@ -79,6 +91,7 @@ export default function Navigation() {
               >
                 <option value="student">Student</option>
                 <option value="alumni">Alumni</option>
+                <option value="staff">Staff/Faculty</option>
                 <option value="institution">Institution</option>
                 <option value="admin">Admin</option>
               </select>
@@ -92,7 +105,7 @@ export default function Navigation() {
 
       {/* Mobile-First Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-[#E2E8F0] bg-white shadow-lg md:hidden">
-        <div className="grid h-16 grid-cols-6 items-center px-1">
+        <div className="grid h-16 grid-cols-7 items-center px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -104,8 +117,8 @@ export default function Navigation() {
                   isActive ? 'text-[#2563EB]' : 'text-[#64748B] hover:text-[#0F172A]'
                 }`}
               >
-                <Icon className={`h-5 w-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                <span className="mt-1 text-[10px] font-semibold tracking-tight">
+                <Icon className={`h-4 w-4 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                <span className="mt-1 text-[9px] font-semibold tracking-tight">
                   {item.label}
                 </span>
                 {isActive && (

@@ -47,8 +47,10 @@ export default function CreateContentPage() {
 
     addPost({
       authorId: currentUser?.id || 'guest',
+      authorUsername: currentUser?.username || 'student_guest',
       authorName: currentUser?.fullName || 'Student',
       authorRole: currentUser?.role || 'student',
+      authorHeadline: currentUser?.headline || 'Student Contributor',
       isVerifiedAuthor: Boolean(currentUser?.isVerified),
       isAnonymous: postAnonymous,
       collegeId: postCollegeId,
