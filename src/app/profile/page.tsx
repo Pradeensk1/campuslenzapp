@@ -1,15 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { User, ShieldCheck, Bookmark, Building, LogOut, CheckCircle2, AlertCircle, Edit3 } from 'lucide-react';
 import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 
 export default function ProfilePage() {
-  const { currentUser, colleges, savedCollegeIds, updateProfile } = useApp();
+  const router = useRouter();
+  const { currentUser, colleges, savedCollegeIds, updateProfile, logout } = useApp();
   const [activeTab, setActiveTab] = useState<'details' | 'saved' | 'verification'>('details');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   const savedColleges = colleges.filter(c => savedCollegeIds.includes(c.id));
 
@@ -106,13 +113,14 @@ export default function ProfilePage() {
                 >
                   Switch Account
                 </Link>
-                <Link
-                  href="/login"
-                  className="apple-button-primary text-[10px] !py-1 !px-2.5 font-bold flex items-center justify-center gap-1"
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="apple-button-primary text-[10px] !py-1 !px-2.5 font-bold flex items-center justify-center gap-1 bg-rose-600 hover:bg-rose-700 text-white"
                 >
                   <LogOut className="h-3 w-3" />
                   <span>Sign Out</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>

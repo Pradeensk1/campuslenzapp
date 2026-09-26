@@ -603,6 +603,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem('campus_lenz_user');
       localStorage.setItem('campus_lenz_auth', 'false');
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V5');
+      if (rawDb) {
+        const parsed = JSON.parse(rawDb);
+        parsed.currentUser = null;
+        localStorage.setItem('CL_FRESH_DB_V5', JSON.stringify(parsed));
+      }
     } catch {}
   };
 
