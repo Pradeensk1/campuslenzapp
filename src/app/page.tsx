@@ -11,7 +11,7 @@ import {
   Building2,
   UserCheck,
   Sparkles,
-  Image,
+  Image as ImageIcon,
   Calendar,
   FileText,
   UserPlus,
@@ -29,7 +29,16 @@ import {
   GraduationCap,
   Scale,
   Search,
-  Filter
+  Filter,
+  Play,
+  Pause,
+  RefreshCw,
+  Radio,
+  Bookmark,
+  Heart,
+  Eye,
+  Check,
+  X
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
@@ -40,13 +49,18 @@ export default function HomePage() {
     posts,
     toggleLikePost,
     addComment,
+    addPost,
     currentUser,
     communities,
     toggleFollowUser,
     allUsers,
     repostToInstitution,
     reportFalseInfoPost,
-    deletePost
+    deletePost,
+    isLiveFeedActive,
+    setIsLiveFeedActive,
+    triggerLiveActivity,
+    resetAllUserData
   } = useApp();
   
   // Track open comment trays per post
@@ -61,13 +75,93 @@ export default function HomePage() {
   const [reportReason, setReportReason] = useState<string>('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  // Feed Filter Tabs: 'all' | 'students' | 'alumni'
-  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni'>('all');
+  // Feed Filter Tabs: 'all' | 'students' | 'alumni' | 'institution'
+  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution'>('all');
+
+  // Bookmarks
+  const [savedPosts, setSavedPosts] = useState<string[]>([]);
+  const toggleSavePost = (postId: string) => {
+    setSavedPosts(prev =>
+      prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
+    );
+    setActionFeedback(savedPosts.includes(postId) ? 'Removed from saved bookmarks' : '🔖 Saved to your bookmarks!');
+    setTimeout(() => setActionFeedback(null), 3000);
+  };
+
+  // Inline Quick Post Composer State
+  const [isComposing, setIsComposing] = useState(false);
+  const [postContent, setPostContent] = useState('');
+  const [postTopic, setPostTopic] = useState('Campus Update');
+  const [postImageUrl, setPostImageUrl] = useState('');
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const diffSec = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      if (diffSec < 45) return 'Just now';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+      return `${Math.floor(diffSec / 86400)}d ago`;
+    } catch {
+      return 'Recently';
+    }
+  };
+
+  const handleSharePost = (postId: string) => {
+    try {
+      const url = `${window.location.origin}/#${postId}`;
+      navigator.clipboard.writeText(url);
+      setActionFeedback('⚡ Direct post link copied to clipboard!');
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch {
+      setActionFeedback('Link copied to clipboard!');
+      setTimeout(() => setActionFeedback(null), 3000);
+    }
+  };
+
+  const handleQuickPostSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postContent.trim()) return;
+
+    const res = addPost({
+      authorId: currentUser.id,
+      authorUsername: currentUser.username,
+      authorName: currentUser.fullName,
+      authorRole: currentUser.role,
+      authorHeadline: currentUser.headline,
+      isVerifiedAuthor: currentUser.isVerified,
+      isAnonymous: false,
+      collegeId: currentUser.collegeId,
+      collegeName: currentUser.collegeName,
+      content: postContent.trim(),
+      topic: postTopic,
+      imageUrl: postImageUrl.trim() || undefined
+    });
+
+    if (res.success) {
+      setPostContent('');
+      setPostImageUrl('');
+      setIsComposing(false);
+      setActionFeedback('🎉 Post published to live campus stream!');
+      setTimeout(() => setActionFeedback(null), 4000);
+    } else {
+      setActionFeedback(res.message || 'Could not publish post.');
+      setTimeout(() => setActionFeedback(null), 4000);
+    }
+  };
+
+  const handleWipeAllData = () => {
+    if (window.confirm('⚠️ Are you sure you want to delete all user data and reset the dynamic feed database? This will clear all local storage and start fresh.')) {
+      resetAllUserData();
+      setActionFeedback('🧹 All user data wiped successfully. Fresh dynamic live feed initialized!');
+      setTimeout(() => setActionFeedback(null), 4000);
+    }
+  };
 
   const filteredPosts = posts.filter((p) => {
     if (feedFilter === 'students') return p.authorRole === 'student';
     if (feedFilter === 'alumni') return p.authorRole === 'alumni';
-    return p.authorRole === 'student' || p.authorRole === 'alumni';
+    if (feedFilter === 'institution') return p.authorRole === 'institution';
+    return true;
   });
 
   const handleToggleComments = (postId: string) => {
@@ -205,63 +299,209 @@ export default function HomePage() {
         </aside>
 
         {/* ========================================================= */}
-        {/* CENTER COLUMN (Cols 4-9): Feed Stream */}
+        {/* CENTER COLUMN (Cols 4-9): Live Dynamic Feed Stream        */}
         {/* ========================================================= */}
         <main className="lg:col-span-6 space-y-4">
           
           {/* Action Feedback Banner if present */}
           {actionFeedback && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2 shadow-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>{actionFeedback}</span>
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{actionFeedback}</span>
+              </div>
+              <button onClick={() => setActionFeedback(null)} className="text-emerald-700 hover:text-emerald-900">
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
-          {/* Clean "Start a Post" Composer (Students, Alumni & Admin) */}
+          {/* 1. Real-Time Live Feed Network Bar (LinkedIn & Instagram Style) */}
+          <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-3.5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  {isLiveFeedActive && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  )}
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLiveFeedActive ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
+                </span>
+                <span className="text-xs font-bold tracking-tight">
+                  {isLiveFeedActive ? 'Live Campus Stream Active' : 'Live Stream Paused'}
+                </span>
+                <span className="text-[10px] font-semibold text-blue-200 bg-white/10 px-2 py-0.5 rounded-full hidden sm:inline">
+                  ⚡ Auto-Applied
+                </span>
+              </div>
+
+              {/* Feed Controls */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => setIsLiveFeedActive(!isLiveFeedActive)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold transition"
+                  title={isLiveFeedActive ? 'Pause auto live updates' : 'Resume auto live updates'}
+                >
+                  {isLiveFeedActive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                  <span>{isLiveFeedActive ? 'Pause' : 'Stream'}</span>
+                </button>
+
+                <button
+                  onClick={triggerLiveActivity}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-[11px] font-bold text-white transition shadow-2xs"
+                  title="Immediately simulate a live network event"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>+ Live Event</span>
+                </button>
+
+                <button
+                  onClick={handleWipeAllData}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px] font-semibold transition"
+                  title="Wipe all data and reset dynamic database"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="hidden sm:inline">Reset All</span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-tight">
+              Real-time activity stream: verified peer achievements, campus recruitment milestones, and faculty circulars synced dynamically.
+            </p>
+          </div>
+
+          {/* 2. Interactive Dynamic Post Composer */}
           {(currentUser.role === 'student' || currentUser.role === 'alumni' || currentUser.role === 'admin') && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <Link href={`/user/${currentUser.username}`}>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0">
                     {currentUser.fullName[0]}
                   </div>
                 </Link>
-                <Link
-                  href="/create"
-                  className="flex-1 rounded-full border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition-colors"
-                >
-                  Share campus thoughts, project updates, or ask seniors...
-                </Link>
+
+                <div className="flex-1">
+                  {!isComposing ? (
+                    <button
+                      onClick={() => setIsComposing(true)}
+                      className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition"
+                    >
+                      Share campus thoughts, job offers, or project releases...
+                    </button>
+                  ) : (
+                    <form onSubmit={handleQuickPostSubmit} className="space-y-3">
+                      <textarea
+                        rows={3}
+                        value={postContent}
+                        onChange={e => setPostContent(e.target.value)}
+                        placeholder="What's happening on campus? Share interview tips, symposium invites, or project milestones..."
+                        className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden resize-none"
+                        autoFocus
+                      />
+
+                      {/* Hashtag suggestions */}
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                        <span className="text-slate-400 font-semibold">Suggested:</span>
+                        {['#Placements2026', '#Hackathon', '#AlumniMentorship', '#Projects', '#CampusLife'].map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setPostContent(prev => prev + ' ' + tag)}
+                            className="px-2 py-0.5 rounded-full bg-slate-100 text-blue-600 font-semibold hover:bg-blue-50 transition"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Optional Image URL Input */}
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                        <input
+                          type="url"
+                          value={postImageUrl}
+                          onChange={e => setPostImageUrl(e.target.value)}
+                          placeholder="Optional image URL (e.g. Unsplash or direct photo link)"
+                          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-hidden"
+                        />
+                      </div>
+
+                      {/* Post Actions */}
+                      <div className="flex items-center justify-between pt-1">
+                        <select
+                          value={postTopic}
+                          onChange={e => setPostTopic(e.target.value)}
+                          className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5"
+                        >
+                          <option value="Campus Update">Campus Update</option>
+                          <option value="Campus Placements">Campus Placements</option>
+                          <option value="Hackathons & Projects">Hackathons & Projects</option>
+                          <option value="Alumni Mentorship">Alumni Mentorship</option>
+                          <option value="Research & Achievements">Research & Achievements</option>
+                        </select>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsComposing(false);
+                              setPostContent('');
+                              setPostImageUrl('');
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!postContent.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition"
+                          >
+                            Publish Post
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-xs text-slate-600">
-                <Link
-                  href="/create"
-                  className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition-colors font-medium"
-                >
-                  <Image className="w-4 h-4 text-blue-500" />
-                  <span>Media</span>
-                </Link>
-                <Link
-                  href="/create"
-                  className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-amber-600 transition-colors font-medium"
-                >
-                  <Calendar className="w-4 h-4 text-amber-500" />
-                  <span>Event</span>
-                </Link>
-                <Link
-                  href="/create"
-                  className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-emerald-600 transition-colors font-medium"
-                >
-                  <FileText className="w-4 h-4 text-emerald-500" />
-                  <span>Review</span>
-                </Link>
-              </div>
+              {!isComposing && (
+                <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-xs text-slate-600">
+                  <button
+                    onClick={() => setIsComposing(true)}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition font-medium"
+                  >
+                    <ImageIcon className="w-4 h-4 text-blue-500" />
+                    <span>Media</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsComposing(true);
+                      setPostTopic('Hackathons & Projects');
+                    }}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-amber-600 transition font-medium"
+                  >
+                    <Calendar className="w-4 h-4 text-amber-500" />
+                    <span>Event</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsComposing(true);
+                      setPostTopic('Campus Placements');
+                    }}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-emerald-600 transition font-medium"
+                  >
+                    <FileText className="w-4 h-4 text-emerald-500" />
+                    <span>Placement</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Clean Feed Filter Pill Tabs */}
-          <div className="flex items-center justify-between px-1">
+          {/* 3. Feed Filter Tabs (Like LinkedIn & Instagram) */}
+          <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
               <button
                 onClick={() => setFeedFilter('all')}
@@ -271,7 +511,7 @@ export default function HomePage() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                All Posts ({posts.filter(p => p.authorRole === 'student' || p.authorRole === 'alumni').length})
+                All Posts ({posts.length})
               </button>
               <button
                 onClick={() => setFeedFilter('students')}
@@ -281,7 +521,7 @@ export default function HomePage() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Students
+                Students ({posts.filter(p => p.authorRole === 'student').length})
               </button>
               <button
                 onClick={() => setFeedFilter('alumni')}
@@ -291,16 +531,26 @@ export default function HomePage() {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Alumni Mentors
+                Alumni ({posts.filter(p => p.authorRole === 'alumni').length})
+              </button>
+              <button
+                onClick={() => setFeedFilter('institution')}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  feedFilter === 'institution'
+                    ? 'bg-white text-purple-600 shadow-2xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Circulars
               </button>
             </div>
 
-            <span className="text-[11px] text-slate-400 hidden sm:inline">
-              Showing {filteredPosts.length} posts
+            <span className="text-[11px] text-slate-400">
+              Showing {filteredPosts.length} dynamic posts
             </span>
           </div>
 
-          {/* Stream of Clean Post Cards */}
+          {/* 4. Stream of Dynamic Post Cards */}
           <div className="space-y-4">
             <AnimatePresence>
               {filteredPosts.map((post) => {
@@ -308,7 +558,7 @@ export default function HomePage() {
                 const isCommentsOpen = activeCommentsPostId === post.id;
                 const isAuthorSelf = post.authorId === currentUser.id;
                 const isFollowingAuthor = currentUser.following.includes(post.authorId);
-                const isFlagged = Boolean(post.reportedByInstitution);
+                const isSaved = savedPosts.includes(post.id);
 
                 return (
                   <motion.article
@@ -369,36 +619,39 @@ export default function HomePage() {
                             </p>
 
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                              <span>{new Date(post.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                              <span>{formatTimeAgo(post.createdAt)}</span>
                               <span>•</span>
                               <span className="text-blue-600 font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Follow Button */}
-                        {!isAuthorSelf && !post.isAnonymous && currentUser.role !== 'institution' && (
-                          <button
-                            onClick={() => toggleFollowUser(post.authorId)}
-                            className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 ${
-                              isFollowingAuthor
-                                ? 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                            }`}
-                          >
-                            {isFollowingAuthor ? 'Following' : '+ Follow'}
-                          </button>
-                        )}
+                        {/* Top Action Tools */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!isAuthorSelf && !post.isAnonymous && currentUser.role !== 'institution' && (
+                            <button
+                              onClick={() => toggleFollowUser(post.authorId)}
+                              className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 ${
+                                isFollowingAuthor
+                                  ? 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                              }`}
+                            >
+                              {isFollowingAuthor ? 'Following' : '+ Follow'}
+                            </button>
+                          )}
 
-                        {currentUser.role === 'admin' && (
-                          <button
-                            onClick={() => deletePost(post.id)}
-                            title="Admin Delete"
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                          {/* Delete Post (Available to Author or Admin) */}
+                          {(currentUser.role === 'admin' || isAuthorSelf) && (
+                            <button
+                              onClick={() => deletePost(post.id)}
+                              title="Delete Post"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Post Body Content */}
@@ -420,7 +673,7 @@ export default function HomePage() {
                           />
                           <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
                             <ZoomIn className="w-3.5 h-3.5" />
-                            <span>Zoom</span>
+                            <span>Zoom Full</span>
                           </div>
                         </div>
                       )}
@@ -437,7 +690,7 @@ export default function HomePage() {
 
                     {/* Reactions & Engagement Summary Bar */}
                     <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center">
                           👍
                         </span>
@@ -446,15 +699,20 @@ export default function HomePage() {
                           <span className="text-purple-600 font-semibold">• {post.sharesCount} reposts</span>
                         )}
                       </div>
-                      <button
-                        onClick={() => handleToggleComments(post.id)}
-                        className="hover:text-slate-900 transition-colors"
-                      >
-                        {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-slate-400">
+                          👁 {post.likesCount * 14 + 115} views
+                        </span>
+                        <button
+                          onClick={() => handleToggleComments(post.id)}
+                          className="hover:text-slate-900 transition-colors font-medium"
+                        >
+                          {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Action Bar (Clean & Role-Enforced) */}
+                    {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
                     {currentUser.role === 'institution' ? (
                       <div className="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 text-xs font-semibold">
                         <button
@@ -477,21 +735,15 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-4 border-t border-slate-100 text-xs font-semibold text-slate-600">
-                        {currentUser.role !== 'faculty' ? (
-                          <button
-                            onClick={() => toggleLikePost(post.id)}
-                            className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                              isLiked ? 'text-blue-600 font-bold' : ''
-                            }`}
-                          >
-                            <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                            <span>{isLiked ? 'Liked' : 'Like'}</span>
-                          </button>
-                        ) : (
-                          <div className="flex items-center justify-center py-2.5 text-[11px] text-amber-700 font-semibold">
-                            Faculty
-                          </div>
-                        )}
+                        <button
+                          onClick={() => toggleLikePost(post.id)}
+                          className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                            isLiked ? 'text-blue-600 font-bold' : ''
+                          }`}
+                        >
+                          <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                          <span>{isLiked ? 'Liked' : 'Like'}</span>
+                        </button>
 
                         <button
                           onClick={() => handleToggleComments(post.id)}
@@ -504,20 +756,22 @@ export default function HomePage() {
                         </button>
 
                         <button
-                          onClick={() => alert('Post link copied to clipboard!')}
+                          onClick={() => toggleSavePost(post.id)}
+                          className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                            isSaved ? 'text-amber-600 font-bold' : ''
+                          }`}
+                        >
+                          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                          <span>{isSaved ? 'Saved' : 'Save'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleSharePost(post.id)}
                           className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                         >
                           <Share2 className="w-4 h-4" />
                           <span>Share</span>
                         </button>
-
-                        <Link
-                          href="/messages"
-                          className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                        >
-                          <Send className="w-4 h-4" />
-                          <span>Send</span>
-                        </Link>
                       </div>
                     )}
 

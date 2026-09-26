@@ -48,9 +48,9 @@ const ROLE_TABS: RoleTab[] = [
     icon: GraduationCap,
     targetRedirect: '/',
     targetPageName: 'Campus Feed & Servers',
-    demoUsername: 'junith_dev',
-    demoEmail: 'junith@campuslenz.org',
-    demoDisplayName: 'Junith S (AI & DS, PSG Tech)',
+    demoUsername: 'student_scholar',
+    demoEmail: 'student@campuslenz.edu',
+    demoDisplayName: 'Verified Campus Student (B.Tech CSE, PSG Tech)',
     tagline: 'Access campus feeds, join Discord servers & submit confidential faculty grievances'
   },
   {
@@ -61,9 +61,9 @@ const ROLE_TABS: RoleTab[] = [
     icon: Briefcase,
     targetRedirect: '/',
     targetPageName: 'Alumni Mentorship Feed',
-    demoUsername: 'karthik_raja',
-    demoEmail: 'karthik@microsoft.com',
-    demoDisplayName: 'Karthik Raja (SWE II @ Microsoft)',
+    demoUsername: 'alumni_mentor',
+    demoEmail: 'alumni@campuslenz.edu',
+    demoDisplayName: 'Alumni Industry Mentor (Senior SWE @ Microsoft)',
     tagline: 'Preview student achievements, provide career guidance & comment on posts'
   },
   {
@@ -74,7 +74,7 @@ const ROLE_TABS: RoleTab[] = [
     icon: Building2,
     targetRedirect: '/servers',
     targetPageName: 'Campus Server Builder',
-    demoUsername: 'psg_institution_admin',
+    demoUsername: 'institution_admin',
     demoEmail: 'admin@psgtech.edu',
     demoDisplayName: 'PSG Tech Administration Desk',
     tagline: 'Govern campus Discord servers, repost student achievements & report false claims'
@@ -87,9 +87,9 @@ const ROLE_TABS: RoleTab[] = [
     icon: BookOpen,
     targetRedirect: '/',
     targetPageName: 'Academic Mentorship Desk',
-    demoUsername: 'dr_meenakshi_staff',
-    demoEmail: 'meenakshi@psgtech.edu',
-    demoDisplayName: 'Dr. Meenakshi Sundaram (Head of CSE)',
+    demoUsername: 'academic_faculty',
+    demoEmail: 'faculty@psgtech.edu',
+    demoDisplayName: 'Dr. Academic Faculty Guide (Head of CSE)',
     tagline: 'Preview student projects, provide academic guidance comments and department coordination'
   },
   {

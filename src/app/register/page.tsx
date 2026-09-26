@@ -405,7 +405,7 @@ export default function ProfessionalRegistrationPage() {
                     required
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    placeholder="e.g. Junith S or Dr. Ramesh"
+                    placeholder="e.g. Anand Kumar or Dr. Priya"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
@@ -419,7 +419,7 @@ export default function ProfessionalRegistrationPage() {
                     required
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    placeholder="e.g. junith_dev"
+                    placeholder="e.g. anand_k"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>

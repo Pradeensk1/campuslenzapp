@@ -120,13 +120,92 @@ interface AppContextType {
     status?: 'under_investigation' | 'resolved' | 'action_taken'
   ) => void;
   executeAdminTerminalCommand: (cmd: string) => string;
+  isLiveFeedActive: boolean;
+  setIsLiveFeedActive: (active: boolean) => void;
+  unreadLivePostsCount: number;
+  applyUnreadLivePosts: () => void;
+  triggerLiveActivity: () => void;
+  resetAllUserData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Simulated Dynamic Campus Stream Updates (Like LinkedIn & Instagram)
+const DYNAMIC_CAMPUS_FEED_POOL: Array<Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>> = [
+  {
+    authorId: 'user-live-sanjay',
+    authorUsername: 'sanjay_dev',
+    authorName: 'Sanjay V',
+    authorRole: 'student',
+    authorHeadline: 'Final Year CSE @ PSG Tech | Incoming SDE @ Zoho',
+    isVerifiedAuthor: true,
+    isAnonymous: false,
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    content: '🎉 Offer Acceptance: Delighted to share that I have accepted an offer as a Software Development Engineer at Zoho Corporation starting July 2026!\n\nBig thanks to the college placement cell, seniors for mock technical interviews, and my batchmates for the late-night DSA study sessions. For juniors preparing for Zoho: focus intensely on clean recursion, matrix manipulation, and OOP design patterns! 🚀 #ZohoCareers #CampusPlacements #PSGTech',
+    topic: 'Campus Placements',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=100'
+  },
+  {
+    authorId: 'user-live-karthika',
+    authorUsername: 'karthika_amazon',
+    authorName: 'Karthika R',
+    authorRole: 'alumni',
+    authorHeadline: 'Software Engineer II @ Amazon | PSG Alumna (2022)',
+    isVerifiedAuthor: true,
+    isAnonymous: false,
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    content: '🚀 Alumni Referral Opportunity:\nOur AWS Developer Productivity team in Chennai is expanding! We have 2 full-time openings for 2024/2025/2026 graduates with hands-on experience in distributed systems, TypeScript/Go, and cloud architectures.\n\nDrop a comment with your GitHub portfolio or reach out via direct message on Campus Lenz for a direct internal referral! #AlumniNetwork #AmazonJobs #Referral #TechCareers',
+    topic: 'Alumni Mentorship'
+  },
+  {
+    authorId: 'user-live-dinesh',
+    authorUsername: 'dinesh_robotics',
+    authorName: 'Dinesh Kumar',
+    authorRole: 'student',
+    authorHeadline: 'Robotics & AI Club President @ PSG Tech',
+    isVerifiedAuthor: true,
+    isAnonymous: false,
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    content: 'Our campus autonomous rover just completed its live 5km waypoint navigation test across the central campus quadrangle with 99.4% obstacle avoidance accuracy! 🤖 GPS RTK + LiDAR mapping working in harmony. Join us at the robotics open showcase this Friday at 4 PM! #Robotics #EmbeddedSystems #Engineering',
+    topic: 'Hackathons & Projects',
+    imageUrl: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=100'
+  },
+  {
+    authorId: 'user-inst-demo',
+    authorUsername: 'institution_admin',
+    authorName: 'PSG Tech Official Administration',
+    authorRole: 'institution',
+    authorHeadline: 'Central Administrative Desk',
+    isVerifiedAuthor: true,
+    isAnonymous: false,
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    content: '🏛️ Dean of Academic Research: High-Performance GPU Cluster (8x NVIDIA H100) is now live in the Central Computing Facility for all postgraduate, Ph.D., and final-year capstone research projects. Access slots can be booked through the student portal starting tomorrow.',
+    topic: 'Official Announcements',
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=100'
+  },
+  {
+    authorId: 'user-live-meera',
+    authorUsername: 'meera_ai',
+    authorName: 'Meera N',
+    authorRole: 'student',
+    authorHeadline: 'B.Tech AI & Data Science @ PSG Tech | Kaggle Expert',
+    isVerifiedAuthor: true,
+    isAnonymous: false,
+    collegeId: 'col-psg',
+    collegeName: 'PSG College of Technology',
+    content: 'Just published our benchmark study on Local LLM quantizations (4-bit vs 8-bit) on consumer GPUs! Fine-tuning results show 85% latency reduction with less than 2% perplexity loss. Code and HuggingFace weights linked below! #MachineLearning #OpenSource #AIResearch',
+    topic: 'Research & Achievements',
+    imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=100'
+  }
+];
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]); // Arun Prakash by default
+  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [colleges] = useState<College[]>(INITIAL_COLLEGES);
   const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
@@ -138,24 +217,149 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
   const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>(['col-psg']);
 
-  // Load from localStorage if present
+  // Dynamic Live Feed & Real-Time Engine State
+  const [hasHydrated, setHasHydrated] = useState<boolean>(false);
+  const [isLiveFeedActive, setIsLiveFeedActive] = useState<boolean>(true);
+  const [stagedLivePosts, setStagedLivePosts] = useState<Post[]>([]);
+
+  // 1. Hydrate and Clean Legacy Storage on Initial Client Mount
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('campus_lenz_user');
-      const authFlag = localStorage.getItem('campus_lenz_auth');
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-        setIsAuthenticated(authFlag !== 'false');
-      } else {
-        setIsAuthenticated(true);
+      // Clean legacy mock user traces if present
+      if (!localStorage.getItem('campuslenz_v4_purged')) {
+        localStorage.removeItem('campus_lenz_user');
+        localStorage.removeItem('campus_lenz_auth');
+        localStorage.removeItem('campus_lenz_saved');
+        localStorage.removeItem('CL_DYNAMIC_DB_V3');
+        localStorage.setItem('campuslenz_v4_purged', 'true');
       }
 
-      const savedCols = localStorage.getItem('campus_lenz_saved');
-      if (savedCols) setSavedCollegeIds(JSON.parse(savedCols));
-    } catch {
-      // Ignore storage errors in restricted contexts
+      const rawDb = localStorage.getItem('CL_DYNAMIC_DB_V4');
+      if (rawDb) {
+        const parsed = JSON.parse(rawDb);
+        if (parsed.allUsers && parsed.allUsers.length > 0) setAllUsers(parsed.allUsers);
+        if (parsed.currentUser) setCurrentUser(parsed.currentUser);
+        if (parsed.posts && parsed.posts.length > 0) setPosts(parsed.posts);
+        if (parsed.reviews) setReviews(parsed.reviews);
+        if (parsed.servers) setServers(parsed.servers);
+        if (parsed.serverMessages) setServerMessages(parsed.serverMessages);
+        if (parsed.directMessages) setDirectMessages(parsed.directMessages);
+        if (parsed.grievanceReports) setGrievanceReports(parsed.grievanceReports);
+        if (parsed.savedCollegeIds) setSavedCollegeIds(parsed.savedCollegeIds);
+      }
+    } catch (e) {
+      console.error('Storage hydration error:', e);
+    } finally {
+      setHasHydrated(true);
     }
   }, []);
+
+  // 2. Real-Time Dynamic Storage Sync: Auto-persist all mutations
+  useEffect(() => {
+    if (!hasHydrated) return;
+    try {
+      const dataToSave = {
+        allUsers,
+        currentUser,
+        posts,
+        reviews,
+        servers,
+        serverMessages,
+        directMessages,
+        grievanceReports,
+        savedCollegeIds
+      };
+      localStorage.setItem('CL_DYNAMIC_DB_V4', JSON.stringify(dataToSave));
+      localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
+      localStorage.setItem('campus_lenz_auth', isAuthenticated ? 'true' : 'false');
+    } catch {}
+  }, [
+    hasHydrated,
+    allUsers,
+    currentUser,
+    isAuthenticated,
+    posts,
+    reviews,
+    servers,
+    serverMessages,
+    directMessages,
+    grievanceReports,
+    savedCollegeIds
+  ]);
+
+  // 3. Automated Dynamic Live Activity Ticker (Runs in Background)
+  useEffect(() => {
+    if (!hasHydrated || !isLiveFeedActive) return;
+
+    let poolIndex = 0;
+    const interval = setInterval(() => {
+      const template = DYNAMIC_CAMPUS_FEED_POOL[poolIndex % DYNAMIC_CAMPUS_FEED_POOL.length];
+      poolIndex++;
+
+      const newPost: Post = {
+        ...template,
+        id: `post-live-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        likes: [],
+        likesCount: Math.floor(Math.random() * 30) + 15,
+        comments: [],
+        commentsCount: Math.floor(Math.random() * 3) + 1,
+        sharesCount: Math.floor(Math.random() * 10) + 3,
+        moderationStatus: 'normal'
+      };
+
+      // Automatically apply new dynamic update directly to the live feed!
+      setPosts(prev => [newPost, ...prev]);
+    }, 28000); // New dynamic event every 28 seconds automatically
+
+    return () => clearInterval(interval);
+  }, [hasHydrated, isLiveFeedActive]);
+
+  // Manually trigger a live post right now
+  const triggerLiveActivity = () => {
+    const randomTemplate = DYNAMIC_CAMPUS_FEED_POOL[Math.floor(Math.random() * DYNAMIC_CAMPUS_FEED_POOL.length)];
+    const manualPost: Post = {
+      ...randomTemplate,
+      id: `post-manual-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      likes: [],
+      likesCount: Math.floor(Math.random() * 20) + 10,
+      comments: [],
+      commentsCount: 1,
+      sharesCount: Math.floor(Math.random() * 5) + 1,
+      moderationStatus: 'normal'
+    };
+    setPosts(prev => [manualPost, ...prev]);
+  };
+
+  const applyUnreadLivePosts = () => {
+    if (stagedLivePosts.length > 0) {
+      setPosts(prev => [...stagedLivePosts, ...prev]);
+      setStagedLivePosts([]);
+    }
+  };
+
+  // Complete Data Wipe & Reset Engine
+  const resetAllUserData = () => {
+    try {
+      localStorage.removeItem('CL_DYNAMIC_DB_V4');
+      localStorage.removeItem('campus_lenz_user');
+      localStorage.removeItem('campus_lenz_auth');
+      localStorage.removeItem('campus_lenz_saved');
+    } catch {}
+
+    setAllUsers(INITIAL_USERS);
+    setCurrentUser(INITIAL_USERS[0]);
+    setIsAuthenticated(true);
+    setPosts(INITIAL_POSTS);
+    setReviews(INITIAL_REVIEWS);
+    setServers(INITIAL_DISCORD_SERVERS);
+    setServerMessages(INITIAL_SERVER_MESSAGES);
+    setDirectMessages(INITIAL_DIRECT_MESSAGES);
+    setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
+    setSavedCollegeIds(['col-psg']);
+    setStagedLivePosts([]);
+  };
 
   // Professional Login Method: verifies identifier against database & computes proper destination
   const loginUser = (
@@ -255,8 +459,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isVerified: true,
       followersCount: 1,
       followingCount: 1,
-      followers: ['user-junith'],
-      following: ['user-junith'],
+      followers: ['user-alumni-demo'],
+      following: ['user-alumni-demo'],
       createdAt: new Date().toISOString()
     };
 
@@ -401,6 +605,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       moderationStatus: 'normal'
     };
     setPosts(prev => [post, ...prev]);
+
+    // Live Social Interaction Simulation (like LinkedIn & Instagram)
+    if (isLiveFeedActive) {
+      setTimeout(() => {
+        setPosts(currentPosts =>
+          currentPosts.map(p => {
+            if (p.id !== post.id) return p;
+            const simComment: Comment = {
+              id: `comment-sim-${Date.now()}`,
+              postId: post.id,
+              authorId: 'user-alumni-demo',
+              authorUsername: 'alumni_mentor',
+              authorName: 'Alumni Industry Mentor',
+              authorRole: 'alumni',
+              authorHeadline: 'Senior Software Engineer @ Microsoft',
+              isVerifiedAuthor: true,
+              content: 'Great initiative! Really proud to see students building and sharing practical updates. Keep up the high momentum!',
+              createdAt: new Date().toISOString(),
+              likesCount: 2
+            };
+            return {
+              ...p,
+              likes: p.likes.includes('user-alumni-demo') ? p.likes : [...p.likes, 'user-alumni-demo'],
+              likesCount: p.likesCount + 1,
+              comments: [...p.comments, simComment],
+              commentsCount: p.commentsCount + 1
+            };
+          })
+        );
+      }, 5000);
+    }
+
     return { success: true };
   };
 
@@ -872,10 +1108,14 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         return `Unknown db flag. Use 'db --health'.`;
 
       case 'purge':
+        if (arg === '--all' || arg === '--data') {
+          resetAllUserData();
+          return `[PURGE ALL] All user data, local storage databases, and caches wiped completely. System restarted with fresh dynamic database.`;
+        }
         if (arg === '--cache') {
           return `[PURGE] Local session storage and reactive cached indices cleared. System restarted nominal.`;
         }
-        return `Usage: purge --cache`;
+        return `Usage: purge --all (wipe all user data) | purge --cache`;
 
       case 'eval':
         try {
@@ -935,7 +1175,13 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         addChannelToCommunity,
         submitGrievanceReport,
         resolveGrievanceReport,
-        executeAdminTerminalCommand
+        executeAdminTerminalCommand,
+        isLiveFeedActive,
+        setIsLiveFeedActive,
+        unreadLivePostsCount: stagedLivePosts.length,
+        applyUnreadLivePosts,
+        triggerLiveActivity,
+        resetAllUserData
       }}
     >
       {children}
