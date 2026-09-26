@@ -2,6 +2,6 @@
 
 import CampusConnectHub from '@/components/CampusConnectHub';
 
-export default function ServersPage() {
+export default function ConnectPage() {
   return <CampusConnectHub initialTab="community" />;
 }
