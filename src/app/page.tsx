@@ -264,6 +264,18 @@ export default function HomePage() {
                       {post.content}
                     </div>
 
+                    {/* High-Resolution Uncompressed Post Image Display */}
+                    {post.imageUrl && (
+                      <div className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC]">
+                        <img
+                          src={post.imageUrl}
+                          alt="Post media attachment"
+                          loading="lazy"
+                          className="w-full max-h-[460px] object-cover rounded-xl transition-transform duration-300 hover:scale-[1.01]"
+                        />
+                      </div>
+                    )}
+
                     {post.topic && (
                       <div className="mt-3">
                         <span className="rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold text-[#2563EB]">

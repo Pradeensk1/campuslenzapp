@@ -204,6 +204,18 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                     {post.content}
                   </p>
 
+                  {/* High Resolution Post Image */}
+                  {post.imageUrl && (
+                    <div className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC]">
+                      <img
+                        src={post.imageUrl}
+                        alt="Post media attachment"
+                        loading="lazy"
+                        className="w-full max-h-[360px] object-cover rounded-xl"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between border-t border-[#F1F5F9] pt-3 text-xs text-[#64748B]">
                     <button
                       onClick={() => toggleLikePost(post.id)}

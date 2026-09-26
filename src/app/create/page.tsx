@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
-import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles } from 'lucide-react';
+import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X } from 'lucide-react';
 
 export default function CreateContentPage() {
   const router = useRouter();
@@ -16,6 +16,29 @@ export default function CreateContentPage() {
   const [postContent, setPostContent] = useState('');
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
+  const [postImageUrl, setPostImageUrl] = useState<string>('');
+  const [imageFileName, setImageFileName] = useState<string>('');
+
+  // Handle lossless full-resolution image selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          // Full resolution base64/data URI preservation without lossy compression
+          setPostImageUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setPostImageUrl('');
+    setImageFileName('');
+  };
 
   // Review form state
   const [reviewCollegeId, setReviewCollegeId] = useState(colleges[0]?.id || '');
@@ -56,7 +79,8 @@ export default function CreateContentPage() {
       collegeId: postCollegeId,
       collegeName: chosenCollege?.name,
       content: postContent,
-      topic: postTopic
+      topic: postTopic,
+      imageUrl: postImageUrl || undefined
     });
 
     router.push('/');
@@ -167,6 +191,54 @@ export default function CreateContentPage() {
               className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#2563EB] focus:outline-none transition-colors"
               required
             />
+          </div>
+
+          {/* High-Resolution Image Attachment Support */}
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
+              Attach High-Resolution Image (Preserves 100% Quality)
+            </label>
+            
+            {postImageUrl ? (
+              <div className="relative rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2 overflow-hidden">
+                <img
+                  src={postImageUrl}
+                  alt="High quality post attachment"
+                  className="w-full max-h-64 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-4 right-4 bg-[#0F172A]/80 text-white rounded-full p-1.5 hover:bg-[#0F172A] transition"
+                  title="Remove image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <p className="mt-1 text-[11px] text-[#64748B] px-1 truncate">
+                  Attached: <strong>{imageFileName}</strong> (Lossless original quality)
+                </p>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 cursor-pointer hover:border-[#2563EB] hover:bg-[#EFF6FF]/40 transition">
+                <div className="flex flex-col items-center justify-center text-center space-y-1">
+                  <div className="h-10 w-10 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center mb-1">
+                    <ImageIcon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-bold text-[#0F172A]">
+                    Click to upload or drag & drop high-res image
+                  </p>
+                  <p className="text-[10px] text-[#64748B]">
+                    PNG, JPG, WebP, GIF supported • No blurry compression or downscaling
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           {/* Anonymous toggle */}

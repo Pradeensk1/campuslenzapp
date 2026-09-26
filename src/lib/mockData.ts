@@ -442,6 +442,7 @@ export const INITIAL_POSTS: Post[] = [
     collegeName: 'PSG College of Technology',
     content: 'Thrilled to share that our campus AI research team just published our paper on "Optimizing Inference on Resource-Constrained Edge Devices"! 🚀\n\nA huge thank you to Dr. Meenakshi and the PSG Tech CSE lab facilities for the continuous compute support. For 2nd and 3rd year juniors looking to get into research, the robotics & AI lab applications open next week. Don\'t miss it!',
     topic: 'Research & Achievements',
+    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1400&q=100',
     likes: ['user-arun', 'user-karthik', 'user-meenakshi'],
     likesCount: 42,
     commentsCount: 3,
