@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
-import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle } from 'lucide-react';
+import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function CreateContentPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function CreateContentPage() {
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
 
-  // Review form state (Strict Multi-dimensional spec)
+  // Review form state
   const [reviewCollegeId, setReviewCollegeId] = useState(colleges[0]?.id || '');
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewExperience, setReviewExperience] = useState('');
@@ -89,13 +90,13 @@ export default function CreateContentPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Tab Switcher */}
-      <div className="flex rounded-xl border border-[#1E3A5F] bg-[#112238] p-1.5 text-xs">
+      {/* Segmented Control */}
+      <div className="flex rounded-2xl border border-[#1F3653] bg-[#132238] p-1.5 text-xs shadow-md">
         <button
           onClick={() => setActiveTab('post')}
-          className={`flex-1 rounded-lg py-2 font-bold transition ${
+          className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'post'
-              ? 'bg-[#38E6A5] text-[#07111F]'
+              ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
               : 'text-[#94A3B8] hover:text-[#F8FAFC]'
           }`}
         >
@@ -103,9 +104,9 @@ export default function CreateContentPage() {
         </button>
         <button
           onClick={() => setActiveTab('review')}
-          className={`flex-1 rounded-lg py-2 font-bold transition ${
+          className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'review'
-              ? 'bg-[#38E6A5] text-[#07111F]'
+              ? 'bg-[#38E6A5] text-[#0B1320] shadow-sm'
               : 'text-[#94A3B8] hover:text-[#F8FAFC]'
           }`}
         >
@@ -114,126 +115,137 @@ export default function CreateContentPage() {
       </div>
 
       {activeTab === 'post' ? (
-        /* Post Creation Form */
-        <form onSubmit={handlePostSubmit} className="rounded-xl border border-[#1E3A5F] bg-[#112238] p-6 space-y-4">
-          <h2 className="text-base font-bold text-[#F8FAFC]">Create a Campus Community Post</h2>
+        <form onSubmit={handlePostSubmit} className="apple-card p-6 sm:p-8 space-y-5">
+          <div>
+            <h2 className="text-lg font-bold text-[#F8FAFC]">Create a Community Post</h2>
+            <p className="mt-1 text-xs text-[#94A3B8]">
+              Connect with students and alumni across campuses on placements, hostel realities, and academics.
+            </p>
+          </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8]">Select College Association</label>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              College Association
+            </label>
             <select
               value={postCollegeId}
               onChange={(e) => setPostCollegeId(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2.5 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none transition-colors"
             >
               {colleges.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id} className="bg-[#132238]">{c.name}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8]">Discussion Topic</label>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Discussion Topic
+            </label>
             <select
               value={postTopic}
               onChange={(e) => setPostTopic(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2.5 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs text-[#F8FAFC] focus:border-[#38E6A5] focus:outline-none transition-colors"
             >
-              <option value="Campus Life">Campus Life & Hostels</option>
-              <option value="Placements & Prep">Placements & Company Drives</option>
-              <option value="Alumni Mentorship">Alumni Mentorship & Advice</option>
-              <option value="Admissions & Cutoffs">Admissions & Counseling</option>
+              <option value="Campus Life" className="bg-[#132238]">Campus Life & Hostels</option>
+              <option value="Placements & Prep" className="bg-[#132238]">Placements & Company Drives</option>
+              <option value="Alumni Mentorship" className="bg-[#132238]">Alumni Mentorship & Advice</option>
+              <option value="Admissions & Cutoffs" className="bg-[#132238]">Admissions & Counseling</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8]">Your Post</label>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Your Message
+            </label>
             <textarea
               rows={4}
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
-              placeholder="What would you like to discuss with seniors, alumni, or fellow peers?"
-              className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-3 text-xs text-[#F8FAFC] placeholder-[#94A3B8] focus:border-[#38E6A5] focus:outline-none"
+              placeholder="What questions or experiences would you like to share?"
+              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:border-[#38E6A5] focus:outline-none transition-colors"
               required
             />
           </div>
 
-          {/* Anonymous toggle (Spec requirement) */}
-          <div className="flex items-center space-x-2 rounded-lg bg-[#162D4A] p-3 text-xs">
+          {/* Anonymous toggle */}
+          <div className="flex items-center space-x-3 rounded-xl border border-[#1F3653] bg-[#192D48] p-4 text-xs">
             <input
               type="checkbox"
               id="anonPost"
               checked={postAnonymous}
               onChange={(e) => setPostAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#38E6A5]"
+              className="h-4 w-4 rounded accent-[#38E6A5] cursor-pointer"
             />
-            <label htmlFor="anonPost" className="text-[#94A3B8]">
+            <label htmlFor="anonPost" className="text-[#94A3B8] cursor-pointer">
               Post as <strong className="text-[#F8FAFC]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
             </label>
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-[#38E6A5] py-2.5 text-xs font-bold text-[#07111F] hover:bg-[#70F3C1]"
+            className="apple-button-primary w-full text-xs font-bold py-3"
           >
-            Publish Post
+            Publish to Campus Stream
           </button>
         </form>
       ) : (
-        /* Structured Review Form */
-        <form onSubmit={handleReviewSubmit} className="rounded-xl border border-[#1E3A5F] bg-[#112238] p-6 space-y-4">
-          <div className="border-b border-[#1E3A5F] pb-3">
-            <h2 className="text-base font-bold text-[#F8FAFC]">Write Structured College Evaluation</h2>
+        <form onSubmit={handleReviewSubmit} className="apple-card p-6 sm:p-8 space-y-5">
+          <div className="border-b border-[#1F3653] pb-4">
+            <h2 className="text-lg font-bold text-[#F8FAFC]">Structured College Review</h2>
             <p className="mt-1 text-xs text-[#94A3B8]">
-              Your experience helps prospective students. Real criticism is protected.
+              Multi-dimensional evaluation. Honest criticism is protected from institutional deletion.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-[#94A3B8]">Institution</label>
+              <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Institution</label>
               <select
                 value={reviewCollegeId}
                 onChange={(e) => setReviewCollegeId(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2 text-xs text-[#F8FAFC] focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC] focus:outline-none"
               >
                 {colleges.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id} className="bg-[#132238]">{c.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#94A3B8]">Course & Batch</label>
+              <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Course & Batch</label>
               <div className="mt-1.5 flex space-x-2">
                 <input
                   type="text"
                   value={reviewCourse}
                   onChange={(e) => setReviewCourse(e.target.value)}
                   placeholder="Course (e.g. MCA)"
-                  className="w-1/2 rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2 text-xs text-[#F8FAFC]"
+                  className="w-1/2 rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
                 />
                 <input
                   type="text"
                   value={reviewBatch}
                   onChange={(e) => setReviewBatch(e.target.value)}
                   placeholder="Batch (2025)"
-                  className="w-1/2 rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2 text-xs text-[#F8FAFC]"
+                  className="w-1/2 rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Dimension Ratings */}
+          {/* Dimension ratings */}
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8] mb-2">Evaluation Dimensions (1 to 5 Stars)</label>
-            <div className="grid grid-cols-2 gap-3 text-xs bg-[#162D4A] p-3 rounded-lg">
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">
+              Evaluation Dimensions (1 to 5 Stars)
+            </label>
+            <div className="grid grid-cols-2 gap-3 text-xs bg-[#192D48] p-4 rounded-xl border border-[#1F3653]">
               {Object.entries(ratings).map(([key, val]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="capitalize text-[#F8FAFC]">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="capitalize text-[#F8FAFC] font-medium">{key.replace(/([A-Z])/g, ' $1')}</span>
                   <select
                     value={val}
                     onChange={(e) => setRatings({ ...ratings, [key]: Number(e.target.value) })}
-                    className="rounded bg-[#07111F] px-2 py-0.5 text-xs text-[#FBBF24] font-bold"
+                    className="rounded-lg bg-[#0B1320] border border-[#1F3653] px-2.5 py-1 text-xs text-[#F59E0B] font-bold"
                   >
                     {[5, 4, 3, 2, 1].map((s) => (
                       <option key={s} value={s}>{s} ★</option>
@@ -245,25 +257,25 @@ export default function CreateContentPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8]">Review Headline</label>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Review Title</label>
             <input
               type="text"
               value={reviewTitle}
               onChange={(e) => setReviewTitle(e.target.value)}
               placeholder="e.g. Excellent placement records, but hostel facilities need overhaul"
-              className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2.5 text-xs text-[#F8FAFC]"
+              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs sm:text-sm text-[#F8FAFC]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#94A3B8]">Detailed Experience</label>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Detailed Experience</label>
             <textarea
               rows={3}
               value={reviewExperience}
               onChange={(e) => setReviewExperience(e.target.value)}
               placeholder="Provide realistic, honest insights on faculty teaching, syllabus, and campus life..."
-              className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2.5 text-xs text-[#F8FAFC]"
+              className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-3 text-xs sm:text-sm text-[#F8FAFC]"
               required
             />
           </div>
@@ -276,38 +288,38 @@ export default function CreateContentPage() {
                 value={reviewPros}
                 onChange={(e) => setReviewPros(e.target.value)}
                 placeholder="High placements, top faculty"
-                className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2 text-xs text-[#F8FAFC]"
+                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#FBBF24]">Cons (Comma separated)</label>
+              <label className="block text-xs font-semibold text-[#F59E0B]">Cons (Comma separated)</label>
               <input
                 type="text"
                 value={reviewCons}
                 onChange={(e) => setReviewCons(e.target.value)}
                 placeholder="Strict attendance, mess food"
-                className="mt-1.5 w-full rounded-lg border border-[#1E3A5F] bg-[#162D4A] p-2 text-xs text-[#F8FAFC]"
+                className="mt-1.5 w-full rounded-xl border border-[#1F3653] bg-[#192D48] p-2.5 text-xs text-[#F8FAFC]"
               />
             </div>
           </div>
 
-          {/* Anonymous reviewer toggle */}
-          <div className="flex items-center space-x-2 rounded-lg bg-[#162D4A] p-3 text-xs">
+          {/* Anonymous toggle */}
+          <div className="flex items-center space-x-3 rounded-xl border border-[#1F3653] bg-[#192D48] p-4 text-xs">
             <input
               type="checkbox"
               id="anonRev"
               checked={reviewAnonymous}
               onChange={(e) => setReviewAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#38E6A5]"
+              className="h-4 w-4 rounded accent-[#38E6A5] cursor-pointer"
             />
-            <label htmlFor="anonRev" className="text-[#94A3B8]">
-              Display as <strong className="text-[#F8FAFC]">Anonymous Contributor</strong>
+            <label htmlFor="anonRev" className="text-[#94A3B8] cursor-pointer">
+              Publish as <strong className="text-[#F8FAFC]">Anonymous Contributor</strong>
             </label>
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-[#38E6A5] py-2.5 text-xs font-bold text-[#07111F] hover:bg-[#70F3C1]"
+            className="apple-button-primary w-full text-xs font-bold py-3"
           >
             Submit Review
           </button>
