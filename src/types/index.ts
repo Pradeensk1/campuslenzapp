@@ -52,6 +52,20 @@ export interface UserProfile {
   lastPostTimestamp?: string;
   strikesCount?: number;
   lastStrikeTimestamp?: string;
+
+  // Role-Specific Metadata
+  studentRollNo?: string;
+  company?: string;
+  designation?: string;
+  facultyStaffId?: string;
+  specialization?: string;
+  experienceYears?: string;
+  qualification?: string;
+  officeTitle?: string;
+  aisheCode?: string;
+  contactPhone?: string;
+  websiteUrl?: string;
+  linkedinUrl?: string;
 }
 
 export interface PlacementDetails {

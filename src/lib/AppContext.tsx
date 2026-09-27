@@ -77,6 +77,19 @@ export interface RegisterPayload {
   department?: string;
   course?: string;
   graduationBatch?: string;
+  // Role-Specific Fields
+  studentRollNo?: string;
+  company?: string;
+  designation?: string;
+  facultyStaffId?: string;
+  specialization?: string;
+  experienceYears?: string;
+  qualification?: string;
+  officeTitle?: string;
+  aisheCode?: string;
+  contactPhone?: string;
+  websiteUrl?: string;
+  linkedinUrl?: string;
 }
 
 export const getRedirectUrlForRole = (role: UserRole): string => {
@@ -816,7 +829,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Professional Login Method: verifies identifier against database & computes proper destination
-  // Supports instant authentication for existing personas AND dynamic auto-provisioning for any username
   const loginUser = (
     identifier: string,
     password?: string,
@@ -827,20 +839,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return {
         success: false,
         redirectUrl: '/login',
-        message: 'Please enter your username or registered institutional email.'
+        message: 'Please enter your username, email, roll number, or institutional ID.'
       };
     }
 
-    // Search registered users by username or email
-    const matched = allUsers.find(
-      u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
+    // Search registered users by username, email, roll number, or staff id
+    let matched = allUsers.find(
+      u =>
+        u.username.toLowerCase() === cleanId ||
+        u.email.toLowerCase() === cleanId ||
+        (u.studentRollNo && u.studentRollNo.toLowerCase() === cleanId) ||
+        (u.facultyStaffId && u.facultyStaffId.toLowerCase() === cleanId)
     );
+
+    // Fallback: check localStorage stored account
+    if (!matched && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('campus_lenz_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (
+            parsed.username?.toLowerCase() === cleanId ||
+            parsed.email?.toLowerCase() === cleanId ||
+            parsed.studentRollNo?.toLowerCase() === cleanId ||
+            parsed.facultyStaffId?.toLowerCase() === cleanId
+          ) {
+            matched = parsed;
+          }
+        }
+      } catch {}
+    }
 
     if (!matched) {
       return {
         success: false,
         redirectUrl: '/login',
-        message: `No registered account found with "${identifier}". Please click "Register" to create your account.`
+        message: `No registered account found with "${identifier}". Please select your role and click "Register" to create your account.`
+      };
+    }
+
+    // Check if the user is attempting to sign in to a different role portal
+    if (portalRole && matched.role !== portalRole) {
+      const portalNames: Record<string, string> = {
+        student: 'Student Portal',
+        alumni: 'Alumni Network',
+        faculty: 'Faculty Academic Desk',
+        institution: 'Campus Administration',
+      };
+      return {
+        success: false,
+        redirectUrl: '/login',
+        message: `Account "${matched.username}" is registered as a ${matched.role.toUpperCase()}. Please switch to the ${portalNames[matched.role] || matched.role} to sign in.`
       };
     }
 
@@ -911,7 +960,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       followingCount: 0,
       followers: [],
       following: [],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      studentRollNo: data.studentRollNo,
+      company: data.company,
+      designation: data.designation,
+      facultyStaffId: data.facultyStaffId,
+      specialization: data.specialization,
+      experienceYears: data.experienceYears,
+      qualification: data.qualification,
+      officeTitle: data.officeTitle,
+      aisheCode: data.aisheCode,
+      contactPhone: data.contactPhone,
+      websiteUrl: data.websiteUrl,
+      linkedinUrl: data.linkedinUrl
     };
 
     setAllUsers(prev => [newUser, ...prev]);
@@ -932,7 +993,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         collegeName: newUser.collegeName,
         department: newUser.department,
         course: newUser.course,
-        graduationBatch: newUser.graduationBatch
+        graduationBatch: newUser.graduationBatch,
+        studentRollNo: newUser.studentRollNo,
+        company: newUser.company,
+        designation: newUser.designation,
+        facultyStaffId: newUser.facultyStaffId,
+        specialization: newUser.specialization,
+        experienceYears: newUser.experienceYears,
+        qualification: newUser.qualification,
+        officeTitle: newUser.officeTitle,
+        aisheCode: newUser.aisheCode,
+        contactPhone: newUser.contactPhone,
+        websiteUrl: newUser.websiteUrl,
+        linkedinUrl: newUser.linkedinUrl
       })
     }).catch(err => console.warn('User register API notice:', err));
 

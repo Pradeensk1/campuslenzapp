@@ -1,23 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { UserRole } from '@/types';
 import {
   TAMIL_NADU_COLLEGES,
   getCoursesForCollege,
   getDepartmentsForCourse,
-  getCourseDurationYears,
-  TamilNaduCollegeItem
+  getCourseDurationYears
 } from '@/lib/tamilNaduColleges';
 import {
   GraduationCap,
   Briefcase,
   Building2,
   BookOpen,
-  ShieldCheck,
   UserPlus,
   Mail,
   User,
@@ -32,10 +30,11 @@ import {
   Award,
   Calendar,
   Search,
-  Filter,
-  Clock,
   MapPin,
-  ChevronDown
+  Phone,
+  Globe,
+  FileBadge,
+  Compass
 } from 'lucide-react';
 
 interface RoleOption {
@@ -44,61 +43,56 @@ interface RoleOption {
   badge: string;
   icon: any;
   colorClass: string;
+  borderClass: string;
   bgSelectedClass: string;
   summary: string;
   destinationPage: string;
 }
 
-const ROLE_OPTIONS: RoleOption[] = [
+const PUBLIC_ROLE_OPTIONS: RoleOption[] = [
   {
     id: 'student',
     title: 'Student',
-    badge: 'Active Student',
+    badge: 'Undergraduate / PG',
     icon: GraduationCap,
     colorClass: 'text-blue-600',
+    borderClass: 'border-blue-500',
     bgSelectedClass: 'border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/20',
-    summary: 'Post original thoughts/media, join Discord servers & submit private grievances to Institution ID',
+    summary: 'Join collegiate study rooms, participate in feeds, and submit confidential faculty grievances.',
     destinationPage: 'Campus Feed & Servers (/)'
   },
   {
     id: 'alumni',
     title: 'Alumni',
-    badge: 'Verified Alum',
+    badge: 'Graduated Industry Alum',
     icon: Briefcase,
     colorClass: 'text-emerald-600',
+    borderClass: 'border-emerald-500',
     bgSelectedClass: 'border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/20',
-    summary: 'Preview student achievements, provide career guidance, and full commenting/likes on student posts',
+    summary: 'Mentor campus juniors, post industry job referrals, and engage in campus tech discussions.',
     destinationPage: 'Alumni Mentorship Feed (/)'
-  },
-  {
-    id: 'institution',
-    title: 'Institution',
-    badge: 'Campus Admin',
-    icon: Building2,
-    colorClass: 'text-purple-600',
-    bgSelectedClass: 'border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/20',
-    summary: 'Govern campus Discord servers, repost student achievements & report false claims to admin',
-    destinationPage: 'Campus Server Builder (/servers)'
   },
   {
     id: 'faculty',
     title: 'Faculty',
-    badge: 'Academic Desk',
+    badge: 'Academic Professor / HOD',
     icon: BookOpen,
     colorClass: 'text-amber-600',
+    borderClass: 'border-amber-500',
     bgSelectedClass: 'border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/20',
-    summary: 'Preview student posts and provide constructive mentorship/academic guidance comments only',
+    summary: 'Oversee student academic projects, post departmental announcements, and coordinate research.',
     destinationPage: 'Academic Review Feed (/)'
   },
   {
-    id: 'admin',
-    title: 'Admin',
-    badge: 'Super Admin',
-    icon: ShieldCheck,
-    colorClass: 'text-rose-600',
-    bgSelectedClass: 'border-rose-600 ring-2 ring-rose-500/20 bg-rose-50/20',
-    summary: 'Global application editing, content moderation & exclusive interactive Developer Terminal CLI',
-    destinationPage: 'Admin Console & Terminal (/admin)'
+    id: 'institution',
+    title: 'Institution',
+    badge: 'Campus Authority / Dean',
+    icon: Building2,
+    colorClass: 'text-purple-600',
+    borderClass: 'border-purple-500',
+    bgSelectedClass: 'border-purple-600 ring-2 ring-purple-500/20 bg-purple-50/20',
+    summary: 'Govern campus Discord servers, broadcast administrative notices, and resolve formal grievances.',
+    destinationPage: 'Campus Server Builder (/servers)'
   }
 ];
 
@@ -112,26 +106,35 @@ const REGIONS = [
   'Southern TN'
 ];
 
-export default function ProfessionalRegistrationPage() {
+function RegistrationFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { registerUser } = useApp();
 
-  // Selected Role
-  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
+  const queryRole = searchParams.get('role') as UserRole | null;
+  const initialRole: UserRole =
+    queryRole && PUBLIC_ROLE_OPTIONS.some(r => r.id === queryRole) ? queryRole : 'student';
 
-  // Core Form State
+  const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
+
+  useEffect(() => {
+    if (queryRole && PUBLIC_ROLE_OPTIONS.some(r => r.id === queryRole)) {
+      setSelectedRole(queryRole);
+    }
+  }, [queryRole]);
+
+  // Core Account Credentials
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [headline, setHeadline] = useState('');
 
-  // 1. College Cascading Selection State
+  // College Cascading Selection State
   const [selectedRegion, setSelectedRegion] = useState<string>('All Tamil Nadu');
   const [collegeSearchQuery, setCollegeSearchQuery] = useState<string>('');
   const [selectedCollegeId, setSelectedCollegeId] = useState<string>('col-psg');
 
-  // Filter colleges based on Region and Search Query
   const filteredColleges = useMemo(() => {
     return TAMIL_NADU_COLLEGES.filter(col => {
       const matchesRegion =
@@ -151,7 +154,7 @@ export default function ProfessionalRegistrationPage() {
     );
   }, [selectedCollegeId]);
 
-  // 2. Degree and Course Dropdown (Cascading from College)
+  // Student-specific: Cascading Course & Department
   const availableCourses = useMemo(() => {
     return getCoursesForCollege(selectedCollegeId);
   }, [selectedCollegeId]);
@@ -160,14 +163,12 @@ export default function ProfessionalRegistrationPage() {
     'B.Tech Artificial Intelligence & Data Science'
   );
 
-  // Auto-sync course if college changes and current course is not in list
   useEffect(() => {
     if (availableCourses.length > 0 && !availableCourses.includes(selectedCourse)) {
       setSelectedCourse(availableCourses[0]);
     }
   }, [availableCourses, selectedCourse]);
 
-  // 3. Department Dropdown (Cascading from Degree & Course)
   const availableDepartments = useMemo(() => {
     return getDepartmentsForCourse(selectedCourse);
   }, [selectedCourse]);
@@ -176,89 +177,150 @@ export default function ProfessionalRegistrationPage() {
     'Department of Artificial Intelligence & Data Science'
   );
 
-  // Auto-sync department when course changes
   useEffect(() => {
     if (availableDepartments.length > 0 && !availableDepartments.includes(selectedDepartment)) {
       setSelectedDepartment(availableDepartments[0]);
     }
   }, [availableDepartments, selectedDepartment]);
 
-  // 4. Graduation Year "From Year to To Year" State
+  // Student-specific: Roll No & Batch (From Year to To Year)
+  const [studentRollNo, setStudentRollNo] = useState('');
   const courseDuration = getCourseDurationYears(selectedCourse);
   const [fromYear, setFromYear] = useState<number>(2022);
   const [toYear, setToYear] = useState<number>(2026);
 
-  // Auto-adjust To Year when Course changes or From Year changes
   const handleFromYearChange = (newFrom: number) => {
     setFromYear(newFrom);
     setToYear(newFrom + courseDuration);
   };
 
-  // When course changes, update toYear automatically based on duration
   useEffect(() => {
     setToYear(fromYear + courseDuration);
   }, [courseDuration, fromYear]);
 
-  // Quick Preset Helper
-  const setBatchPreset = (start: number, end: number) => {
-    setFromYear(start);
-    setToYear(end);
-  };
-
-  // Additional Role-Specific State
-  const [studentRollNo, setStudentRollNo] = useState('');
+  // Alumni-specific State
+  const [alumniPassingYear, setAlumniPassingYear] = useState<string>('2023');
+  const [alumniDegree, setAlumniDegree] = useState<string>('B.E Computer Science & Engineering');
   const [currentCompany, setCurrentCompany] = useState('');
   const [alumniJobTitle, setAlumniJobTitle] = useState('');
-  const [aisheCode, setAisheCode] = useState('');
-  const [institutionDesignation, setInstitutionDesignation] = useState('');
-  const [facultyRank, setFacultyRank] = useState('');
-  const [facultyStaffId, setFacultyStaffId] = useState('');
-  const [adminToken, setAdminToken] = useState('');
+  const [alumniIndustry, setAlumniIndustry] = useState('Software, Cloud & AI Systems');
+  const [alumniExperience, setAlumniExperience] = useState('2 - 5 Years');
+  const [alumniLinkedin, setAlumniLinkedin] = useState('');
 
-  // Feedback State
+  // Faculty-specific State
+  const [facultyStaffId, setFacultyStaffId] = useState('');
+  const [facultyRank, setFacultyRank] = useState('Assistant Professor');
+  const [facultyDept, setFacultyDept] = useState('Department of Computer Science & Engineering');
+  const [facultyQualification, setFacultyQualification] = useState('Ph.D. in Computer Science & Engineering');
+  const [facultySpecialization, setFacultySpecialization] = useState('');
+  const [facultyExperience, setFacultyExperience] = useState('5 - 10 Years');
+  const [facultyCabin, setFacultyCabin] = useState('');
+
+  // Institution-specific State
+  const [institutionDesignation, setInstitutionDesignation] = useState('Dean of Academic Affairs');
+  const [aisheCode, setAisheCode] = useState('');
+  const [institutionPhone, setInstitutionPhone] = useState('');
+  const [institutionWebsite, setInstitutionWebsite] = useState('');
+  const [institutionOfficeBlock, setInstitutionOfficeBlock] = useState('Main Administrative Block');
+
+  // Submission & Feedback State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const activeOption = ROLE_OPTIONS.find(o => o.id === selectedRole) || ROLE_OPTIONS[0];
+  const activeOption =
+    PUBLIC_ROLE_OPTIONS.find(o => o.id === selectedRole) || PUBLIC_ROLE_OPTIONS[0];
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    // Common validations
     if (!fullName.trim() || !username.trim() || !email.trim()) {
-      setErrorMessage('Please fill in your name, desired username, and email.');
+      setErrorMessage('Please fill in your full name, username, and email.');
       return;
     }
 
-    if (!password.trim()) {
-      setErrorMessage('Please create a secure password for your account.');
+    if (!password.trim() || password.length < 4) {
+      setErrorMessage('Please create a secure password (at least 4 characters).');
       return;
     }
 
-    if (toYear <= fromYear) {
-      setErrorMessage('Graduation "To Year" must be strictly greater than "From Year".');
-      return;
+    // Role-specific validations
+    if (selectedRole === 'student') {
+      if (!studentRollNo.trim()) {
+        setErrorMessage('Student Roll Number / Enrollment Register ID is required.');
+        return;
+      }
+      if (toYear <= fromYear) {
+        setErrorMessage('Expected Graduation Year must be strictly greater than Admission Year.');
+        return;
+      }
+    } else if (selectedRole === 'alumni') {
+      if (!currentCompany.trim()) {
+        setErrorMessage('Please enter your current employer or company name.');
+        return;
+      }
+      if (!alumniJobTitle.trim()) {
+        setErrorMessage('Please enter your current job title / designation.');
+        return;
+      }
+    } else if (selectedRole === 'faculty') {
+      if (!facultyStaffId.trim()) {
+        setErrorMessage('Faculty Staff ID / Employee ID is required.');
+        return;
+      }
+      if (!facultySpecialization.trim()) {
+        setErrorMessage('Please enter your academic specialization or primary research area.');
+        return;
+      }
+    } else if (selectedRole === 'institution') {
+      if (!aisheCode.trim()) {
+        setErrorMessage('AISHE Code or University Institutional Affiliation ID is required.');
+        return;
+      }
+      if (!institutionPhone.trim()) {
+        setErrorMessage('Official administrative desk phone or contact number is required.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
-    const formattedBatchRange = `${fromYear} - ${toYear}`;
-
     setTimeout(() => {
       let finalHeadline = headline.trim();
-      if (!finalHeadline) {
-        if (selectedRole === 'student') {
-          finalHeadline = `${selectedCourse} @ ${activeCollege.shortName} | Class of ${formattedBatchRange}`;
-        } else if (selectedRole === 'alumni') {
-          finalHeadline = `${alumniJobTitle || 'Alum'} @ ${currentCompany || 'Industry'} | ${activeCollege.shortName} Alum (Batch ${formattedBatchRange})`;
-        } else if (selectedRole === 'institution') {
-          finalHeadline = `${institutionDesignation || 'Campus Administration'} • ${activeCollege.name}`;
-        } else if (selectedRole === 'faculty') {
-          finalHeadline = `${facultyRank || 'Faculty Guide'} • ${selectedDepartment} @ ${activeCollege.shortName}`;
-        } else {
-          finalHeadline = `Campus Lenz Administrator`;
+      let computedDept = selectedDepartment;
+      let computedCourse = selectedCourse;
+      let computedBatch = `${fromYear} - ${toYear}`;
+
+      if (selectedRole === 'student') {
+        computedDept = selectedDepartment;
+        computedCourse = selectedCourse;
+        computedBatch = `${fromYear} - ${toYear}`;
+        if (!finalHeadline) {
+          finalHeadline = `${selectedCourse} @ ${activeCollege.shortName} | Class of ${computedBatch}`;
+        }
+      } else if (selectedRole === 'alumni') {
+        computedDept = selectedDepartment;
+        computedCourse = alumniDegree;
+        computedBatch = `Batch of ${alumniPassingYear}`;
+        if (!finalHeadline) {
+          finalHeadline = `${alumniJobTitle} @ ${currentCompany} | ${activeCollege.shortName} Alum ('${alumniPassingYear.slice(-2)})`;
+        }
+      } else if (selectedRole === 'faculty') {
+        computedDept = facultyDept;
+        computedCourse = facultyQualification;
+        computedBatch = `${facultyExperience} Exp`;
+        if (!finalHeadline) {
+          finalHeadline = `${facultyRank} • ${facultyDept} @ ${activeCollege.shortName}`;
+        }
+      } else if (selectedRole === 'institution') {
+        computedDept = institutionOfficeBlock;
+        computedCourse = institutionDesignation;
+        computedBatch = `AISHE: ${aisheCode}`;
+        if (!finalHeadline) {
+          finalHeadline = `${institutionDesignation} • ${activeCollege.name}`;
         }
       }
 
@@ -271,15 +333,39 @@ export default function ProfessionalRegistrationPage() {
         headline: finalHeadline,
         collegeId: selectedCollegeId,
         collegeName: activeCollege.name,
-        department: selectedDepartment,
-        course: selectedCourse,
-        graduationBatch: formattedBatchRange
+        department: computedDept,
+        course: computedCourse,
+        graduationBatch: computedBatch,
+        studentRollNo: selectedRole === 'student' ? studentRollNo.trim() : undefined,
+        company: selectedRole === 'alumni' ? currentCompany.trim() : undefined,
+        designation:
+          selectedRole === 'alumni'
+            ? alumniJobTitle.trim()
+            : selectedRole === 'faculty'
+            ? facultyRank
+            : selectedRole === 'institution'
+            ? institutionDesignation
+            : undefined,
+        facultyStaffId: selectedRole === 'faculty' ? facultyStaffId.trim() : undefined,
+        specialization: selectedRole === 'faculty' ? facultySpecialization.trim() : undefined,
+        experienceYears:
+          selectedRole === 'faculty'
+            ? facultyExperience
+            : selectedRole === 'alumni'
+            ? alumniExperience
+            : undefined,
+        qualification: selectedRole === 'faculty' ? facultyQualification : undefined,
+        officeTitle: selectedRole === 'institution' ? institutionDesignation : undefined,
+        aisheCode: selectedRole === 'institution' ? aisheCode.trim() : undefined,
+        contactPhone: selectedRole === 'institution' ? institutionPhone.trim() : undefined,
+        websiteUrl: selectedRole === 'institution' ? institutionWebsite.trim() : undefined,
+        linkedinUrl: selectedRole === 'alumni' ? alumniLinkedin.trim() : undefined
       });
 
       setIsSubmitting(false);
 
       if (result.success) {
-        setSuccessMessage(`${result.message} Redirecting to your destination page (${activeOption.destinationPage})...`);
+        setSuccessMessage(`${result.message} Directing to ${activeOption.destinationPage}...`);
         setTimeout(() => {
           router.push(result.redirectUrl);
         }, 800);
@@ -309,50 +395,58 @@ export default function ProfessionalRegistrationPage() {
             </div>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Create an Account for Platform Testing
+            Create Your Dedicated Campus Account
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
-            Choose from all colleges across Tamil Nadu with dynamic degrees, cascading departments, and batch years formatted from start year to completion year.
+            Select your role below. Each registration form is strictly customized with only the credentials and details required for your specific profile.
           </p>
         </div>
 
-        {/* Step 1: Role Selection Cards */}
+        {/* Step 1: 4 Separated Role Selection Cards (No Admin) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              Step 1: Select Your Testing Role
+              Step 1: Select Your Campus Role
             </label>
-            <span className="text-[11px] text-slate-400">Controls specific portal features</span>
+            <span className="text-[11px] text-slate-400">Tailors registration fields to your role</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {ROLE_OPTIONS.map(opt => {
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {PUBLIC_ROLE_OPTIONS.map(opt => {
               const Icon = opt.icon;
               const isSelected = selectedRole === opt.id;
               return (
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setSelectedRole(opt.id)}
-                  className={`p-3.5 rounded-2xl border text-left transition-all ${
+                  onClick={() => {
+                    setSelectedRole(opt.id);
+                    setErrorMessage(null);
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
                     isSelected
                       ? opt.bgSelectedClass + ' shadow-sm'
                       : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                      isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
-                    }`}>
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                        isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
                       <Icon className="w-4 h-4" />
                     </div>
-                    {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                    )}
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
                   </div>
-                  <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{opt.title}</h3>
-                  <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">{opt.summary}</p>
+                  <h3 className="font-bold text-slate-900 text-sm">{opt.title}</h3>
+                  <span className="inline-block text-[10px] font-semibold text-slate-500 mt-0.5">
+                    {opt.badge}
+                  </span>
+                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-snug">
+                    {opt.summary}
+                  </p>
                 </button>
               );
             })}
@@ -362,17 +456,19 @@ export default function ProfessionalRegistrationPage() {
         {/* Registration Form Container */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-900">
-                  Register as {activeOption.badge}
+                  {activeOption.title} Registration
                 </h2>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200">
-                  Routes to: {activeOption.destinationPage}
+                  Directs to: {activeOption.destinationPage}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{activeOption.summary}</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Displaying only fields relevant to verified {activeOption.title.toLowerCase()} accounts.
+              </p>
             </div>
           </div>
 
@@ -393,24 +489,37 @@ export default function ProfessionalRegistrationPage() {
 
           <form onSubmit={handleRegisterSubmit} className="space-y-6">
             
-            {/* Core Credentials Section */}
+            {/* Step 2: Core Account Credentials */}
             <div className="space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-blue-600" />
-                Step 2: Core Personal Credentials
+                Step 2: Core Account Credentials
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Full Name <span className="text-rose-500">*</span>
+                    {selectedRole === 'institution'
+                      ? 'Authorized Representative / Officer Name'
+                      : selectedRole === 'faculty'
+                      ? 'Full Name with Academic Title'
+                      : 'Full Name'}{' '}
+                    <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    placeholder="e.g. Anand Kumar or Dr. Priya"
+                    placeholder={
+                      selectedRole === 'faculty'
+                        ? 'e.g. Dr. K. Meenakshi'
+                        : selectedRole === 'institution'
+                        ? 'e.g. Dr. V. Selladurai (Dean / Principal Office)'
+                        : selectedRole === 'alumni'
+                        ? 'e.g. Priya Venkatesh'
+                        : 'e.g. Anand Kumar'
+                    }
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
@@ -424,7 +533,13 @@ export default function ProfessionalRegistrationPage() {
                     required
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    placeholder="e.g. anand_k"
+                    placeholder={
+                      selectedRole === 'faculty'
+                        ? 'e.g. prof_meenakshi'
+                        : selectedRole === 'institution'
+                        ? 'e.g. psgtech_admin'
+                        : 'e.g. anand_k'
+                    }
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
@@ -433,21 +548,36 @@ export default function ProfessionalRegistrationPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Institutional Email Address <span className="text-rose-500">*</span>
+                    {selectedRole === 'student'
+                      ? 'Student / Institutional Email'
+                      : selectedRole === 'faculty'
+                      ? 'Official University / Institutional Email'
+                      : selectedRole === 'institution'
+                      ? 'Official Administrative Office Email'
+                      : 'Email Address (Personal or Work)'}{' '}
+                    <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="e.g. student@psgtech.edu or personal email"
+                    placeholder={
+                      selectedRole === 'faculty'
+                        ? 'e.g. meenakshi@psgtech.edu'
+                        : selectedRole === 'institution'
+                        ? 'e.g. dean.academics@psgtech.edu'
+                        : selectedRole === 'alumni'
+                        ? 'e.g. priya@microsoft.com'
+                        : 'e.g. student@psgtech.edu'
+                    }
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Password / Access Code
+                    Account Password <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="password"
@@ -462,36 +592,50 @@ export default function ProfessionalRegistrationPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Professional Headline / Bio Tagline (Optional)
+                  Headline / Bio Summary (Optional)
                 </label>
                 <input
                   type="text"
                   value={headline}
                   onChange={e => setHeadline(e.target.value)}
-                  placeholder="e.g. Aspiring Full-Stack & AI Engineer | 3x Hackathon Winner"
+                  placeholder={
+                    selectedRole === 'student'
+                      ? 'e.g. Aspiring Full-Stack & AI Engineer | 3x Hackathon Winner'
+                      : selectedRole === 'alumni'
+                      ? 'e.g. Senior Software Engineer @ Microsoft | Ex-PSG Tech | Open for Referrals'
+                      : selectedRole === 'faculty'
+                      ? 'e.g. Associate Professor & HOD • Dept of CSE | AI & Cloud Systems Researcher'
+                      : 'e.g. Official Campus Administration • PSG College of Technology'
+                  }
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
             </div>
 
-            {/* Dynamic Cascading Section: Colleges of Tamil Nadu -> Degree & Course -> Department -> From Year to To Year */}
-            <div className="pt-4 border-t border-slate-100 space-y-5">
+            {/* Step 3: College Selection in Tamil Nadu */}
+            <div className="pt-4 border-t border-slate-100 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <School className="w-3.5 h-3.5 text-blue-600" />
-                  Step 3: Tamil Nadu College & Academic Branch Specification
+                  Step 3:{' '}
+                  {selectedRole === 'alumni'
+                    ? 'Alma Mater Selection (College Graduated From)'
+                    : selectedRole === 'faculty'
+                    ? 'Appointed College / University'
+                    : selectedRole === 'institution'
+                    ? 'Represented College in Tamil Nadu'
+                    : 'College of Study in Tamil Nadu'}
                 </h3>
                 <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                   {TAMIL_NADU_COLLEGES.length} TN Institutions Indexed
                 </span>
               </div>
 
-              {/* 1. College Selection with District/Region Filter */}
               <div className="space-y-2 p-4 rounded-2xl bg-slate-50/80 border border-slate-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                    Select College in Tamil Nadu <span className="text-rose-500">*</span>
+                    Select College <span className="text-rose-500">*</span>
                   </label>
                   
                   {/* Region Filter Buttons */}
@@ -543,318 +687,482 @@ export default function ProfessionalRegistrationPage() {
                   <span className="font-mono text-blue-600">{activeCollege.type} • {activeCollege.district}</span>
                 </div>
               </div>
+            </div>
 
-              {/* 2 & 3. Cascading Degree/Course & Department Dropdowns */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* 2. Degree and Course Dropdown (Filtered based on College) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
+            {/* Step 4: Role-Specific Fields (ONLY what this user role needs) */}
+
+            {/* A. STUDENT FIELDS */}
+            {selectedRole === 'student' && (
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
+                  Step 4: Student Academic Enrollment Details
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Degree / Program */}
+                  <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-800">
                       Degree & Course Program <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">Based on {activeCollege.shortName}</span>
+                    <select
+                      value={selectedCourse}
+                      onChange={e => setSelectedCourse(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      {availableCourses.map((c, idx) => (
+                        <option key={idx} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <select
-                    value={selectedCourse}
-                    onChange={e => setSelectedCourse(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  >
-                    {availableCourses.map((c, idx) => (
-                      <option key={idx} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-
-                  <p className="text-[10px] text-slate-400">
-                    Duration: <span className="font-semibold text-slate-700">{courseDuration} Years Program</span>
-                  </p>
-                </div>
-
-                {/* 3. Department Dropdown (Filtered based on Degree & Course) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
+                  {/* Academic Department */}
+                  <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-800">
                       Academic Department <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">Filtered by Course</span>
-                  </div>
-
-                  <select
-                    value={selectedDepartment}
-                    onChange={e => setSelectedDepartment(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  >
-                    {availableDepartments.map((dept, idx) => (
-                      <option key={idx} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-
-                  <p className="text-[10px] text-slate-400">
-                    Mapped directly to your chosen specialization.
-                  </p>
-                </div>
-
-              </div>
-
-              {/* 4. Graduation Year Display "From Year to To Year" */}
-              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                    <label className="text-xs font-bold text-slate-900">
-                      Graduation Year (From Year to To Year) <span className="text-rose-500">*</span>
-                    </label>
-                  </div>
-                  
-                  {/* Live Formatted Batch Display */}
-                  <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-blue-600 text-white shadow-xs">
-                    🎓 Batch: {fromYear} — {toYear} ({toYear - fromYear} Years)
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-slate-500">
-                  Select your joining year and completion year. Quick presets automatically reflect standard 4-year UG and 2-year PG curricula:
-                </p>
-
-                {/* Coordinated Dropdowns: From Year and To Year */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      From Year (Admission / Commencement)
-                    </label>
                     <select
-                      value={fromYear}
-                      onChange={e => handleFromYearChange(parseInt(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      value={selectedDepartment}
+                      onChange={e => setSelectedDepartment(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                      {[2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map(yr => (
-                        <option key={yr} value={yr}>
-                          {yr} (Start Year)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      To Year (Expected Graduation / Completion)
-                    </label>
-                    <select
-                      value={toYear}
-                      onChange={e => setToYear(parseInt(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      {[2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030].map(yr => (
-                        <option key={yr} value={yr}>
-                          {yr} (Graduation Year)
+                      {availableDepartments.map((dept, idx) => (
+                        <option key={idx} value={dept}>
+                          {dept}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
 
-                {/* Quick Batch Presets Buttons */}
-                <div className="pt-2 border-t border-blue-100 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
-                    Quick Batch Presets:
-                  </span>
-                  
-                  {/* UG Presets */}
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2022, 2026)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2022 && toYear === 2026
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    2022 - 2026 (Final Year)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2023, 2027)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2023 && toYear === 2027
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    2023 - 2027 (3rd Year)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2024, 2028)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2024 && toYear === 2028
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    2024 - 2028 (2nd Year)
-                  </button>
-
-                  {/* PG Presets */}
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2024, 2026)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2024 && toYear === 2026
-                        ? 'bg-purple-600 text-white border-purple-600 shadow-2xs'
-                        : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'
-                    }`}
-                  >
-                    2024 - 2026 (PG MCA/M.Tech)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2020, 2024)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2020 && toYear === 2024
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                        : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
-                    }`}
-                  >
-                    2020 - 2024 (Recent Alum)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBatchPreset(2019, 2023)}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
-                      fromYear === 2019 && toYear === 2023
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                        : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
-                    }`}
-                  >
-                    2019 - 2023 (Alum)
-                  </button>
-                </div>
-              </div>
-
-              {/* Role-Specific Secondary Fields */}
-              {selectedRole === 'student' && (
+                {/* Roll Number / Register ID */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Student Roll Number / Enrollment Register ID (Optional)
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Student Roll Number / Enrollment Register ID <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
+                    required
                     value={studentRollNo}
                     onChange={e => setStudentRollNo(e.target.value)}
-                    placeholder="e.g. 24MCA041 or 22CS108"
+                    placeholder="e.g. 22CS108 or 24MCA041"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                </div>
-              )}
-
-              {selectedRole === 'alumni' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Current Company / Organization</label>
-                    <input
-                      type="text"
-                      value={currentCompany}
-                      onChange={e => setCurrentCompany(e.target.value)}
-                      placeholder="e.g. Microsoft, Google, Zoho"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Current Job Title / Designation</label>
-                    <input
-                      type="text"
-                      value={alumniJobTitle}
-                      onChange={e => setAlumniJobTitle(e.target.value)}
-                      placeholder="e.g. Software Engineer II"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedRole === 'faculty' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Academic Rank / Designation</label>
-                    <input
-                      type="text"
-                      value={facultyRank}
-                      onChange={e => setFacultyRank(e.target.value)}
-                      placeholder="e.g. Professor & Head of Department"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Faculty Staff ID</label>
-                    <input
-                      type="text"
-                      value={facultyStaffId}
-                      onChange={e => setFacultyStaffId(e.target.value)}
-                      placeholder="e.g. FAC-CSE-104"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedRole === 'institution' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">AISHE / University Affiliation Code</label>
-                    <input
-                      type="text"
-                      value={aisheCode}
-                      onChange={e => setAisheCode(e.target.value)}
-                      placeholder="e.g. C-37013"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Administrative Authority Title</label>
-                    <input
-                      type="text"
-                      value={institutionDesignation}
-                      onChange={e => setInstitutionDesignation(e.target.value)}
-                      placeholder="e.g. Director of Academic Affairs"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedRole === 'admin' && (
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">Developer Root Security Key</label>
-                  <input
-                    type="text"
-                    value={adminToken}
-                    onChange={e => setAdminToken(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono text-rose-700 bg-rose-50/30"
-                  />
-                  <p className="text-[11px] text-slate-400">
-                    Authorizes access to the interactive built-in terminal CLI (`admin@campuslenz:~$`).
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Used to verify institutional student status and allow confidential faculty grievance submissions.
                   </p>
                 </div>
-              )}
 
-            </div>
+                {/* Graduation Batch: From Year to To Year */}
+                <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                    <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-blue-600" />
+                      Academic Batch Period (Admission Year to Expected Graduation) <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-600 text-white">
+                      Batch: {fromYear} — {toYear} ({toYear - fromYear} Years)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Admission Year (Commencement)
+                      </label>
+                      <select
+                        value={fromYear}
+                        onChange={e => handleFromYearChange(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-800"
+                      >
+                        {[2020, 2021, 2022, 2023, 2024, 2025, 2026].map(yr => (
+                          <option key={yr} value={yr}>
+                            {yr} (Start Year)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Expected Graduation Year (Completion)
+                      </label>
+                      <select
+                        value={toYear}
+                        onChange={e => setToYear(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-800"
+                      >
+                        {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(yr => (
+                          <option key={yr} value={yr}>
+                            {yr} (Graduation)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* B. ALUMNI FIELDS */}
+            {selectedRole === 'alumni' && (
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+                  Step 4: Alumni Professional & Career Background
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Current Employer */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Current Company / Organization <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={currentCompany}
+                      onChange={e => setCurrentCompany(e.target.value)}
+                      placeholder="e.g. Microsoft, Google, Zoho, Cognizant, AI Startup"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  {/* Current Job Title */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Current Job Title / Designation <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={alumniJobTitle}
+                      onChange={e => setAlumniJobTitle(e.target.value)}
+                      placeholder="e.g. Senior Software Engineer, Product Manager"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Passing Out Year */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Graduation Year (Batch) <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={alumniPassingYear}
+                      onChange={e => setAlumniPassingYear(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800"
+                    >
+                      {[
+                        '2024', '2023', '2022', '2021', '2020', '2019', '2018',
+                        '2017', '2016', '2015', '2014', '2012', '2010', '2005'
+                      ].map(yr => (
+                        <option key={yr} value={yr}>
+                          Class of {yr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Industry Domain */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Industry Domain
+                    </label>
+                    <select
+                      value={alumniIndustry}
+                      onChange={e => setAlumniIndustry(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800"
+                    >
+                      <option value="Software, Cloud & AI Systems">Software, Cloud & AI Systems</option>
+                      <option value="Product & Technology Management">Product & Technology Management</option>
+                      <option value="FinTech & Quantitative Research">FinTech & Quantitative Research</option>
+                      <option value="Core Engineering & Robotics">Core Engineering & Robotics</option>
+                      <option value="Consulting & Data Strategy">Consulting & Data Strategy</option>
+                      <option value="Academic Research & Higher Ed">Academic Research & Higher Ed</option>
+                    </select>
+                  </div>
+
+                  {/* Experience */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Total Experience
+                    </label>
+                    <select
+                      value={alumniExperience}
+                      onChange={e => setAlumniExperience(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800"
+                    >
+                      <option value="0 - 2 Years">0 - 2 Years (Early Career)</option>
+                      <option value="2 - 5 Years">2 - 5 Years (Mid-Level)</option>
+                      <option value="5 - 10 Years">5 - 10 Years (Senior / Lead)</option>
+                      <option value="10+ Years">10+ Years (Principal / Exec)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Degree Studied */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Degree Completed at {activeCollege.shortName}
+                    </label>
+                    <input
+                      type="text"
+                      value={alumniDegree}
+                      onChange={e => setAlumniDegree(e.target.value)}
+                      placeholder="e.g. B.E Computer Science & Engineering"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+
+                  {/* LinkedIn / Portfolio URL */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      LinkedIn Profile / Public Portfolio (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={alumniLinkedin}
+                      onChange={e => setAlumniLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/in/username"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* C. FACULTY FIELDS */}
+            {selectedRole === 'faculty' && (
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                  Step 4: Academic Appointment & Faculty Credentials
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Department */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Appointed Department <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={facultyDept}
+                      onChange={e => setFacultyDept(e.target.value)}
+                      placeholder="e.g. Department of Computer Science & Engineering"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+
+                  {/* Faculty Staff ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Faculty Staff ID / Employee Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={facultyStaffId}
+                      onChange={e => setFacultyStaffId(e.target.value)}
+                      placeholder="e.g. FAC-CSE-104 or PSG-EMP-4091"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Academic Rank */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Academic Designation <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={facultyRank}
+                      onChange={e => setFacultyRank(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800"
+                    >
+                      <option value="Professor & Head of Department">Professor & HOD</option>
+                      <option value="Professor">Professor</option>
+                      <option value="Associate Professor">Associate Professor</option>
+                      <option value="Assistant Professor (Senior Grade)">Assistant Professor (Sr)</option>
+                      <option value="Assistant Professor">Assistant Professor</option>
+                      <option value="Dean of Academic Affairs">Dean of Academic Affairs</option>
+                    </select>
+                  </div>
+
+                  {/* Qualification */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Highest Qualification
+                    </label>
+                    <select
+                      value={facultyQualification}
+                      onChange={e => setFacultyQualification(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800"
+                    >
+                      <option value="Ph.D. in Engineering / Science">Ph.D. in Engineering / Science</option>
+                      <option value="Post-Doctoral Fellow">Post-Doctoral Fellow</option>
+                      <option value="M.Tech / M.E (First Class)">M.Tech / M.E (First Class)</option>
+                      <option value="M.S / M.Sc by Research">M.S / M.Sc by Research</option>
+                    </select>
+                  </div>
+
+                  {/* Experience */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Teaching Experience
+                    </label>
+                    <select
+                      value={facultyExperience}
+                      onChange={e => setFacultyExperience(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800"
+                    >
+                      <option value="1 - 3 Years">1 - 3 Years</option>
+                      <option value="3 - 7 Years">3 - 7 Years</option>
+                      <option value="7 - 12 Years">7 - 12 Years</option>
+                      <option value="12+ Years">12+ Years (Senior Faculty)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Research Specialization */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Primary Specialization & Research Areas <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={facultySpecialization}
+                      onChange={e => setFacultySpecialization(e.target.value)}
+                      placeholder="e.g. Distributed Computing, Deep Learning, VLSI Architecture"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+
+                  {/* Office / Cabin Location */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Department Cabin / Office Room (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={facultyCabin}
+                      onChange={e => setFacultyCabin(e.target.value)}
+                      placeholder="e.g. CSE Department Block, Room 304"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* D. INSTITUTION FIELDS */}
+            {selectedRole === 'institution' && (
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-purple-600" />
+                  Step 4: Institutional Authority & Administrative Governance
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Administrative Authority Title */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Administrative Office / Authority Title <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={institutionDesignation}
+                      onChange={e => setInstitutionDesignation(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800"
+                    >
+                      <option value="Office of the Principal">Office of the Principal</option>
+                      <option value="Dean of Student Affairs">Dean of Student Affairs</option>
+                      <option value="Director of Academic Governance">Director of Academic Governance</option>
+                      <option value="Centre for University-Industry Collaboration (CUIC)">CUIC Placement Directorate</option>
+                      <option value="Controller of Examinations (COE)">Controller of Examinations</option>
+                      <option value="Registrar / Administrative Directorate">Registrar / Administrative Directorate</option>
+                    </select>
+                  </div>
+
+                  {/* AISHE Code */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      AISHE / Ministry of Education Affiliation Code <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={aisheCode}
+                      onChange={e => setAisheCode(e.target.value)}
+                      placeholder="e.g. C-37013 (PSG) or C-25112 (CEG)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Official Phone */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Official Desk Phone / Contact Number <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={institutionPhone}
+                      onChange={e => setInstitutionPhone(e.target.value)}
+                      placeholder="e.g. +91 422 2572177"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+
+                  {/* Website */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Official College Website URL
+                    </label>
+                    <input
+                      type="url"
+                      value={institutionWebsite}
+                      onChange={e => setInstitutionWebsite(e.target.value)}
+                      placeholder="e.g. https://www.psgtech.edu"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Office Location Block */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Campus Office / Administrative Block Location
+                  </label>
+                  <input
+                    type="text"
+                    value={institutionOfficeBlock}
+                    onChange={e => setInstitutionOfficeBlock(e.target.value)}
+                    placeholder="e.g. Central Administrative Building, 1st Floor"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Submit Action */}
             <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <Link
-                href="/login"
+                href={`/login?role=${selectedRole}`}
                 className="text-xs text-slate-500 hover:text-slate-800 font-medium"
               >
-                ← Already registered? Return to Sign In
+                ← Already registered as {activeOption.title}? Return to Sign In
               </Link>
 
               <button
@@ -863,7 +1171,11 @@ export default function ProfessionalRegistrationPage() {
                 className="w-full sm:w-auto px-8 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>{isSubmitting ? 'Configuring Account...' : `Register & Launch ${activeOption.title} Portal`}</span>
+                <span>
+                  {isSubmitting
+                    ? 'Registering Account...'
+                    : `Complete ${activeOption.title} Registration`}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -874,5 +1186,19 @@ export default function ProfessionalRegistrationPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ProfessionalRegistrationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+          <div className="text-sm font-semibold text-slate-500">Loading Registration Portal...</div>
+        </div>
+      }
+    >
+      <RegistrationFormContent />
+    </Suspense>
   );
 }
