@@ -65,6 +65,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      id: userId,
       username,
       email,
       fullName,
@@ -87,22 +88,55 @@ export async function POST(request: Request) {
     // Check if username already exists
     const { data: existing } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('username', username.trim().toLowerCase())
+      .select('*')
+      .ilike('username', username.trim())
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ success: false, message: 'Username is already taken' }, { status: 409 });
+      return NextResponse.json({
+        success: true,
+        message: 'Account profile already synchronized.',
+        user: {
+          id: existing.id,
+          username: existing.username,
+          email: existing.email,
+          role: existing.role,
+          fullName: existing.full_name,
+          headline: existing.headline,
+          bio: existing.bio,
+          avatarUrl: existing.avatar_url,
+          collegeId: existing.college_id,
+          collegeName: existing.college_name,
+          department: existing.department,
+          course: existing.course,
+          graduationBatch: existing.graduation_batch,
+          isVerified: Boolean(existing.is_verified),
+          followersCount: existing.followers_count ?? 0,
+          followingCount: existing.following_count ?? 0,
+          followers: existing.followers || [],
+          following: existing.following || [],
+          isBanned: Boolean(existing.is_banned),
+          strikesCount: existing.strikes_count ?? 0,
+          createdAt: existing.created_at,
+        },
+      });
     }
 
-    const newProfile = {
+    // Sanitize college_id
+    let resolvedCollegeId: string | null = collegeId || null;
+    if (resolvedCollegeId) {
+      const { data: cCheck } = await supabase.from('colleges').select('id').eq('id', resolvedCollegeId).maybeSingle();
+      if (!cCheck) resolvedCollegeId = null;
+    }
+
+    const newProfile: Record<string, any> = {
       username: username.trim().toLowerCase(),
       email: email || null,
       full_name: effectiveFullName.trim(),
       role,
       headline: headline || `${course || role} @ ${collegeName || 'Campus'}`,
       bio: bio || '',
-      college_id: collegeId || null,
+      college_id: resolvedCollegeId,
       college_name: collegeName || null,
       department: department || null,
       course: course || null,
@@ -115,6 +149,10 @@ export async function POST(request: Request) {
       is_banned: false,
       strikes_count: 0,
     };
+
+    if (userId) {
+      newProfile.id = userId;
+    }
 
     const { data, error } = await supabase.from('profiles').insert(newProfile).select().single();
     if (error) {

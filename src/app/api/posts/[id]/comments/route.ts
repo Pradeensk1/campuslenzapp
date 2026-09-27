@@ -56,6 +56,7 @@ export async function POST(
   try {
     const body = await request.json();
     const {
+      id: commentId,
       authorId,
       authorUsername,
       authorName,
@@ -70,9 +71,20 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Comment content cannot be empty' }, { status: 400 });
     }
 
-    const commentPayload = {
+    // Resolve author_id from profiles if possible
+    let resolvedAuthorId: string | null = authorId || null;
+    if (resolvedAuthorId) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').eq('id', resolvedAuthorId).maybeSingle();
+      if (!pCheck) resolvedAuthorId = null;
+    }
+    if (!resolvedAuthorId && authorUsername) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').ilike('username', authorUsername).maybeSingle();
+      if (pCheck) resolvedAuthorId = pCheck.id;
+    }
+
+    const commentPayload: Record<string, any> = {
       post_id: id,
-      author_id: authorId,
+      author_id: resolvedAuthorId,
       author_username: authorUsername,
       author_name: authorName,
       author_role: authorRole,
@@ -82,6 +94,10 @@ export async function POST(
       content: content.trim(),
       likes_count: 0,
     };
+
+    if (commentId) {
+      commentPayload.id = commentId;
+    }
 
     const { data: newComment, error: insertErr } = await supabase
       .from('comments')
@@ -94,7 +110,7 @@ export async function POST(
     }
 
     // Increment comments_count on post
-    const { data: currentPost } = await supabase.from('posts').select('comments_count').eq('id', id).single();
+    const { data: currentPost } = await supabase.from('posts').select('comments_count').eq('id', id).maybeSingle();
     const currentCount = currentPost?.comments_count || 0;
     await supabase.from('posts').update({ comments_count: currentCount + 1 }).eq('id', id);
 
@@ -103,10 +119,10 @@ export async function POST(
       comment: {
         id: newComment.id,
         postId: newComment.post_id,
-        authorId: newComment.author_id,
+        authorId: newComment.author_id || (newComment.author_username ? `user-${newComment.author_username}` : newComment.id),
         authorUsername: newComment.author_username,
         authorName: newComment.author_name,
-        authorRole: newComment.author_role,
+        authorRole: newComment.author_role || 'student',
         authorHeadline: newComment.author_headline,
         avatarUrl: newComment.avatar_url,
         isVerifiedAuthor: Boolean(newComment.is_verified_author),

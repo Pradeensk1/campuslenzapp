@@ -32,36 +32,72 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: error.message, posts: [] }, { status: 400 });
     }
 
-    const posts = (data || []).map((row: any) => ({
-      id: row.id,
-      authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
-      authorUsername: row.author_username,
-      authorName: row.author_name,
-      authorRole: row.author_role,
-      authorHeadline: row.author_headline,
-      isVerifiedAuthor: Boolean(row.is_verified_author),
-      isAnonymous: Boolean(row.is_anonymous),
-      collegeId: row.college_id,
-      collegeName: row.college_name,
-      content: row.content,
-      topic: row.topic,
-      imageUrl: row.image_url,
-      likes: Array.isArray(row.likes) ? row.likes : [],
-      likesCount: row.likes_count ?? 0,
-      comments: [],
-      commentsCount: row.comments_count ?? 0,
-      sharesCount: row.shares_count ?? 0,
-      repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
-      moderationStatus: row.moderation_status || 'normal',
-      sentiment: row.sentiment || 'neutral',
-      sentimentScore: row.sentiment_score ?? 0,
-      toxicityScore: row.toxicity_score ?? 0,
-      isSensitive: Boolean(row.is_sensitive),
-      sensitiveReason: row.sensitive_reason,
-      isQuarantined: Boolean(row.is_quarantined),
-      aiModelMetadata: row.ai_model_metadata,
-      createdAt: row.created_at || new Date().toISOString(),
-    }));
+    const postIds = (data || []).map((r: any) => r.id);
+    const commentsByPostId: Record<string, any[]> = {};
+
+    if (postIds.length > 0) {
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('*')
+        .in('post_id', postIds)
+        .order('created_at', { ascending: true });
+
+      if (commentsData) {
+        for (const c of commentsData) {
+          if (!commentsByPostId[c.post_id]) {
+            commentsByPostId[c.post_id] = [];
+          }
+          commentsByPostId[c.post_id].push({
+            id: c.id,
+            postId: c.post_id,
+            authorId: c.author_id,
+            authorUsername: c.author_username,
+            authorName: c.author_name,
+            authorRole: c.author_role || 'student',
+            authorHeadline: c.author_headline,
+            avatarUrl: c.avatar_url,
+            isVerifiedAuthor: Boolean(c.is_verified_author),
+            content: c.content,
+            likesCount: c.likes_count ?? 0,
+            createdAt: c.created_at,
+          });
+        }
+      }
+    }
+
+    const posts = (data || []).map((row: any) => {
+      const postComments = commentsByPostId[row.id] || [];
+      return {
+        id: row.id,
+        authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
+        authorUsername: row.author_username,
+        authorName: row.author_name,
+        authorRole: row.author_role || 'student',
+        authorHeadline: row.author_headline,
+        isVerifiedAuthor: Boolean(row.is_verified_author),
+        isAnonymous: Boolean(row.is_anonymous),
+        collegeId: row.college_id,
+        collegeName: row.college_name,
+        content: row.content,
+        topic: row.topic,
+        imageUrl: row.image_url,
+        likes: Array.isArray(row.likes) ? row.likes : [],
+        likesCount: row.likes_count ?? (Array.isArray(row.likes) ? row.likes.length : 0),
+        comments: postComments,
+        commentsCount: postComments.length || (row.comments_count ?? 0),
+        sharesCount: row.shares_count ?? 0,
+        repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
+        moderationStatus: row.moderation_status || 'normal',
+        sentiment: row.sentiment || 'neutral',
+        sentimentScore: row.sentiment_score ?? 0,
+        toxicityScore: row.toxicity_score ?? 0,
+        isSensitive: Boolean(row.is_sensitive),
+        sensitiveReason: row.sensitive_reason,
+        isQuarantined: Boolean(row.is_quarantined),
+        aiModelMetadata: row.ai_model_metadata,
+        createdAt: row.created_at || new Date().toISOString(),
+      };
+    });
 
     return NextResponse.json({ success: true, count: posts.length, posts });
   } catch (err: any) {
@@ -78,6 +114,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      id,
       content,
       imageUrl,
       authorId,
@@ -107,6 +144,13 @@ export async function POST(request: Request) {
       if (pCheck) resolvedAuthorId = pCheck.id;
     }
 
+    // Resolve college_id against colleges table to prevent foreign key errors
+    let resolvedCollegeId: string | null = collegeId || null;
+    if (resolvedCollegeId) {
+      const { data: cCheck } = await supabase.from('colleges').select('id').eq('id', resolvedCollegeId).maybeSingle();
+      if (!cCheck) resolvedCollegeId = null;
+    }
+
     // Run Automated Open-Source AI Moderation
     const aiResult = runUnifiedAIModeration(content, imageUrl, DEFAULT_AI_MODEL_SETTINGS);
 
@@ -126,7 +170,7 @@ export async function POST(request: Request) {
     const isSensitive = aiResult.isSensitive || aiResult.toxicity.score >= DEFAULT_AI_MODEL_SETTINGS.blurThreshold;
     const isQuarantined = aiResult.actionRecommended === 'quarantine';
 
-    const postPayload = {
+    const postPayload: Record<string, any> = {
       author_id: resolvedAuthorId,
       author_username: authorUsername,
       author_name: authorName,
@@ -134,11 +178,15 @@ export async function POST(request: Request) {
       author_headline: authorHeadline,
       is_verified_author: isVerifiedAuthor,
       is_anonymous: isAnonymous,
-      college_id: collegeId,
+      college_id: resolvedCollegeId,
       college_name: collegeName,
       content: content.trim(),
       topic: topic || (authorRole === 'faculty' ? 'Academic Guidance' : 'Campus Discussion'),
-      image_url: imageUrl,
+      image_url: imageUrl || null,
+      likes: [],
+      likes_count: 0,
+      comments_count: 0,
+      shares_count: 0,
       sentiment: aiResult.sentiment.label,
       sentiment_score: aiResult.sentiment.polarity,
       toxicity_score: aiResult.toxicity.score,
@@ -149,16 +197,51 @@ export async function POST(request: Request) {
       moderation_status: isSensitive ? 'sensitive' : 'normal',
     };
 
+    if (id) {
+      postPayload.id = id;
+    }
+
     const { data, error } = await supabase.from('posts').insert(postPayload).select().single();
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 
+    const mappedPost = {
+      id: data.id,
+      authorId: data.author_id || (data.author_username ? `user-${data.author_username}` : data.id),
+      authorUsername: data.author_username,
+      authorName: data.author_name,
+      authorRole: data.author_role || 'student',
+      authorHeadline: data.author_headline,
+      isVerifiedAuthor: Boolean(data.is_verified_author),
+      isAnonymous: Boolean(data.is_anonymous),
+      collegeId: data.college_id,
+      collegeName: data.college_name,
+      content: data.content,
+      topic: data.topic,
+      imageUrl: data.image_url,
+      likes: Array.isArray(data.likes) ? data.likes : [],
+      likesCount: data.likes_count ?? 0,
+      comments: [],
+      commentsCount: 0,
+      sharesCount: data.shares_count ?? 0,
+      repostedUserIds: Array.isArray(data.reposted_user_ids) ? data.reposted_user_ids : [],
+      moderationStatus: data.moderation_status || 'normal',
+      sentiment: data.sentiment || 'neutral',
+      sentimentScore: data.sentiment_score ?? 0,
+      toxicityScore: data.toxicity_score ?? 0,
+      isSensitive: Boolean(data.is_sensitive),
+      sensitiveReason: data.sensitive_reason,
+      isQuarantined: Boolean(data.is_quarantined),
+      aiModelMetadata: data.ai_model_metadata,
+      createdAt: data.created_at || new Date().toISOString(),
+    };
+
     return NextResponse.json({
       success: true,
       message: 'Post published successfully to cloud feed.',
-      post: data,
+      post: mappedPost,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

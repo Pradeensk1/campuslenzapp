@@ -374,55 +374,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const syncCloudPosts = async () => {
       try {
-        const { data, error } = await client
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (!error && data && data.length > 0) {
-          const mapped: Post[] = data.map((row: any) => ({
-            id: row.id,
-            authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
-            authorUsername: row.author_username,
-            authorName: row.author_name,
-            authorRole: row.author_role || 'student',
-            authorHeadline: row.author_headline,
-            isVerifiedAuthor: Boolean(row.is_verified_author),
-            isAnonymous: Boolean(row.is_anonymous),
-            collegeId: row.college_id,
-            collegeName: row.college_name,
-            content: row.content,
-            topic: row.topic,
-            imageUrl: row.image_url,
-            likes: Array.isArray(row.likes) ? row.likes : [],
-            likesCount: row.likes_count ?? 0,
-            comments: [],
-            commentsCount: row.comments_count ?? 0,
-            sharesCount: row.shares_count ?? 0,
-            repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
-            moderationStatus: row.moderation_status || 'normal',
-            sentiment: row.sentiment || 'neutral',
-            sentimentScore: row.sentiment_score ?? 0,
-            toxicityScore: row.toxicity_score ?? 0,
-            isSensitive: Boolean(row.is_sensitive),
-            sensitiveReason: row.sensitive_reason,
-            isQuarantined: Boolean(row.is_quarantined),
-            aiModelMetadata: row.ai_model_metadata,
-            createdAt: row.created_at || new Date().toISOString()
-          }));
-
-          setPosts(prev => {
-            const combined = [...mapped];
-            prev.forEach(localP => {
-              if (!combined.some(c => c.id === localP.id || c.content === localP.content)) {
-                combined.push(localP);
-              }
+        const res = await fetch('/api/posts');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
+            setPosts(prev => {
+              const cloudPosts: Post[] = data.posts;
+              // Preserve any posts that may be in transition
+              const combined = [...cloudPosts];
+              prev.forEach(localP => {
+                if (!combined.some(c => c.id === localP.id || c.content === localP.content)) {
+                  combined.push(localP);
+                }
+              });
+              return combined;
             });
-            return combined;
-          });
+          }
         }
       } catch (err) {
-        // Table not yet created in Supabase SQL editor; safe silent fallback
+        // Safe silent fallback
       }
     };
 
@@ -582,13 +552,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
     const fetchCloudData = async () => {
       try {
-        const [colRes, postRes, revRes, userRes, commRes, grvRes] = await Promise.allSettled([
+        const [colRes, postRes, revRes, userRes, commRes, grvRes, dmRes, smsgRes, roomRes, qRes, mktRes] = await Promise.allSettled([
           fetch('/api/colleges'),
           fetch('/api/posts'),
           fetch('/api/reviews'),
           fetch('/api/users'),
           fetch('/api/communities'),
           fetch('/api/grievances'),
+          fetch('/api/direct-messages'),
+          fetch('/api/server-messages'),
+          fetch('/api/study-rooms'),
+          fetch('/api/course-questions'),
+          fetch('/api/marketplace'),
         ]);
 
         if (!isMounted) return;
@@ -640,6 +615,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const grvData = await grvRes.value.json();
           if (grvData.success && Array.isArray(grvData.grievances)) {
             setGrievanceReports(grvData.grievances);
+          }
+        }
+
+        if (dmRes.status === 'fulfilled' && dmRes.value.ok) {
+          const dmData = await dmRes.value.json();
+          if (dmData.success && Array.isArray(dmData.messages) && dmData.messages.length > 0) {
+            setDirectMessages(dmData.messages);
+          }
+        }
+
+        if (smsgRes.status === 'fulfilled' && smsgRes.value.ok) {
+          const smsgData = await smsgRes.value.json();
+          if (smsgData.success && Array.isArray(smsgData.messages) && smsgData.messages.length > 0) {
+            setServerMessages(smsgData.messages);
+          }
+        }
+
+        if (roomRes.status === 'fulfilled' && roomRes.value.ok) {
+          const roomData = await roomRes.value.json();
+          if (roomData.success && Array.isArray(roomData.rooms) && roomData.rooms.length > 0) {
+            setStudyRooms(roomData.rooms);
+          }
+        }
+
+        if (qRes.status === 'fulfilled' && qRes.value.ok) {
+          const qData = await qRes.value.json();
+          if (qData.success && Array.isArray(qData.questions) && qData.questions.length > 0) {
+            setCourseQuestions(qData.questions);
+          }
+        }
+
+        if (mktRes.status === 'fulfilled' && mktRes.value.ok) {
+          const mktData = await mktRes.value.json();
+          if (mktData.success && Array.isArray(mktData.items) && mktData.items.length > 0) {
+            setMarketplaceItems(mktData.items);
           }
         }
       } catch (err) {
@@ -941,8 +951,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    const generatedUserId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'usr-' + Math.random().toString(36).substring(2, 15);
+
     const newUser: UserProfile = {
-      id: `user-${Date.now()}`,
+      id: generatedUserId,
       username: cleanUsername,
       email: cleanEmail,
       role: data.role,
@@ -994,6 +1008,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: newUser.id,
         username: newUser.username,
         email: newUser.email,
         fullName: newUser.fullName,
@@ -1018,7 +1033,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         websiteUrl: newUser.websiteUrl,
         linkedinUrl: newUser.linkedinUrl
       })
-    }).catch(err => console.warn('User register API notice:', err));
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success && resData.user?.id) {
+          const finalId = resData.user.id;
+          setCurrentUser(prev => prev && prev.username === newUser.username ? { ...prev, id: finalId } : prev);
+          setAllUsers(prev => prev.map(u => u.username === newUser.username ? { ...u, id: finalId } : u));
+          try {
+            const saved = localStorage.getItem('campus_lenz_user');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              parsed.id = finalId;
+              localStorage.setItem('campus_lenz_user', JSON.stringify(parsed));
+            }
+          } catch {}
+        }
+      })
+      .catch(err => console.warn('User register API notice:', err));
 
     try {
       localStorage.setItem('campus_lenz_user', JSON.stringify(newUser));
@@ -1104,9 +1136,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addReview = (newRev: Omit<CollegeReview, 'id' | 'createdAt'>) => {
+    const generatedRevId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'rev-' + Math.random().toString(36).substring(2, 15);
+
     const fullReview: CollegeReview = {
       ...newRev,
-      id: `rev-${Date.now()}`,
+      id: generatedRevId,
       createdAt: new Date().toISOString()
     };
     setReviews(prev => [fullReview, ...prev]);
@@ -1115,7 +1151,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullReview)
-    }).catch(err => console.warn('Review API sync notice:', err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.review) {
+          setReviews(prev => prev.map(r => r.id === generatedRevId ? data.review : r));
+        }
+      })
+      .catch(err => console.warn('Review API sync notice:', err));
   };
 
   // Alumni Creator Requirement & Quota Check
@@ -1293,9 +1336,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Role Limitation: STUDENT (Full social capabilities + anonymous toggle)
     const isAnonymous = currentUser.role === 'student' ? Boolean(newPost.isAnonymous) : false;
 
+    const generatedPostId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'post-' + Math.random().toString(36).substring(2, 15);
+
     const post: Post = {
       ...newPost,
-      id: `post-${Date.now()}`,
+      id: generatedPostId,
       topic: finalTopic,
       isAnonymous,
       isKnowledgeBased,
@@ -1317,36 +1364,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setPosts(prev => [post, ...prev]);
 
-    // Asynchronously push to Supabase Cloud Database if online
-    if (isSupabaseConfigured() && supabase) {
-      const client = supabase;
-      client.from('posts').insert({
-        author_id: currentUser?.id || null,
-        author_username: post.authorUsername,
-        author_name: post.authorName,
-        author_role: post.authorRole,
-        author_headline: post.authorHeadline,
-        is_verified_author: post.isVerifiedAuthor,
-        is_anonymous: post.isAnonymous,
-        college_id: post.collegeId,
-        college_name: post.collegeName,
+    // Push to Supabase Cloud Database via server API route
+    fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: post.id,
+        authorId: currentUser?.id || null,
+        authorUsername: post.authorUsername,
+        authorName: post.authorName,
+        authorRole: post.authorRole,
+        authorHeadline: post.authorHeadline,
+        isVerifiedAuthor: post.isVerifiedAuthor,
+        isAnonymous: post.isAnonymous,
+        collegeId: post.collegeId,
+        collegeName: post.collegeName,
         content: post.content,
         topic: post.topic,
-        image_url: post.imageUrl,
-        sentiment: post.sentiment,
-        sentiment_score: post.sentimentScore,
-        toxicity_score: post.toxicityScore,
-        is_sensitive: post.isSensitive,
-        sensitive_reason: post.sensitiveReason,
-        is_quarantined: post.isQuarantined,
-        ai_model_metadata: post.aiModelMetadata,
-        moderation_status: post.moderationStatus
-      }).then(({ error }) => {
-        if (error) {
-          console.warn('Supabase post insert note:', error.message);
+        imageUrl: post.imageUrl
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.post) {
+          setPosts(prev =>
+            prev.map(p =>
+              p.id === generatedPostId || p.id === data.post.id
+                ? { ...p, ...data.post, comments: p.comments }
+                : p
+            )
+          );
+        } else if (data.message) {
+          console.warn('Post cloud sync notice:', data.message);
         }
-      });
-    }
+      })
+      .catch(err => console.warn('Post API network notice:', err));
 
     return { success: true };
   };
@@ -1372,7 +1424,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser.id })
-    }).catch(err => console.warn('Like API sync notice:', err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.likes)) {
+          setPosts(prev =>
+            prev.map(p =>
+              p.id === postId
+                ? { ...p, likes: data.likes, likesCount: data.likesCount }
+                : p
+            )
+          );
+        }
+      })
+      .catch(err => console.warn('Like API sync notice:', err));
 
     return { success: true };
   };
@@ -1381,8 +1446,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) return { success: false, message: 'Please sign in to comment.' };
     if (!content.trim()) return { success: false, message: 'Comment cannot be blank.' };
 
+    const generatedCommentId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'comm-' + Math.random().toString(36).substring(2, 15);
+
     const newComment: Comment = {
-      id: `comment-${Date.now()}`,
+      id: generatedCommentId,
       postId,
       authorId: currentUser.id,
       authorUsername: currentUser.username,
@@ -1410,6 +1479,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: generatedCommentId,
         authorId: currentUser.id,
         authorUsername: currentUser.username,
         authorName: currentUser.fullName,
@@ -1418,7 +1488,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isVerifiedAuthor: currentUser.isVerified,
         content: content.trim()
       })
-    }).catch(err => console.warn('Comment API sync notice:', err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.comment) {
+          setPosts(prev =>
+            prev.map(p => {
+              if (p.id !== postId) return p;
+              return {
+                ...p,
+                comments: p.comments.map(c =>
+                  c.id === generatedCommentId ? data.comment : c
+                )
+              };
+            })
+          );
+        }
+      })
+      .catch(err => console.warn('Comment API sync notice:', err));
 
     return { success: true };
   };
@@ -1450,6 +1537,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return p;
       })
     );
+
+    fetch(`/api/posts/${postId}/repost`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    }).catch(err => console.warn('Repost API sync notice:', err));
 
     return found
       ? { success: true, message: `Successfully reposted to ${currentUser.fullName}'s official institution feed!` }
@@ -2083,8 +2176,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const lower = content.toLowerCase();
     const hasRagebaitPattern = toxicKeywords.some(w => lower.includes(w));
 
+    const generatedSmsgId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'smsg-' + Math.random().toString(36).substring(2, 15);
+
     const newMessage: ServerMessage = {
-      id: `smsg-${Date.now()}`,
+      id: generatedSmsgId,
       channelId,
       authorId: currentUser.id,
       authorName: currentUser.fullName,
@@ -2096,6 +2193,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     setServerMessages(prev => [...prev, newMessage]);
+
+    fetch('/api/server-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: generatedSmsgId,
+        channelId,
+        authorId: currentUser.id,
+        authorName: currentUser.fullName,
+        authorRole: currentUser.role,
+        authorHeadline: currentUser.headline,
+        content,
+        isFlaggedForRagebait: hasRagebaitPattern
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.message) {
+          setServerMessages(prev => prev.map(m => m.id === generatedSmsgId ? data.message : m));
+        }
+      })
+      .catch(err => console.warn('Server message API sync notice:', err));
+
     return { success: true };
   };
 
@@ -2104,8 +2224,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const senderId = currentUser?.id || 'guest';
     const sortedIds = [senderId, receiverId].sort();
     const conversationId = `conv-${sortedIds[0]}-${sortedIds[1]}`;
+    const generatedMsgId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'dm-' + Math.random().toString(36).substring(2, 15);
+
     const newMsg: DirectMessage = {
-      id: `dm-${Date.now()}`,
+      id: generatedMsgId,
       conversationId,
       senderId,
       receiverId,
@@ -2114,14 +2238,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isRead: false
     };
     setDirectMessages(prev => [...prev, newMsg]);
+
+    fetch('/api/direct-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMsg)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.message) {
+          setDirectMessages(prev => prev.map(m => m.id === generatedMsgId ? data.message : m));
+        }
+      })
+      .catch(err => console.warn('Direct message API sync notice:', err));
+
     return newMsg;
   };
 
   // Instagram-style Direct Messages: Toggle Heart Reaction
   const toggleLikeDirectMessage = (messageId: string) => {
+    let targetMsg: DirectMessage | undefined;
     setDirectMessages(prev =>
-      prev.map(m => (m.id === messageId ? { ...m, liked: !m.liked } : m))
+      prev.map(m => {
+        if (m.id === messageId) {
+          targetMsg = { ...m, liked: !m.liked };
+          return targetMsg;
+        }
+        return m;
+      })
     );
+
+    if (targetMsg) {
+      fetch('/api/direct-messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: messageId, liked: (targetMsg as DirectMessage).liked })
+      }).catch(err => console.warn('Toggle DM like notice:', err));
+    }
   };
 
   // Institution Server Builder
@@ -2195,9 +2348,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const submitGrievanceReport = (
     data: Omit<PrivateGrievanceReport, 'id' | 'submittedAt' | 'status'>
   ) => {
+    const generatedGrvId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'grv-' + Math.random().toString(36).substring(2, 15);
+
     const report: PrivateGrievanceReport = {
       ...data,
-      id: `grv-${Date.now()}`,
+      id: generatedGrvId,
       submittedAt: new Date().toISOString(),
       status: 'under_investigation'
     };
@@ -2207,7 +2364,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(report)
-    }).catch(err => console.warn('Grievance API sync notice:', err));
+    })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success && resData.grievance) {
+          setGrievanceReports(prev => prev.map(g => g.id === generatedGrvId ? resData.grievance : g));
+        }
+      })
+      .catch(err => console.warn('Grievance API sync notice:', err));
 
     return report;
   };
@@ -2383,24 +2547,60 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
 
   // --- Advanced Role Feature Actions ---
   const addStudyRoom = (room: Omit<StudyRoom, 'id' | 'createdAt'>) => {
+    const generatedRoomId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'room-' + Math.random().toString(36).substring(2, 15);
+
     const newRoom: StudyRoom = {
       ...room,
-      id: `room-${Date.now()}`,
+      id: generatedRoomId,
       createdAt: new Date().toISOString()
     };
     setStudyRooms(prev => [newRoom, ...prev]);
+
+    fetch('/api/study-rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRoom)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.room) {
+          setStudyRooms(prev => prev.map(r => r.id === generatedRoomId ? data.room : r));
+        }
+      })
+      .catch(err => console.warn('Study room API sync notice:', err));
+
     return { success: true, message: `Created "${newRoom.title}" virtual study lounge!` };
   };
 
   const addCourseQuestion = (q: Omit<CourseQuestion, 'id' | 'createdAt' | 'upvotes' | 'answers'>) => {
+    const generatedQId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'q-' + Math.random().toString(36).substring(2, 15);
+
     const newQuestion: CourseQuestion = {
       ...q,
-      id: `q-${Date.now()}`,
+      id: generatedQId,
       createdAt: new Date().toISOString(),
       upvotes: 0,
       answers: []
     };
     setCourseQuestions(prev => [newQuestion, ...prev]);
+
+    fetch('/api/course-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newQuestion)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.question) {
+          setCourseQuestions(prev => prev.map(item => item.id === generatedQId ? { ...data.question, answers: item.answers } : item));
+        }
+      })
+      .catch(err => console.warn('Course question API sync notice:', err));
+
     return { success: true, message: 'Question posted to Course Q&A forum!' };
   };
 
@@ -2408,13 +2608,19 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
     setCourseQuestions(prev =>
       prev.map(q => q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q)
     );
+
+    fetch('/api/course-questions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: questionId, upvote: true })
+    }).catch(err => console.warn('Upvote API sync notice:', err));
   };
 
   const addCourseAnswer = (questionId: string, content: string) => {
     if (!currentUser) return { success: false, message: 'Please sign in to answer.' };
     const isFaculty = currentUser.role === 'faculty';
     const newAnswer: CourseAnswer = {
-      id: `ans-${Date.now()}`,
+      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `ans-${Date.now()}`,
       questionId,
       authorId: currentUser.id,
       authorName: currentUser.fullName,
@@ -2428,17 +2634,42 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
     setCourseQuestions(prev =>
       prev.map(q => q.id === questionId ? { ...q, answers: [...q.answers, newAnswer] } : q)
     );
+
+    fetch('/api/course-questions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: questionId, newAnswer })
+    }).catch(err => console.warn('Answer API sync notice:', err));
+
     return { success: true, message: isFaculty ? 'Faculty endorsed answer published!' : 'Answer posted!' };
   };
 
   const addMarketplaceItem = (item: Omit<MarketplaceItem, 'id' | 'createdAt' | 'isReserved'>) => {
+    const generatedMktId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'm-' + Math.random().toString(36).substring(2, 15);
+
     const newItem: MarketplaceItem = {
       ...item,
-      id: `m-${Date.now()}`,
+      id: generatedMktId,
       createdAt: new Date().toISOString(),
       isReserved: false
     };
     setMarketplaceItems(prev => [newItem, ...prev]);
+
+    fetch('/api/marketplace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newItem)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.item) {
+          setMarketplaceItems(prev => prev.map(m => m.id === generatedMktId ? data.item : m));
+        }
+      })
+      .catch(err => console.warn('Marketplace API sync notice:', err));
+
     return { success: true, message: 'Item listed on campus marketplace!' };
   };
 
@@ -2447,6 +2678,13 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
     setMarketplaceItems(prev =>
       prev.map(m => m.id === itemId ? { ...m, isReserved: true, reservedByStudentName: currentUser.fullName } : m)
     );
+
+    fetch('/api/marketplace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: itemId, isReserved: true, reservedByStudentName: currentUser.fullName })
+    }).catch(err => console.warn('Reserve item API notice:', err));
+
     return { success: true, message: 'Item reserved! Check pickup location.' };
   };
 

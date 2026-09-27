@@ -61,6 +61,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      id: reviewId,
       collegeId,
       userId,
       reviewerType = 'student',
@@ -80,13 +81,32 @@ export async function POST(request: Request) {
       batch,
     } = body;
 
-    if (!collegeId || !authorName || !title || !experience || !overallRating) {
+    if (!authorName || !title || !experience || !overallRating) {
       return NextResponse.json({ success: false, message: 'Missing required review fields' }, { status: 400 });
     }
 
-    const reviewPayload = {
-      college_id: collegeId,
-      user_id: userId || null,
+    // Resolve college_id
+    let resolvedCollegeId: string = collegeId || 'col-psg';
+    const { data: cCheck } = await supabase.from('colleges').select('id').eq('id', resolvedCollegeId).maybeSingle();
+    if (!cCheck) {
+      const { data: firstCol } = await supabase.from('colleges').select('id').limit(1).maybeSingle();
+      resolvedCollegeId = firstCol?.id || 'col-psg';
+    }
+
+    // Resolve user_id against profiles
+    let resolvedUserId: string | null = userId || null;
+    if (resolvedUserId) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').eq('id', resolvedUserId).maybeSingle();
+      if (!pCheck) resolvedUserId = null;
+    }
+    if (!resolvedUserId && authorUsername) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').ilike('username', authorUsername).maybeSingle();
+      if (pCheck) resolvedUserId = pCheck.id;
+    }
+
+    const reviewPayload: Record<string, any> = {
+      college_id: resolvedCollegeId,
+      user_id: resolvedUserId,
       reviewer_type: reviewerType,
       author_name: authorName,
       author_username: authorUsername,
@@ -104,6 +124,10 @@ export async function POST(request: Request) {
       batch,
       helpful_count: 0,
     };
+
+    if (reviewId) {
+      reviewPayload.id = reviewId;
+    }
 
     const { data: newReview, error: insertErr } = await supabase
       .from('reviews')

@@ -12,14 +12,12 @@ export async function POST(
   }
 
   try {
-    const { userId } = await request.json();
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'User ID is required' }, { status: 400 });
-    }
+    const body = await request.json().catch(() => ({}));
+    const { userId } = body;
 
     const { data: post, error: fetchErr } = await supabase
       .from('posts')
-      .select('likes, likes_count')
+      .select('id, shares_count')
       .eq('id', id)
       .single();
 
@@ -27,24 +25,11 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Post not found' }, { status: 404 });
     }
 
-    const currentLikes: string[] = post.likes || [];
-    const isLiked = currentLikes.includes(userId);
-    let updatedLikes: string[];
-
-    if (isLiked) {
-      updatedLikes = currentLikes.filter((uid) => uid !== userId);
-    } else {
-      updatedLikes = [...currentLikes, userId];
-    }
-
-    const newLikesCount = Math.max(0, updatedLikes.length);
+    const newSharesCount = (post.shares_count || 0) + 1;
 
     const { error: updateErr } = await supabase
       .from('posts')
-      .update({
-        likes: updatedLikes,
-        likes_count: newLikesCount,
-      })
+      .update({ shares_count: newSharesCount })
       .eq('id', id);
 
     if (updateErr) {
@@ -53,9 +38,9 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      liked: !isLiked,
-      likesCount: newLikesCount,
-      likes: updatedLikes,
+      sharesCount: newSharesCount,
+      userId,
+      message: 'Post reposted successfully',
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

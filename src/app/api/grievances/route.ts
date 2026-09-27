@@ -55,6 +55,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      id: grievanceId,
       studentId,
       studentName,
       isAnonymousToFaculty = true,
@@ -66,15 +67,30 @@ export async function POST(request: Request) {
       detailedComplaint,
     } = body;
 
-    if (!targetInstitutionId || !category || !subjectOrCourse || !detailedComplaint) {
+    if (!category || !subjectOrCourse || !detailedComplaint) {
       return NextResponse.json({ success: false, message: 'Missing required grievance details' }, { status: 400 });
     }
 
-    const payload = {
-      student_id: studentId || null,
-      student_name: isAnonymousToFaculty ? 'Confidential Student' : studentName,
+    // Resolve target_institution_id
+    let resolvedInstitutionId: string = targetInstitutionId || 'col-psg';
+    const { data: cCheck } = await supabase.from('colleges').select('id').eq('id', resolvedInstitutionId).maybeSingle();
+    if (!cCheck) {
+      const { data: firstCol } = await supabase.from('colleges').select('id').limit(1).maybeSingle();
+      resolvedInstitutionId = firstCol?.id || 'col-psg';
+    }
+
+    // Resolve student_id against profiles
+    let resolvedStudentId: string | null = studentId || null;
+    if (resolvedStudentId) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').eq('id', resolvedStudentId).maybeSingle();
+      if (!pCheck) resolvedStudentId = null;
+    }
+
+    const payload: Record<string, any> = {
+      student_id: resolvedStudentId,
+      student_name: isAnonymousToFaculty ? 'Confidential Student' : (studentName || 'Student'),
       is_anonymous_to_faculty: isAnonymousToFaculty,
-      target_institution_id: targetInstitutionId,
+      target_institution_id: resolvedInstitutionId,
       college_name: collegeName || 'Affiliated Campus',
       category,
       target_faculty_name: targetFacultyName || null,
@@ -82,6 +98,10 @@ export async function POST(request: Request) {
       detailed_complaint: detailedComplaint.trim(),
       status: 'submitted',
     };
+
+    if (grievanceId) {
+      payload.id = grievanceId;
+    }
 
     const { data, error } = await supabase.from('grievance_reports').insert(payload).select().single();
     if (error) {
