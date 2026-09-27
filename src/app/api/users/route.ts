@@ -1,0 +1,152 @@
+import { NextResponse } from 'next/server';
+import { getSupabaseServerClient } from '@/lib/supabase';
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get('q');
+  const role = searchParams.get('role');
+  const collegeId = searchParams.get('collegeId');
+
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json({ success: false, users: [] }, { status: 500 });
+  }
+
+  try {
+    let query = supabase.from('profiles').select('*').order('followers_count', { ascending: false });
+
+    if (role && role !== 'all') query = query.eq('role', role);
+    if (collegeId) query = query.eq('college_id', collegeId);
+    if (q) {
+      query = query.or(`username.ilike.%${q}%,full_name.ilike.%${q}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message, users: [] }, { status: 400 });
+    }
+
+    const users = (data || []).map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      fullName: u.full_name,
+      headline: u.headline,
+      bio: u.bio,
+      avatarUrl: u.avatar_url,
+      collegeId: u.college_id,
+      collegeName: u.college_name,
+      department: u.department,
+      course: u.course,
+      graduationBatch: u.graduation_batch,
+      isVerified: Boolean(u.is_verified),
+      followersCount: u.followers_count ?? 0,
+      followingCount: u.following_count ?? 0,
+      followers: u.followers || [],
+      following: u.following || [],
+      isBanned: Boolean(u.is_banned),
+      strikesCount: u.strikes_count ?? 0,
+      createdAt: u.created_at,
+    }));
+
+    return NextResponse.json({ success: true, count: users.length, users });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message, users: [] }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json({ success: false, message: 'Database offline' }, { status: 500 });
+  }
+
+  try {
+    const body = await request.json();
+    const {
+      username,
+      email,
+      fullName,
+      role = 'student',
+      headline,
+      bio,
+      collegeId,
+      collegeName,
+      department,
+      course,
+      graduationBatch,
+    } = body;
+
+    if (!username || !fullName) {
+      return NextResponse.json({ success: false, message: 'Username and Full Name are required' }, { status: 400 });
+    }
+
+    // Check if username already exists
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username.trim().toLowerCase())
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({ success: false, message: 'Username is already taken' }, { status: 409 });
+    }
+
+    const newProfile = {
+      username: username.trim().toLowerCase(),
+      email: email || null,
+      full_name: fullName.trim(),
+      role,
+      headline: headline || `${course || role} @ ${collegeName || 'Campus'}`,
+      bio: bio || '',
+      college_id: collegeId || null,
+      college_name: collegeName || null,
+      department: department || null,
+      course: course || null,
+      graduation_batch: graduationBatch || null,
+      is_verified: false,
+      followers_count: 0,
+      following_count: 0,
+      followers: [],
+      following: [],
+      is_banned: false,
+      strikes_count: 0,
+    };
+
+    const { data, error } = await supabase.from('profiles').insert(newProfile).select().single();
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'User profile registered successfully',
+      user: {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        role: data.role,
+        fullName: data.full_name,
+        headline: data.headline,
+        bio: data.bio,
+        avatarUrl: data.avatar_url,
+        collegeId: data.college_id,
+        collegeName: data.college_name,
+        department: data.department,
+        course: data.course,
+        graduationBatch: data.graduation_batch,
+        isVerified: Boolean(data.is_verified),
+        followersCount: data.followers_count ?? 0,
+        followingCount: data.following_count ?? 0,
+        followers: data.followers || [],
+        following: data.following || [],
+        isBanned: Boolean(data.is_banned),
+        strikesCount: data.strikes_count ?? 0,
+        createdAt: data.created_at,
+      },
+    });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}

@@ -305,7 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [colleges] = useState<College[]>(INITIAL_COLLEGES);
+  const [colleges, setColleges] = useState<College[]>(INITIAL_COLLEGES);
   const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [communities, setCommunities] = useState<Community[]>(INITIAL_COMMUNITIES);
@@ -570,6 +570,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setHasHydrated(true);
     }
+  }, []);
+
+  // 1.5. Dynamic Cloud Data Fetching (Supabase API Routes)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCloudData = async () => {
+      try {
+        const [colRes, postRes, revRes, userRes, commRes, grvRes] = await Promise.allSettled([
+          fetch('/api/colleges'),
+          fetch('/api/posts'),
+          fetch('/api/reviews'),
+          fetch('/api/users'),
+          fetch('/api/communities'),
+          fetch('/api/grievances'),
+        ]);
+
+        if (!isMounted) return;
+
+        if (colRes.status === 'fulfilled' && colRes.value.ok) {
+          const colData = await colRes.value.json();
+          if (colData.success && colData.colleges?.length > 0) {
+            setColleges(colData.colleges);
+          }
+        }
+
+        if (postRes.status === 'fulfilled' && postRes.value.ok) {
+          const postData = await postRes.value.json();
+          if (postData.success && postData.posts?.length > 0) {
+            setPosts(postData.posts);
+          }
+        }
+
+        if (revRes.status === 'fulfilled' && revRes.value.ok) {
+          const revData = await revRes.value.json();
+          if (revData.success && revData.reviews?.length > 0) {
+            setReviews(revData.reviews);
+          }
+        }
+
+        if (userRes.status === 'fulfilled' && userRes.value.ok) {
+          const userData = await userRes.value.json();
+          if (userData.success && userData.users?.length > 0) {
+            setAllUsers(userData.users);
+          }
+        }
+
+        if (commRes.status === 'fulfilled' && commRes.value.ok) {
+          const commData = await commRes.value.json();
+          if (commData.success && commData.communities?.length > 0) {
+            setCommunities(commData.communities);
+          }
+        }
+
+        if (grvRes.status === 'fulfilled' && grvRes.value.ok) {
+          const grvData = await grvRes.value.json();
+          if (grvData.success && grvData.grievances?.length > 0) {
+            setGrievanceReports(grvData.grievances);
+          }
+        }
+      } catch (err) {
+        console.warn('API cloud fetch notice:', err);
+      }
+    };
+
+    fetchCloudData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 2. Real-Time Dynamic Storage Sync: Auto-persist all mutations
@@ -938,6 +1007,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(newUser);
     setIsAuthenticated(true);
 
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: newUser.username,
+        email: newUser.email,
+        fullName: newUser.fullName,
+        role: newUser.role,
+        headline: newUser.headline,
+        bio: newUser.bio,
+        collegeId: newUser.collegeId,
+        collegeName: newUser.collegeName,
+        department: newUser.department,
+        course: newUser.course,
+        graduationBatch: newUser.graduationBatch
+      })
+    }).catch(err => console.warn('User register API notice:', err));
+
     try {
       localStorage.setItem('campus_lenz_user', JSON.stringify(newUser));
       localStorage.setItem('campus_lenz_auth', 'true');
@@ -1028,6 +1115,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString()
     };
     setReviews(prev => [fullReview, ...prev]);
+
+    fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullReview)
+    }).catch(err => console.warn('Review API sync notice:', err));
   };
 
   // Alumni Creator Requirement & Quota Check
@@ -1274,6 +1367,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       })
     );
+
+    fetch(`/api/posts/${postId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    }).catch(err => console.warn('Like API sync notice:', err));
+
     return { success: true };
   };
 
@@ -1305,6 +1405,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       })
     );
+
+    fetch(`/api/posts/${postId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        authorId: currentUser.id,
+        authorUsername: currentUser.username,
+        authorName: currentUser.fullName,
+        authorRole: currentUser.role,
+        authorHeadline: currentUser.headline,
+        isVerifiedAuthor: currentUser.isVerified,
+        content: content.trim()
+      })
+    }).catch(err => console.warn('Comment API sync notice:', err));
+
     return { success: true };
   };
 
@@ -1385,6 +1500,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     setPosts(prev => prev.filter(p => p.id !== postId));
+
+    fetch(`/api/posts/${postId}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('Delete post API notice:', err));
+
     return { success: true, message: 'Post deleted permanently.' };
   };
 
@@ -1951,6 +2071,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: 'under_investigation'
     };
     setGrievanceReports(prev => [report, ...prev]);
+
+    fetch('/api/grievances', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report)
+    }).catch(err => console.warn('Grievance API sync notice:', err));
+
     return report;
   };
 
@@ -1971,6 +2098,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return r;
       })
     );
+
+    fetch('/api/grievances', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: reportId,
+        status,
+        institutionRemarks: remarks
+      })
+    }).catch(err => console.warn('Resolve grievance API notice:', err));
   };
 
   // Developer Options Terminal Command Runner for Admin
