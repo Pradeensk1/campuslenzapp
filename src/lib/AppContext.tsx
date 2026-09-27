@@ -494,6 +494,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) {
           setSavedCollegeIds(parsed.savedCollegeIds);
         }
+        if (parsed.savedPostIds && Array.isArray(parsed.savedPostIds)) {
+          setSavedPostIds(parsed.savedPostIds);
+        }
         if (parsed.studyRooms && Array.isArray(parsed.studyRooms)) setStudyRooms(parsed.studyRooms);
         if (parsed.courseQuestions && Array.isArray(parsed.courseQuestions)) setCourseQuestions(parsed.courseQuestions);
         if (parsed.marketplaceItems && Array.isArray(parsed.marketplaceItems)) setMarketplaceItems(parsed.marketplaceItems);
@@ -681,41 +684,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!hasHydrated) return;
     try {
       const filteredPosts = posts.map(post => {
-      if (post.imageUrl && post.imageUrl.startsWith('data:')) {
-        // Approximate size in bytes (Base64 length * 3/4)
-        const approxSize = Math.floor((post.imageUrl.length * 3) / 4);
-        if (approxSize > 500 * 1024) {
-          return { ...post, imageUrl: null };
+        if (post.imageUrl && post.imageUrl.startsWith('data:')) {
+          const approxSize = Math.floor((post.imageUrl.length * 3) / 4);
+          if (approxSize > 500 * 1024) {
+            return { ...post, imageUrl: null };
+          }
         }
-      }
-      return post;
-    });
-    const dataToSave = {
-      allUsers,
-      currentUser,
-      posts: filteredPosts,
-      reviews,
-      communities,
-      servers,
-      serverMessages,
-      directMessages,
-      grievanceReports,
-      savedCollegeIds,
-      studyRooms,
-      courseQuestions,
-      marketplaceItems,
-      assignmentTasks,
-      examMilestones,
-      mentorshipSlots,
-      alumniJobReferrals,
-      referralRequests,
-      industryAmaEvents,
-      officeHourQueue,
-      researchOpenings,
-      lectureMaterials,
-      emergencyBroadcast,
-      auditLogs
-    };
+        return post;
+      });
+      const dataToSave = {
+        allUsers,
+        currentUser,
+        posts: filteredPosts,
+        reviews,
+        communities,
+        servers,
+        serverMessages,
+        directMessages,
+        grievanceReports,
+        savedCollegeIds,
+        savedPostIds,
+        studyRooms,
+        courseQuestions,
+        marketplaceItems,
+        assignmentTasks,
+        examMilestones,
+        mentorshipSlots,
+        alumniJobReferrals,
+        referralRequests,
+        industryAmaEvents,
+        officeHourQueue,
+        researchOpenings,
+        lectureMaterials,
+        emergencyBroadcast,
+        auditLogs
+      };
       localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(dataToSave));
       if (currentUser) {
         localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
@@ -725,6 +728,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('campus_lenz_auth', 'false');
       }
     } catch {}
+
   }, [
     hasHydrated,
     allUsers,
@@ -738,6 +742,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     directMessages,
     grievanceReports,
     savedCollegeIds,
+    savedPostIds,
     studyRooms,
     courseQuestions,
     marketplaceItems,
@@ -1143,11 +1148,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem('campus_lenz_user');
       localStorage.setItem('campus_lenz_auth', 'false');
-      const rawDb = localStorage.getItem('CL_FRESH_DB_V6');
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V7');
       if (rawDb) {
         const parsed = JSON.parse(rawDb);
         parsed.currentUser = null;
-        localStorage.setItem('CL_FRESH_DB_V6', JSON.stringify(parsed));
+        localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(parsed));
       }
     } catch {}
   };
@@ -1636,7 +1641,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const postToDelete = posts.find(p => p.id === postId);
     if (!postToDelete) return { success: false, message: 'Post not found.' };
 
-    const isAuthor = currentUser && postToDelete.authorId === currentUser.id;
+    const isAuthor = currentUser && (
+      postToDelete.authorId === currentUser.id ||
+      (postToDelete.authorUsername && currentUser.username &&
+       postToDelete.authorUsername.toLowerCase() === currentUser.username.toLowerCase())
+    );
     const isAdmin = currentUser?.role === 'admin';
 
     if (!isAuthor && !isAdmin) {
@@ -2308,24 +2317,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Instagram-style Direct Messages: Toggle Heart Reaction
   const toggleLikeDirectMessage = (messageId: string) => {
-    let targetMsg: DirectMessage | undefined;
+    const targetMsg = directMessages.find(m => m.id === messageId);
+    if (!targetMsg) return;
+    const newLiked = !targetMsg.liked;
     setDirectMessages(prev =>
-      prev.map(m => {
-        if (m.id === messageId) {
-          targetMsg = { ...m, liked: !m.liked };
-          return targetMsg;
-        }
-        return m;
-      })
+      prev.map(m => m.id === messageId ? { ...m, liked: newLiked } : m)
     );
-
-    if (targetMsg) {
-      fetch('/api/direct-messages', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: messageId, liked: (targetMsg as DirectMessage).liked })
-      }).catch(err => console.warn('Toggle DM like notice:', err));
-    }
+    fetch('/api/direct-messages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: messageId, liked: newLiked })
+    }).catch(err => console.warn('Toggle DM like notice:', err));
   };
 
   // Institution Server Builder

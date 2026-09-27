@@ -56,7 +56,11 @@ export default function UserProfileClient({
     notFound();
   }
 
-  const isSelf = currentUser ? profileUser.id === currentUser.id : false;
+  const isSelf = currentUser
+    ? (profileUser.id === currentUser.id ||
+       (profileUser.username && currentUser.username &&
+        profileUser.username.toLowerCase() === currentUser.username.toLowerCase()))
+    : false;
   const isFollowing = currentUser
     ? ((currentUser.following || []).includes(profileUser.id) || (currentUser.following || []).includes(profileUser.username))
     : false;
