@@ -1,14 +1,32 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/AppContext";
 import Navigation from "@/components/Navigation";
 import PageTransition from "@/components/PageTransition";
 import RolePersonaSwitcher from "@/components/RolePersonaSwitcher";
 import EmergencyBroadcastBanner from "@/components/EmergencyBroadcastBanner";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+
+export const viewport: Viewport = {
+  themeColor: "#2563EB",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Campus Lenz — College Discovery, Experience & Social Network",
   description: "A trusted digital campus ecosystem combining college discovery, student/alumni experience data, social discussion, and direct communication.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Campus Lenz",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +47,7 @@ export default function RootLayout({
               </PageTransition>
             </main>
             <RolePersonaSwitcher />
+            <PWAInstallPrompt />
           </div>
         </AppProvider>
       </body>
