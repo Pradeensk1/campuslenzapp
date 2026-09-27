@@ -29,7 +29,8 @@ import {
   Laptop,
   Compass,
   Search,
-  Filter
+  Filter,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -37,6 +38,7 @@ export default function StudentFeaturesHub() {
   const {
     currentUser,
     studyRooms,
+    addStudyRoom,
     courseQuestions,
     addCourseQuestion,
     upvoteCourseQuestion,
@@ -55,13 +57,42 @@ export default function StudentFeaturesHub() {
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   // --------------------------------------------------------------------------
-  // 1. POMODORO FOCUS TIMER STATE
+  // 1. POMODORO FOCUS TIMER & STUDY ROOMS STATE
   // --------------------------------------------------------------------------
   const [timerSeconds, setTimerSeconds] = useState(25 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerMode, setTimerMode] = useState<'work' | 'break'>('work');
-  const [activeJoinedRoom, setActiveJoinedRoom] = useState<string | null>('study-1');
+  const [activeJoinedRoom, setActiveJoinedRoom] = useState<string | null>(null);
   const [focusNote, setFocusNote] = useState('');
+
+  // Study Room creation state
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [newRoomTitle, setNewRoomTitle] = useState('');
+  const [newRoomSubject, setNewRoomSubject] = useState('');
+  const [newRoomTag, setNewRoomTag] = useState<string>('Silent Study');
+  const [newRoomMax, setNewRoomMax] = useState<number>(10);
+
+  const totalActivePeers = studyRooms.reduce((acc, r) => acc + (r.activePeerCount || 0), 0);
+
+  const handleCreateRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoomTitle.trim()) return;
+    const res = addStudyRoom({
+      title: newRoomTitle.trim(),
+      subject: newRoomSubject.trim() || 'General Academic Focus',
+      roomTag: newRoomTag,
+      hostId: currentUser?.id || 'guest',
+      hostName: currentUser?.fullName || 'Campus Student',
+      maxParticipants: newRoomMax,
+      activePeerCount: 1,
+      isFocusSessionActive: true
+    });
+    setActionFeedback(res.message);
+    setNewRoomTitle('');
+    setNewRoomSubject('');
+    setIsCreatingRoom(false);
+    setTimeout(() => setActionFeedback(null), 4000);
+  };
 
   useEffect(() => {
     let interval: any = null;
@@ -286,130 +317,313 @@ export default function StudentFeaturesHub() {
       {/* TAB 1: PEER STUDY ROOMS & POMODORO TIMER                                   */}
       {/* ========================================================================= */}
       {activeTab === 'study' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Pomodoro Timer Console */}
-          <div className="lg:col-span-1 rounded-3xl bg-white border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pomodoro Engine</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                  timerMode === 'work' ? 'bg-blue-50 text-[#0071e3]' : 'bg-emerald-50 text-emerald-600'
-                }`}>
-                  {timerMode === 'work' ? '🎯 Focus Mode' : '☕ Break Mode'}
-                </span>
+        <div className="space-y-6">
+          {/* Card 1: Pomodoro Focus Session Console */}
+          <div className="rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pomodoro Focus Engine</span>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">Virtual Focus Session</h2>
+                <p className="text-xs text-slate-500 mt-0.5">25-minute deep work intervals synchronized with peer study sessions.</p>
               </div>
-              <h2 className="text-lg font-extrabold text-slate-900">Virtual Focus Session</h2>
-              <p className="text-xs text-slate-500">25m deep work interval paired with synchronized peer study sessions.</p>
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimerMode('work');
+                    setTimerSeconds(25 * 60);
+                    setIsTimerRunning(false);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    timerMode === 'work'
+                      ? 'bg-white text-[#0071e3] shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🎯 25m Focus
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimerMode('break');
+                    setTimerSeconds(5 * 60);
+                    setIsTimerRunning(false);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    timerMode === 'break'
+                      ? 'bg-white text-emerald-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ☕ 5m Break
+                </button>
+              </div>
             </div>
 
-            {/* Timer Dial Display */}
-            <div className="flex flex-col items-center justify-center py-6 bg-slate-50/80 rounded-2xl border border-slate-100">
-              <div className="text-5xl font-black tracking-tight text-slate-900 font-mono">
-                {formatTimer(timerSeconds)}
+            {/* Timer Dial Display & Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-slate-50/90 rounded-2xl border border-slate-100">
+              <div className="text-center sm:text-left">
+                <div className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 font-mono">
+                  {formatTimer(timerSeconds)}
+                </div>
+                <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-1.5">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isTimerRunning ? 'bg-blue-600 animate-pulse' : 'bg-slate-400'
+                    }`}
+                  />
+                  <span className="text-xs font-semibold text-slate-500">
+                    {isTimerRunning
+                      ? timerMode === 'work'
+                        ? 'Focus Session in Progress...'
+                        : 'Break in Progress...'
+                      : 'Paused / Ready to Start'}
+                  </span>
+                </div>
               </div>
-              <span className="text-[11px] font-medium text-slate-400 mt-2">
-                {isTimerRunning ? 'Session in progress...' : 'Paused / Ready'}
-              </span>
-            </div>
 
-            {/* Timer Controls */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-sm ${
-                  isTimerRunning ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#0071e3] hover:bg-[#0077ED]'
-                }`}
-              >
-                {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                <span>{isTimerRunning ? 'Pause Session' : 'Start Focus Timer'}</span>
-              </button>
-              <button
-                onClick={handleResetTimer}
-                title="Reset timer"
-                className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-sm ${
+                    isTimerRunning
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-[#0071e3] hover:bg-[#0077ED]'
+                  }`}
+                >
+                  {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  <span>{isTimerRunning ? 'Pause Session' : 'Start Focus Timer'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetTimer}
+                  title="Reset timer"
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Quick Session Scratchpad */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-100">
+            <div className="space-y-1.5 pt-1">
               <label className="text-[11px] font-bold text-slate-500">Active Task Scratchpad</label>
               <input
                 type="text"
-                placeholder="e.g. Implement Raft heartbeat logic..."
+                placeholder="e.g. Implement Raft heartbeat logic or solve DSP Assignment..."
                 value={focusNote}
                 onChange={e => setFocusNote(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#0071e3]"
+                className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#0071e3]"
               />
             </div>
           </div>
 
-          {/* Right: Active Peer Study Rooms */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Card 2: Active Peer Study Rooms */}
+          <div className="rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Active Peer Study Rooms</h2>
                 <p className="text-xs text-slate-500">Join synchronous virtual study lounges with classmates</p>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                48 Peers Studying Now
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      totalActivePeers > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                    }`}
+                  />
+                  {totalActivePeers > 0
+                    ? `${totalActivePeers} Peers Studying Now`
+                    : `${studyRooms.length} Study Lounges`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingRoom(!isCreatingRoom)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ED] text-white text-xs font-bold transition shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Open Study Room</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {studyRooms.map(room => {
-                const isJoined = activeJoinedRoom === room.id;
-                return (
-                  <div
-                    key={room.id}
-                    className={`p-5 rounded-3xl border transition-all ${
-                      isJoined
-                        ? 'bg-blue-50/40 border-[#0071e3]/40 shadow-xs ring-1 ring-[#0071e3]/30'
-                        : 'bg-white border-slate-200/80 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {room.roomTag}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-[#0071e3]" />
-                        {room.activePeerCount} / {room.maxParticipants}
-                      </span>
+            {/* Create Room Drawer */}
+            <AnimatePresence>
+              {isCreatingRoom && (
+                <motion.form
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  onSubmit={handleCreateRoom}
+                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">Open New Virtual Study Lounge</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingRoom(false)}
+                      className="text-xs text-slate-500 hover:text-slate-800"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600">Lounge Title</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. MCA Batch Exam Prep - Room A"
+                        value={newRoomTitle}
+                        onChange={e => setNewRoomTitle(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs rounded-xl bg-white border border-slate-200 focus:ring-[#0071e3]"
+                      />
                     </div>
-
-                    <h3 className="text-sm font-bold text-slate-900 mt-2.5 leading-snug">
-                      {room.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                      {room.subject}
-                    </p>
-
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
-                      <span className="text-[11px] text-slate-400 font-medium">
-                        Host: {room.hostName}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setActiveJoinedRoom(room.id);
-                          setActionFeedback(`Joined "${room.title}"! Syncing timer.`);
-                          setTimeout(() => setActionFeedback(null), 3000);
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                          isJoined
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-slate-100 hover:bg-[#0071e3] hover:text-white text-slate-700'
-                        }`}
-                      >
-                        {isJoined ? '✓ Joined & Synced' : 'Enter Study Room'}
-                      </button>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600">Subject / Focus Topic</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Data Structures & Algorithms"
+                        value={newRoomSubject}
+                        onChange={e => setNewRoomSubject(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs rounded-xl bg-white border border-slate-200 focus:ring-[#0071e3]"
+                      />
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600">Lounge Tag</label>
+                      <select
+                        value={newRoomTag}
+                        onChange={e => setNewRoomTag(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs rounded-xl bg-white border border-slate-200 text-slate-800 font-medium"
+                      >
+                        <option value="Silent Study">Silent Study</option>
+                        <option value="Deep Focus">Deep Focus</option>
+                        <option value="DSA & LeetCode">DSA & LeetCode</option>
+                        <option value="AI Lab Work">AI Lab Work</option>
+                        <option value="Project Collab">Project Collab</option>
+                        <option value="Exam Prep">Exam Prep</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600">Max Peer Capacity</label>
+                      <select
+                        value={newRoomMax}
+                        onChange={e => setNewRoomMax(parseInt(e.target.value))}
+                        className="w-full px-3 py-1.5 text-xs rounded-xl bg-white border border-slate-200 text-slate-800 font-medium"
+                      >
+                        <option value={6}>6 Participants (Intimate)</option>
+                        <option value={10}>10 Participants (Standard)</option>
+                        <option value={16}>16 Participants (Group)</option>
+                        <option value={24}>24 Participants (Full Cohort)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingRoom(false)}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 text-xs font-bold text-white bg-[#0071e3] hover:bg-[#0077ED] rounded-xl shadow-xs"
+                    >
+                      Launch Lounge
+                    </button>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {/* Study Rooms Grid or Empty State */}
+            {studyRooms.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-dashed border-slate-200 space-y-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-[#0071e3] flex items-center justify-center mx-auto">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">No Active Study Lounges</h4>
+                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto mt-0.5">
+                    Start a virtual study room for your department, course, or upcoming semester exams!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingRoom(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Open First Study Lounge</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {studyRooms.map(room => {
+                  const isJoined = activeJoinedRoom === room.id;
+                  return (
+                    <div
+                      key={room.id}
+                      className={`p-4 rounded-2xl border transition-all ${
+                        isJoined
+                          ? 'bg-blue-50/40 border-[#0071e3]/40 shadow-xs ring-1 ring-[#0071e3]/30'
+                          : 'bg-white border-slate-200/80 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {room.roomTag}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5 text-[#0071e3]" />
+                          {room.activePeerCount} / {room.maxParticipants}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-slate-900 mt-2 leading-snug">
+                        {room.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                        {room.subject}
+                      </p>
+
+                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          Host: {room.hostName}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isJoined) {
+                              setActiveJoinedRoom(null);
+                              setActionFeedback(`Left "${room.title}".`);
+                            } else {
+                              setActiveJoinedRoom(room.id);
+                              setActionFeedback(`Joined "${room.title}"! Syncing focus timer.`);
+                            }
+                            setTimeout(() => setActionFeedback(null), 3000);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                            isJoined
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-100 hover:bg-[#0071e3] hover:text-white text-slate-700'
+                          }`}
+                        >
+                          {isJoined ? '✓ Joined & Synced' : 'Enter Study Lounge'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

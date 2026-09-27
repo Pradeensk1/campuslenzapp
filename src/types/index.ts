@@ -429,7 +429,10 @@ export interface StudyRoom {
   activePeerCount: number;
   maxParticipants: number;
   hostName: string;
-  roomTag: 'LeetCode' | 'GATE' | 'Deep Dive' | 'Exam Prep';
+  roomTag: 'LeetCode' | 'GATE' | 'Deep Dive' | 'Exam Prep' | 'Silent Study' | 'AI Lab Work' | 'Project Collab' | string;
+  hostId?: string;
+  createdAt?: string;
+  isFocusSessionActive?: boolean;
 }
 
 export interface CourseAnswer {

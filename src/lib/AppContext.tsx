@@ -194,6 +194,7 @@ interface AppContextType {
   resetAllUserData: () => void;
   // --- Advanced Role Features ---
   studyRooms: StudyRoom[];
+  addStudyRoom: (room: Omit<StudyRoom, 'id' | 'createdAt'>) => { success: boolean; message: string };
   courseQuestions: CourseQuestion[];
   addCourseQuestion: (q: Omit<CourseQuestion, 'id' | 'createdAt' | 'upvotes' | 'answers'>) => { success: boolean; message: string };
   upvoteCourseQuestion: (questionId: string) => void;
@@ -2235,6 +2236,16 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
   };
 
   // --- Advanced Role Feature Actions ---
+  const addStudyRoom = (room: Omit<StudyRoom, 'id' | 'createdAt'>) => {
+    const newRoom: StudyRoom = {
+      ...room,
+      id: `room-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setStudyRooms(prev => [newRoom, ...prev]);
+    return { success: true, message: `Created "${newRoom.title}" virtual study lounge!` };
+  };
+
   const addCourseQuestion = (q: Omit<CourseQuestion, 'id' | 'createdAt' | 'upvotes' | 'answers'>) => {
     const newQuestion: CourseQuestion = {
       ...q,
@@ -2608,6 +2619,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         triggerLiveActivity,
         resetAllUserData,
         studyRooms,
+        addStudyRoom,
         courseQuestions,
         addCourseQuestion,
         upvoteCourseQuestion,
