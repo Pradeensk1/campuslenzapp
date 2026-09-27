@@ -199,8 +199,8 @@ CREATE TABLE IF NOT EXISTS public.grievance_reports (
 CREATE TABLE IF NOT EXISTS public.direct_messages (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   conversation_id TEXT NOT NULL,
-  sender_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  receiver_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   content TEXT NOT NULL,
   is_read BOOLEAN DEFAULT FALSE,
   liked BOOLEAN DEFAULT FALSE,
@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS public.course_questions (
   content TEXT NOT NULL,
   code_snippet TEXT,
   is_anonymous BOOLEAN DEFAULT FALSE,
-  author_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  author_id TEXT,
   author_name TEXT NOT NULL,
   upvotes INT DEFAULT 0,
   answers JSONB DEFAULT '[]',
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS public.marketplace_items (
   price NUMERIC DEFAULT 0,
   is_free_or_swap BOOLEAN DEFAULT FALSE,
   condition TEXT NOT NULL,
-  seller_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  seller_id TEXT,
   seller_name TEXT NOT NULL,
   seller_role TEXT DEFAULT 'student',
   seller_contact TEXT NOT NULL,
@@ -275,14 +275,14 @@ CREATE TABLE IF NOT EXISTS public.exam_milestones (
 -- 16. MENTORSHIP SLOTS TABLE
 CREATE TABLE IF NOT EXISTS public.mentorship_slots (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  alumni_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  alumni_id TEXT,
   alumni_name TEXT NOT NULL,
   alumni_company TEXT NOT NULL,
   topic TEXT NOT NULL,
   date_string TEXT NOT NULL,
   time_string TEXT NOT NULL,
   is_booked BOOLEAN DEFAULT FALSE,
-  booked_by_student_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  booked_by_student_id TEXT,
   booked_by_student_name TEXT,
   notes TEXT
 );
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS public.mentorship_slots (
 -- 17. ALUMNI REFERRALS TABLE
 CREATE TABLE IF NOT EXISTS public.alumni_referrals (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  alumni_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  alumni_id TEXT,
   alumni_name TEXT NOT NULL,
   company TEXT NOT NULL,
   role_title TEXT NOT NULL,
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS public.alumni_referrals (
 CREATE TABLE IF NOT EXISTS public.referral_requests (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   referral_id TEXT NOT NULL REFERENCES public.alumni_referrals(id) ON DELETE CASCADE,
-  student_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  student_id TEXT,
   student_name TEXT NOT NULL,
   student_gpa NUMERIC,
   resume_link TEXT,
@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS public.referral_requests (
 -- 19. AMA EVENTS TABLE
 CREATE TABLE IF NOT EXISTS public.ama_events (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  host_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  host_id TEXT,
   host_name TEXT NOT NULL,
   host_title TEXT NOT NULL,
   host_company TEXT NOT NULL,
@@ -333,7 +333,7 @@ CREATE TABLE IF NOT EXISTS public.ama_events (
 -- 20. OFFICE HOUR QUEUE TABLE
 CREATE TABLE IF NOT EXISTS public.office_hour_queue (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  student_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  student_id TEXT,
   student_name TEXT NOT NULL,
   course_code TEXT NOT NULL,
   topic TEXT NOT NULL,
@@ -344,7 +344,7 @@ CREATE TABLE IF NOT EXISTS public.office_hour_queue (
 -- 21. RESEARCH OPENINGS TABLE
 CREATE TABLE IF NOT EXISTS public.research_openings (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  professor_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  professor_id TEXT,
   professor_name TEXT NOT NULL,
   department TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -373,7 +373,7 @@ CREATE TABLE IF NOT EXISTS public.lecture_materials (
 -- 23. EMERGENCY BROADCASTS TABLE
 CREATE TABLE IF NOT EXISTS public.emergency_broadcasts (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  institution_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+  institution_id TEXT,
   institution_name TEXT NOT NULL,
   severity TEXT DEFAULT 'notice',
   title TEXT NOT NULL,
@@ -424,7 +424,7 @@ ALTER TABLE public.lecture_materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.emergency_broadcasts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
-DO $$ 
+DO 162752 
 DECLARE
   tbl text;
 BEGIN
@@ -434,10 +434,10 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS "Public full access" ON public.%I', tbl);
     EXECUTE format('CREATE POLICY "Public full access" ON public.%I FOR ALL USING (true) WITH CHECK (true)', tbl);
   END LOOP;
-END $$;
+END 162752;
 
 -- Enable Realtime
-DO $$
+DO 162752
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'posts') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.posts;
@@ -451,7 +451,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'grievance_reports') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.grievance_reports;
   END IF;
-END $$;
+END 162752;
 
 -- ========================================================
 -- COMPLETE STATIC DATA INITIAL SEED (MOCK DATA TO SUPABASE)
@@ -493,6 +493,12 @@ ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
 INSERT INTO public.profiles (id, username, email, role, full_name, headline, bio, avatar_url, college_id, college_name, department, course, graduation_batch, is_verified, followers_count, following_count, followers, following)
 VALUES ('user-karthika', 'karthika_amazon', 'karthika@amazon.com', 'alumni', 'Karthika R', 'Software Engineer II @ Amazon | PSG Alumna (2022)', 'AWS Developer Productivity team in Chennai. Active mentor on campus placement guidance.', NULL, 'col-psg', 'PSG College of Technology', 'Computer Science', 'B.Tech CSE', '2022', TRUE, 890, 130, '{"user-student-demo"}', '{}')
 ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
+INSERT INTO public.profiles (id, username, email, role, full_name, headline, bio, avatar_url, college_id, college_name, department, course, graduation_batch, is_verified, followers_count, following_count, followers, following)
+VALUES ('user-admin-demo', 'super_admin', 'superadmin@campuslenz.org', 'admin', 'Super System Administrator', 'Root Governance & Platform Security Officer', 'Administrative operator account.', NULL, 'col-psg', 'PSG College of Technology', 'Platform Operations', 'System Admin', 'Admin', TRUE, 100, 10, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
+INSERT INTO public.profiles (id, username, email, role, full_name, headline, bio, avatar_url, college_id, college_name, department, course, graduation_batch, is_verified, followers_count, following_count, followers, following)
+VALUES ('user-rahul', 'rahul_sharma', 'rahul@psgtech.edu', 'student', 'Rahul Sharma (Roll #2203)', 'B.Tech CSE @ PSG Tech', 'Engineering student actively participating in academic research and coding clubs.', NULL, 'col-psg', 'PSG College of Technology', 'Computer Science', 'B.Tech CSE', '2026', TRUE, 45, 60, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
 
 -- 3. REVIEWS SEED
 INSERT INTO public.reviews (id, college_id, user_id, reviewer_type, author_name, author_username, is_anonymous, overall_rating, dimensions, title, experience, pros, cons, advice, recommendation, course, department, batch, institution_reply, helpful_count, created_at)
@@ -506,16 +512,16 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.posts (id, author_id, author_username, author_name, author_role, author_headline, is_verified_author, is_anonymous, college_id, college_name, content, topic, image_url, likes, likes_count, comments_count, shares_count, sentiment, sentiment_score, toxicity_score, is_sensitive, sensitive_reason, moderation_status, ai_model_metadata, created_at)
 VALUES ('post-live-1', 'user-student-demo', 'student_scholar', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech | Full-Stack & Systems Enthusiast', TRUE, FALSE, 'col-psg', 'PSG College of Technology', 'Thrilled to share that our team won 1st Place at the Tamil Nadu State Smart Engineering Hackathon! 🏆
 
-We built an edge AI IoT sensor node for precision agriculture with real-time inference. Huge gratitude to our faculty mentors and the campus computing lab for the round-the-clock compute access. Juniors looking to participate next semester: registrations open next Monday!', 'Hackathons & Projects', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1400&q=100', '{"user-alumni-demo","user-faculty-demo"}', 56, 2, 14, 'positive', 0.88, 3, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert + nsfwjs-v2', '2026-09-27T18:20:03.501Z')
+We built an edge AI IoT sensor node for precision agriculture with real-time inference. Huge gratitude to our faculty mentors and the campus computing lab for the round-the-clock compute access. Juniors looking to participate next semester: registrations open next Monday!', 'Hackathons & Projects', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1400&q=100', '{"user-alumni-demo","user-faculty-demo"}', 56, 2, 14, 'positive', 0.88, 3, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert + nsfwjs-v2', '2026-09-27T18:40:03.467Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.comments (id, post_id, author_id, author_username, author_name, author_role, author_headline, avatar_url, is_verified_author, content, likes_count, created_at)
-VALUES ('c-1', 'post-live-1', 'user-alumni-demo', 'alumni_mentor', 'Alumni Industry Mentor', 'alumni', 'Senior Software Engineer @ Microsoft', NULL, TRUE, 'Fantastic work! Edge optimization and IoT inference are extremely high-demand skills in the industry right now. Keep pushing!', 8, '2026-09-27T18:35:03.502Z')
+VALUES ('c-1', 'post-live-1', 'user-alumni-demo', 'alumni_mentor', 'Alumni Industry Mentor', 'alumni', 'Senior Software Engineer @ Microsoft', NULL, TRUE, 'Fantastic work! Edge optimization and IoT inference are extremely high-demand skills in the industry right now. Keep pushing!', 8, '2026-09-27T18:55:03.467Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.comments (id, post_id, author_id, author_username, author_name, author_role, author_headline, avatar_url, is_verified_author, content, likes_count, created_at)
-VALUES ('c-2', 'post-live-1', 'user-faculty-demo', 'academic_faculty', 'Dr. Academic Faculty Guide', 'faculty', 'Professor of Computer Science', NULL, TRUE, 'Very proud of your perseverance and clean engineering execution. Keep up the high standard.', 5, '2026-09-27T18:45:03.502Z')
+VALUES ('c-2', 'post-live-1', 'user-faculty-demo', 'academic_faculty', 'Dr. Academic Faculty Guide', 'faculty', 'Professor of Computer Science', NULL, TRUE, 'Very proud of your perseverance and clean engineering execution. Keep up the high standard.', 5, '2026-09-27T19:05:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.posts (id, author_id, author_username, author_name, author_role, author_headline, is_verified_author, is_anonymous, college_id, college_name, content, topic, image_url, likes, likes_count, comments_count, shares_count, sentiment, sentiment_score, toxicity_score, is_sensitive, sensitive_reason, moderation_status, ai_model_metadata, created_at)
-VALUES ('post-live-sensitive', 'user-student-demo', 'anonymous_scholar', 'Anonymous Student', 'student', 'Anonymous Student Contributor', FALSE, TRUE, 'col-psg', 'PSG College of Technology', 'Campus Debate: The new hostel gate curfew and strict timing enforcement is completely frustrating and unfair. Several students are saying this administration is acting like a complete scam college! We demand a transparent student council forum to address these arbitrary policies.', 'Campus Grievance', NULL, '{}', 22, 0, 7, 'ragebait', -0.74, 56, TRUE, 'Sensationalist ragebait discourse and elevated hostility (unitary/toxic-bert score: 56%)', 'sensitive', 'distilbert-sst2 + unitary/toxic-bert', '2026-09-27T18:00:03.502Z')
+VALUES ('post-live-sensitive', 'user-student-demo', 'anonymous_scholar', 'Anonymous Student', 'student', 'Anonymous Student Contributor', FALSE, TRUE, 'col-psg', 'PSG College of Technology', 'Campus Debate: The new hostel gate curfew and strict timing enforcement is completely frustrating and unfair. Several students are saying this administration is acting like a complete scam college! We demand a transparent student council forum to address these arbitrary policies.', 'Campus Grievance', NULL, '{}', 22, 0, 7, 'ragebait', -0.74, 56, TRUE, 'Sensationalist ragebait discourse and elevated hostility (unitary/toxic-bert score: 56%)', 'sensitive', 'distilbert-sst2 + unitary/toxic-bert', '2026-09-27T18:20:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.posts (id, author_id, author_username, author_name, author_role, author_headline, is_verified_author, is_anonymous, college_id, college_name, content, topic, image_url, likes, likes_count, comments_count, shares_count, sentiment, sentiment_score, toxicity_score, is_sensitive, sensitive_reason, moderation_status, ai_model_metadata, created_at)
 VALUES ('post-live-2', 'user-alumni-demo', 'alumni_mentor', 'Alumni Industry Mentor', 'alumni', 'Senior Software Engineer @ Microsoft | Campus Alumnus', TRUE, FALSE, 'col-psg', 'PSG College of Technology', 'Tips for upcoming tier-1 product campus placement drives:
@@ -524,16 +530,16 @@ VALUES ('post-live-2', 'user-alumni-demo', 'alumni_mentor', 'Alumni Industry Men
 2. Write modular, clean code with descriptive variable names in live technical rounds.
 3. Be prepared to explain trade-offs between Space and Time complexity with concrete examples.
 
-Open for mock technical interviews and resume reviews this Saturday. Drop a comment with your target domain!', 'Alumni Mentorship', NULL, '{"user-student-demo"}', 112, 1, 38, 'positive', 0.76, 4, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert', '2026-09-27T16:55:03.502Z')
+Open for mock technical interviews and resume reviews this Saturday. Drop a comment with your target domain!', 'Alumni Mentorship', NULL, '{"user-student-demo"}', 112, 1, 38, 'positive', 0.76, 4, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert', '2026-09-27T17:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.comments (id, post_id, author_id, author_username, author_name, author_role, author_headline, avatar_url, is_verified_author, content, likes_count, created_at)
-VALUES ('c-3', 'post-live-2', 'user-student-demo', 'student_scholar', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', NULL, TRUE, 'Super grateful for this guidance! Would love to get my resume reviewed for backend systems roles.', 4, '2026-09-27T17:35:03.502Z')
+VALUES ('c-3', 'post-live-2', 'user-student-demo', 'student_scholar', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', NULL, TRUE, 'Super grateful for this guidance! Would love to get my resume reviewed for backend systems roles.', 4, '2026-09-27T17:55:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.posts (id, author_id, author_username, author_name, author_role, author_headline, is_verified_author, is_anonymous, college_id, college_name, content, topic, image_url, likes, likes_count, comments_count, shares_count, sentiment, sentiment_score, toxicity_score, is_sensitive, sensitive_reason, moderation_status, ai_model_metadata, created_at)
-VALUES ('post-live-3', 'user-inst-demo', 'institution_admin', 'PSG Tech Official Administration', 'institution', 'Official Campus Administrative Desk', TRUE, FALSE, 'col-psg', 'PSG College of Technology', '📢 Campus Placement Season Update: 45+ premier technology organizations are scheduled for on-campus drives over the next four weeks. Students are advised to verify their attendance eligibility and update their project repositories on the college placement portal before Friday.', 'Official Announcements', 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1400&q=100', '{"user-student-demo","user-alumni-demo"}', 145, 0, 52, 'neutral', 0.15, 2, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert + nsfwjs-v2', '2026-09-27T14:55:03.502Z')
+VALUES ('post-live-3', 'user-inst-demo', 'institution_admin', 'PSG Tech Official Administration', 'institution', 'Official Campus Administrative Desk', TRUE, FALSE, 'col-psg', 'PSG College of Technology', '📢 Campus Placement Season Update: 45+ premier technology organizations are scheduled for on-campus drives over the next four weeks. Students are advised to verify their attendance eligibility and update their project repositories on the college placement portal before Friday.', 'Official Announcements', 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1400&q=100', '{"user-student-demo","user-alumni-demo"}', 145, 0, 52, 'neutral', 0.15, 2, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert + nsfwjs-v2', '2026-09-27T15:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.posts (id, author_id, author_username, author_name, author_role, author_headline, is_verified_author, is_anonymous, college_id, college_name, content, topic, image_url, likes, likes_count, comments_count, shares_count, sentiment, sentiment_score, toxicity_score, is_sensitive, sensitive_reason, moderation_status, ai_model_metadata, created_at)
-VALUES ('post-live-4', 'user-student-demo', 'student_scholar', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', TRUE, FALSE, 'col-psg', 'PSG College of Technology', 'Just deployed our open-source campus community & college comparison matrix! Built with Next.js 16, TypeScript, and responsive Apple-style cards. Zero lag, full role-based permissions, and confidential grievance pipelines to institutions. Feedback welcomed! 🚀 #WebDev #NextJS #OpenSource', 'Student Project Showcase', NULL, '{"user-alumni-demo"}', 78, 0, 19, 'positive', 0.82, 3, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert', '2026-09-27T11:55:03.502Z')
+VALUES ('post-live-4', 'user-student-demo', 'student_scholar', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', TRUE, FALSE, 'col-psg', 'PSG College of Technology', 'Just deployed our open-source campus community & college comparison matrix! Built with Next.js 16, TypeScript, and responsive Apple-style cards. Zero lag, full role-based permissions, and confidential grievance pipelines to institutions. Feedback welcomed! 🚀 #WebDev #NextJS #OpenSource', 'Student Project Showcase', NULL, '{"user-alumni-demo"}', 78, 0, 19, 'positive', 0.82, 3, FALSE, NULL, 'normal', 'distilbert-sst2 + toxic-bert', '2026-09-27T12:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. COMMUNITIES SEED
@@ -554,29 +560,29 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 7. SERVER MESSAGES SEED
 INSERT INTO public.server_messages (id, channel_id, author_id, author_name, author_role, author_headline, content, is_flagged_for_ragebait, created_at)
-VALUES ('smsg-1', 'ch-announcements', 'user-inst-demo', 'PSG Tech Official Administration', 'institution', 'Official Administrative Desk', '🚨 Notice: End-semester lab practical schedules for engineering departments have been published on the student portal. Exam registrations close this Friday at 5:00 PM.', FALSE, '2026-09-27T15:55:03.502Z')
+VALUES ('smsg-1', 'ch-announcements', 'user-inst-demo', 'PSG Tech Official Administration', 'institution', 'Official Administrative Desk', '🚨 Notice: End-semester lab practical schedules for engineering departments have been published on the student portal. Exam registrations close this Friday at 5:00 PM.', FALSE, '2026-09-27T16:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.server_messages (id, channel_id, author_id, author_name, author_role, author_headline, content, is_flagged_for_ragebait, created_at)
-VALUES ('smsg-2', 'ch-placement-desk', 'user-alumni-demo', 'Alumni Industry Mentor', 'alumni', 'Senior Software Engineer @ Microsoft', 'For everyone preparing for tier-1 tech drives: Expect 1 online assessment on HackerRank (Array, Tree/Graph, and DP) followed by rounds testing clean code, edge cases, and time/space complexity.', FALSE, '2026-09-27T17:25:03.502Z')
+VALUES ('smsg-2', 'ch-placement-desk', 'user-alumni-demo', 'Alumni Industry Mentor', 'alumni', 'Senior Software Engineer @ Microsoft', 'For everyone preparing for tier-1 tech drives: Expect 1 online assessment on HackerRank (Array, Tree/Graph, and DP) followed by rounds testing clean code, edge cases, and time/space complexity.', FALSE, '2026-09-27T17:45:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.server_messages (id, channel_id, author_id, author_name, author_role, author_headline, content, is_flagged_for_ragebait, created_at)
-VALUES ('smsg-3', 'ch-anti-ragebait-forum', 'user-student-demo', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', 'Constructive reminder for hostel residents: If facing Wi-Fi latency during peak study hours in Hostel Block 3, please register the room number on the IT welfare desk so APs can be rebalanced.', FALSE, '2026-09-27T18:10:03.502Z')
+VALUES ('smsg-3', 'ch-anti-ragebait-forum', 'user-student-demo', 'Verified Campus Student', 'student', 'B.Tech CSE @ PSG Tech', 'Constructive reminder for hostel residents: If facing Wi-Fi latency during peak study hours in Hostel Block 3, please register the room number on the IT welfare desk so APs can be rebalanced.', FALSE, '2026-09-27T18:30:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. GRIEVANCE REPORTS SEED
 INSERT INTO public.grievance_reports (id, student_id, student_name, is_anonymous_to_faculty, target_institution_id, college_name, category, target_faculty_name, subject_or_course, detailed_complaint, status, institution_remarks, submitted_at)
-VALUES ('grv-1', 'user-student-demo', 'Confidential Student ID', TRUE, 'col-psg', 'PSG College of Technology', 'lab_infrastructure', 'Central Lab Coordinator', 'Central Computing Facility GPU Allocation', 'High-performance workstation access in the GPU research cluster has experienced scheduling conflicts with regular lab sessions. Requesting designated evening slots for capstone project training.', 'action_taken', 'Lab slots reconfigured. Additional evening research window (5:30 PM - 8:30 PM) activated starting this Monday.', '2026-09-26T18:55:03.502Z')
+VALUES ('grv-1', 'user-student-demo', 'Confidential Student ID', TRUE, 'col-psg', 'PSG College of Technology', 'lab_infrastructure', 'Central Lab Coordinator', 'Central Computing Facility GPU Allocation', 'High-performance workstation access in the GPU research cluster has experienced scheduling conflicts with regular lab sessions. Requesting designated evening slots for capstone project training.', 'action_taken', 'Lab slots reconfigured. Additional evening research window (5:30 PM - 8:30 PM) activated starting this Monday.', '2026-09-26T19:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.grievance_reports (id, student_id, student_name, is_anonymous_to_faculty, target_institution_id, college_name, category, target_faculty_name, subject_or_course, detailed_complaint, status, institution_remarks, submitted_at)
-VALUES ('grv-2', 'user-arun', 'Confidential Student ID', TRUE, 'col-psg', 'PSG College of Technology', 'classroom_issue', 'Department Coordinator', 'Advanced Data Structures Lab (MCA-204)', 'Projector in CSE Room 304 flickers intermittently during algorithmic code walkthroughs.', 'under_investigation', 'Maintenance work order #4102 logged with campus electrical and IT team.', '2026-09-27T06:55:03.502Z')
+VALUES ('grv-2', 'user-arun', 'Confidential Student ID', TRUE, 'col-psg', 'PSG College of Technology', 'classroom_issue', 'Department Coordinator', 'Advanced Data Structures Lab (MCA-204)', 'Projector in CSE Room 304 flickers intermittently during algorithmic code walkthroughs.', 'under_investigation', 'Maintenance work order #4102 logged with campus electrical and IT team.', '2026-09-27T07:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 9. DIRECT MESSAGES SEED
 INSERT INTO public.direct_messages (id, conversation_id, sender_id, receiver_id, content, is_read, liked, created_at)
-VALUES ('dm-1', 'conv-user-alumni-demo-user-student-demo', 'user-student-demo', 'user-alumni-demo', 'Hello sir! Wanted to ask for guidance regarding system design and coding interview rounds for tech campus hiring.', TRUE, NULL, '2026-09-27T17:55:03.502Z')
+VALUES ('dm-1', 'conv-user-alumni-demo-user-student-demo', 'user-student-demo', 'user-alumni-demo', 'Hello sir! Wanted to ask for guidance regarding system design and coding interview rounds for tech campus hiring.', TRUE, NULL, '2026-09-27T18:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.direct_messages (id, conversation_id, sender_id, receiver_id, content, is_read, liked, created_at)
-VALUES ('dm-2', 'conv-user-alumni-demo-user-student-demo', 'user-alumni-demo', 'user-student-demo', 'Happy to help! Focus on strong fundamentals in Trees, Graphs, and DP on LeetCode. Also ensure you can explain your full-stack project architecture clearly!', TRUE, TRUE, '2026-09-27T18:10:03.502Z')
+VALUES ('dm-2', 'conv-user-alumni-demo-user-student-demo', 'user-alumni-demo', 'user-student-demo', 'Happy to help! Focus on strong fundamentals in Trees, Graphs, and DP on LeetCode. Also ensure you can explain your full-stack project architecture clearly!', TRUE, TRUE, '2026-09-27T18:30:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 10. STUDY ROOMS SEED
@@ -597,10 +603,10 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.course_questions (id, course_code, course_name, title, content, code_snippet, is_anonymous, author_id, author_name, upvotes, answers, created_at)
 VALUES ('q-1', 'CS301', 'Data Structures & Algorithms', 'Why is Red-Black Tree maximum height bounded strictly by 2 * log2(n + 1)?', 'I understand the property that no two red nodes can appear consecutively, but can someone explain the mathematical derivation why the longest path is at most twice the shortest path?', '// Property 4: If a node is red, both children are black
 // Property 5: For each node, all paths to descendants have the same black-height bh(x)
-int black_height(Node* root);', FALSE, 'user-student-demo', 'Verified Campus Student', 18, '[{"id":"ans-1","questionId":"q-1","authorId":"user-faculty-demo","authorName":"Dr. Academic Faculty Guide","authorRole":"faculty","content":"Excellent question! Every path from root to leaf has the same black-height bh(x). The shortest possible path contains only black nodes (length = bh(x)). Because no two red nodes can be adjacent, the longest possible path must alternate red and black nodes, giving a maximum length of 2 * bh(x). By induction, a subtree with black-height bh contains at least 2^bh - 1 internal nodes, leading directly to height <= 2 * log2(n + 1).","createdAt":"2026-09-27T16:55:03.502Z","upvotes":24,"isFacultyEndorsed":true,"endorsedByName":"Dr. Academic Faculty Guide"}]'::jsonb, '2026-09-27T15:55:03.502Z')
+int black_height(Node* root);', FALSE, 'user-student-demo', 'Verified Campus Student', 18, '[{"id":"ans-1","questionId":"q-1","authorId":"user-faculty-demo","authorName":"Dr. Academic Faculty Guide","authorRole":"faculty","content":"Excellent question! Every path from root to leaf has the same black-height bh(x). The shortest possible path contains only black nodes (length = bh(x)). Because no two red nodes can be adjacent, the longest possible path must alternate red and black nodes, giving a maximum length of 2 * bh(x). By induction, a subtree with black-height bh contains at least 2^bh - 1 internal nodes, leading directly to height <= 2 * log2(n + 1).","createdAt":"2026-09-27T17:15:03.468Z","upvotes":24,"isFacultyEndorsed":true,"endorsedByName":"Dr. Academic Faculty Guide"}]'::jsonb, '2026-09-27T16:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.course_questions (id, course_code, course_name, title, content, code_snippet, is_anonymous, author_id, author_name, upvotes, answers, created_at)
-VALUES ('q-2', 'CS402', 'Distributed Systems', 'How does Raft avoid split-brain scenario during transient network partitions?', 'When a network partition isolates the leader with a minority of nodes, how does the majority partition elect a new leader and prevent stale client writes from causing inconsistencies?', NULL, TRUE, 'anonymous-student', 'Anonymous Student', 12, '[{"id":"ans-2","questionId":"q-2","authorId":"user-alumni-demo","authorName":"Alumni Industry Mentor","authorRole":"alumni","content":"In Raft, a leader requires a strict majority (quorum: n/2 + 1) to commit an entry. The partitioned minority leader will never receive a majority of AppendEntries confirmations, so client writes to that partition remain uncommitted. Meanwhile, the majority side has quorum to elect a term-incremented leader and commit new entries. Once the partition heals, the old leader receives higher term heartbeats and steps down.","createdAt":"2026-09-27T14:55:03.502Z","upvotes":15,"isFacultyEndorsed":false}]'::jsonb, '2026-09-27T12:55:03.502Z')
+VALUES ('q-2', 'CS402', 'Distributed Systems', 'How does Raft avoid split-brain scenario during transient network partitions?', 'When a network partition isolates the leader with a minority of nodes, how does the majority partition elect a new leader and prevent stale client writes from causing inconsistencies?', NULL, TRUE, 'anonymous-student', 'Anonymous Student', 12, '[{"id":"ans-2","questionId":"q-2","authorId":"user-alumni-demo","authorName":"Alumni Industry Mentor","authorRole":"alumni","content":"In Raft, a leader requires a strict majority (quorum: n/2 + 1) to commit an entry. The partitioned minority leader will never receive a majority of AppendEntries confirmations, so client writes to that partition remain uncommitted. Meanwhile, the majority side has quorum to elect a term-incremented leader and commit new entries. Once the partition heals, the old leader receives higher term heartbeats and steps down.","createdAt":"2026-09-27T15:15:03.468Z","upvotes":15,"isFacultyEndorsed":false}]'::jsonb, '2026-09-27T13:15:03.468Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 12. MARKETPLACE ITEMS SEED
