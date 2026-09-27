@@ -37,6 +37,7 @@ import {
   runUnifiedAIModeration,
   DEFAULT_AI_MODEL_SETTINGS
 } from './aiModerationModels';
+import { supabase, isSupabaseConfigured } from './supabase';
 import {
   INITIAL_USERS,
   INITIAL_COLLEGES,
@@ -351,6 +352,115 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [hasHydrated, setHasHydrated] = useState<boolean>(false);
   const [isLiveFeedActive, setIsLiveFeedActive] = useState<boolean>(false);
   const [stagedLivePosts, setStagedLivePosts] = useState<Post[]>([]);
+
+  // 0. Supabase Real-Time Cloud Synchronization
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    const client = supabase;
+
+    const syncCloudPosts = async () => {
+      try {
+        const { data, error } = await client
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const mapped: Post[] = data.map((row: any) => ({
+            id: row.id,
+            authorId: row.author_id || `user-${row.author_username}`,
+            authorUsername: row.author_username,
+            authorName: row.author_name,
+            authorRole: row.author_role || 'student',
+            authorHeadline: row.author_headline,
+            isVerifiedAuthor: Boolean(row.is_verified_author),
+            isAnonymous: Boolean(row.is_anonymous),
+            collegeId: row.college_id,
+            collegeName: row.college_name,
+            content: row.content,
+            topic: row.topic,
+            imageUrl: row.image_url,
+            likes: [],
+            likesCount: row.likes_count ?? 0,
+            comments: [],
+            commentsCount: row.comments_count ?? 0,
+            sharesCount: row.shares_count ?? 0,
+            moderationStatus: row.moderation_status || 'normal',
+            sentiment: row.sentiment || 'neutral',
+            sentimentScore: row.sentiment_score ?? 0,
+            toxicityScore: row.toxicity_score ?? 0,
+            isSensitive: Boolean(row.is_sensitive),
+            sensitiveReason: row.sensitive_reason,
+            isQuarantined: Boolean(row.is_quarantined),
+            aiModelMetadata: row.ai_model_metadata,
+            createdAt: row.created_at || new Date().toISOString()
+          }));
+
+          setPosts(prev => {
+            const combined = [...mapped];
+            prev.forEach(localP => {
+              if (!combined.some(c => c.id === localP.id || c.content === localP.content)) {
+                combined.push(localP);
+              }
+            });
+            return combined;
+          });
+        }
+      } catch (err) {
+        // Table not yet created in Supabase SQL editor; safe silent fallback
+      }
+    };
+
+    syncCloudPosts();
+
+    // Subscribe to real-time broadcasts
+    try {
+      const channel = client
+        .channel('public:posts')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+          setPosts(prev => {
+            if (prev.some(p => p.id === row.id || p.content === row.content)) return prev;
+            const incoming: Post = {
+              id: row.id,
+              authorId: row.author_id || `user-${row.author_username}`,
+              authorUsername: row.author_username,
+              authorName: row.author_name,
+              authorRole: row.author_role || 'student',
+              authorHeadline: row.author_headline,
+              isVerifiedAuthor: Boolean(row.is_verified_author),
+              isAnonymous: Boolean(row.is_anonymous),
+              collegeId: row.college_id,
+              collegeName: row.college_name,
+              content: row.content,
+              topic: row.topic,
+              imageUrl: row.image_url,
+              likes: [],
+              likesCount: row.likes_count ?? 0,
+              comments: [],
+              commentsCount: row.comments_count ?? 0,
+              sharesCount: row.shares_count ?? 0,
+              moderationStatus: row.moderation_status || 'normal',
+              sentiment: row.sentiment || 'neutral',
+              sentimentScore: row.sentiment_score ?? 0,
+              toxicityScore: row.toxicity_score ?? 0,
+              isSensitive: Boolean(row.is_sensitive),
+              sensitiveReason: row.sensitive_reason,
+              isQuarantined: Boolean(row.is_quarantined),
+              aiModelMetadata: row.ai_model_metadata,
+              createdAt: row.created_at || new Date().toISOString()
+            };
+            return [incoming, ...prev];
+          });
+        })
+        .subscribe();
+
+      return () => {
+        client.removeChannel(channel);
+      };
+    } catch {}
+  }, []);
 
   // 1. Hydrate and Clean Legacy Storage on Initial Client Mount
   useEffect(() => {
@@ -1118,6 +1228,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isQuarantined
     };
     setPosts(prev => [post, ...prev]);
+
+    // Asynchronously push to Supabase Cloud Database if online
+    if (isSupabaseConfigured() && supabase) {
+      const client = supabase;
+      client.from('posts').insert({
+        author_username: post.authorUsername,
+        author_name: post.authorName,
+        author_role: post.authorRole,
+        author_headline: post.authorHeadline,
+        is_verified_author: post.isVerifiedAuthor,
+        is_anonymous: post.isAnonymous,
+        college_id: post.collegeId,
+        college_name: post.collegeName,
+        content: post.content,
+        topic: post.topic,
+        image_url: post.imageUrl,
+        sentiment: post.sentiment,
+        sentiment_score: post.sentimentScore,
+        toxicity_score: post.toxicityScore,
+        is_sensitive: post.isSensitive,
+        sensitive_reason: post.sensitiveReason,
+        is_quarantined: post.isQuarantined,
+        ai_model_metadata: post.aiModelMetadata,
+        moderation_status: post.moderationStatus
+      }).then(() => {});
+    }
 
     return { success: true };
   };
