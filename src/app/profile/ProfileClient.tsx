@@ -68,11 +68,18 @@ export default function ProfileClient({
   };
 
   const savedColleges = colleges.filter(c => savedCollegeIds.includes(c.id));
-  const userPosts = posts.filter(p =>
-    (currentUser?.id && (p.authorId === currentUser.id || p.authorId === `user-${currentUser.username}`)) ||
-    (p.authorUsername && currentUser?.username && p.authorUsername.toLowerCase() === currentUser.username.toLowerCase())
-  );
-  const userReposts = posts.filter(p =>
+  const allAvailablePosts = posts.length > 0 ? posts : initialPosts;
+  const userPosts = allAvailablePosts.filter(p => {
+    if (!currentUser) return false;
+    const matchesId = p.authorId === currentUser.id || p.authorId === `user-${currentUser.username}`;
+    const matchesUsername = Boolean(p.authorUsername && currentUser.username && p.authorUsername.toLowerCase() === currentUser.username.toLowerCase());
+    const matchesName = Boolean(p.authorName && (
+      (currentUser.fullName && p.authorName.toLowerCase() === currentUser.fullName.toLowerCase()) ||
+      ((currentUser as any).name && p.authorName.toLowerCase() === (currentUser as any).name.toLowerCase())
+    ));
+    return matchesId || matchesUsername || matchesName;
+  });
+  const userReposts = allAvailablePosts.filter(p =>
     (currentUser?.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(currentUser.id)) ||
     (currentUser?.id && p.repostedByStudent?.studentId === currentUser.id) ||
     (currentUser?.id && p.repostedByFaculty?.facultyId === currentUser.id) ||

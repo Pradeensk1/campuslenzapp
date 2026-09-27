@@ -19,7 +19,8 @@ export default async function Page({ params }: { params: Promise<{ username: str
     initialProfile = {
       id: profileData.id,
       username: profileData.username,
-      name: profileData.name,
+      name: profileData.full_name || profileData.name || profileData.username,
+      fullName: profileData.full_name || profileData.name || profileData.username,
       email: profileData.email,
       role: profileData.role || 'student',
       headline: profileData.headline,

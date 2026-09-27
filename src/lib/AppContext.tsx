@@ -599,6 +599,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 u.id === prevUser.id ||
                 (u.username && prevUser.username && u.username.toLowerCase() === prevUser.username.toLowerCase())
               );
+              if (fresh && fresh.id !== prevUser.id) {
+                // Patch posts that still carry the old temp authorId
+                const oldId = prevUser.id;
+                const newId = fresh.id;
+                setPosts(prev => prev.map(p =>
+                  p.authorId === oldId ? { ...p, authorId: newId } : p
+                ));
+                // Persist updated user to localStorage
+                try {
+                  localStorage.setItem('campus_lenz_user', JSON.stringify({ ...prevUser, ...fresh }));
+                } catch {}
+              }
               return fresh ? { ...prevUser, ...fresh } : prevUser;
             });
           }
@@ -668,32 +680,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hasHydrated) return;
     try {
-      const dataToSave = {
-        allUsers,
-        currentUser,
-        posts,
-        reviews,
-        communities,
-        servers,
-        serverMessages,
-        directMessages,
-        grievanceReports,
-        savedCollegeIds,
-        studyRooms,
-        courseQuestions,
-        marketplaceItems,
-        assignmentTasks,
-        examMilestones,
-        mentorshipSlots,
-        alumniJobReferrals,
-        referralRequests,
-        industryAmaEvents,
-        officeHourQueue,
-        researchOpenings,
-        lectureMaterials,
-        emergencyBroadcast,
-        auditLogs
-      };
+      const filteredPosts = posts.map(post => {
+      if (post.imageUrl && post.imageUrl.startsWith('data:')) {
+        // Approximate size in bytes (Base64 length * 3/4)
+        const approxSize = Math.floor((post.imageUrl.length * 3) / 4);
+        if (approxSize > 500 * 1024) {
+          return { ...post, imageUrl: null };
+        }
+      }
+      return post;
+    });
+    const dataToSave = {
+      allUsers,
+      currentUser,
+      posts: filteredPosts,
+      reviews,
+      communities,
+      servers,
+      serverMessages,
+      directMessages,
+      grievanceReports,
+      savedCollegeIds,
+      studyRooms,
+      courseQuestions,
+      marketplaceItems,
+      assignmentTasks,
+      examMilestones,
+      mentorshipSlots,
+      alumniJobReferrals,
+      referralRequests,
+      industryAmaEvents,
+      officeHourQueue,
+      researchOpenings,
+      lectureMaterials,
+      emergencyBroadcast,
+      auditLogs
+    };
       localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(dataToSave));
       if (currentUser) {
         localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
@@ -892,6 +914,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!matched) {
+      // Async Supabase cloud fallback — fetch user and sync to local state
+      fetch(`/api/users?q=${encodeURIComponent(cleanId)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.users) && data.users.length > 0) {
+            const cloudUser = data.users.find((u: UserProfile) =>
+              u.username?.toLowerCase() === cleanId ||
+              u.email?.toLowerCase() === cleanId
+            );
+            if (cloudUser) {
+              setAllUsers(prev => {
+                if (prev.some(u => u.id === cloudUser.id)) return prev;
+                return [cloudUser, ...prev];
+              });
+              setCurrentUser(cloudUser);
+              setIsAuthenticated(true);
+              try {
+                localStorage.setItem('campus_lenz_user', JSON.stringify(cloudUser));
+                localStorage.setItem('campus_lenz_auth', 'true');
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
       return {
         success: false,
         redirectUrl: '/login',
@@ -1364,6 +1410,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setPosts(prev => [post, ...prev]);
 
+    // Only send HTTP/HTTPS image URLs to Supabase — base64 data: URLs are too large
+    const supabaseImageUrl = (post.imageUrl && !post.imageUrl.startsWith('data:'))
+      ? post.imageUrl
+      : null;
+
     // Push to Supabase Cloud Database via server API route
     fetch('/api/posts', {
       method: 'POST',
@@ -1381,7 +1432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         collegeName: post.collegeName,
         content: post.content,
         topic: post.topic,
-        imageUrl: post.imageUrl
+        imageUrl: supabaseImageUrl
       })
     })
       .then(res => res.json())

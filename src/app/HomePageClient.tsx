@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
-import { isVideoMedia, formatFileSize } from '@/lib/mediaUtils';
+import { isVideoMedia, formatFileSize, compressImageToDataUrl } from '@/lib/mediaUtils';
 import PinterestImageModal from '@/components/PinterestImageModal';
 import AlumniHomeView from '@/components/home/AlumniHomeView';
 import FacultyHomeView from '@/components/home/FacultyHomeView';
@@ -125,26 +125,38 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
 
-  const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 50 * 1024 * 1024) {
-      setActionFeedback('⚠️ Media file size must be less than 50MB.');
-      setTimeout(() => setActionFeedback(null), 3500);
+    const isVid = file.type.startsWith('video/');
+    if (isVid && file.size > 4.5 * 1024 * 1024) {
+      setActionFeedback('⚠️ Direct video files must be under 4.5MB. For longer videos, please provide an external link.');
+      setTimeout(() => setActionFeedback(null), 4000);
       return;
     }
 
-    const isVid = file.type.startsWith('video/');
     setMediaFile(file);
     setMediaFileType(isVid ? 'video' : 'image');
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPostImageUrl(result);
-    };
-    reader.readAsDataURL(file);
+    if (isVid) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPostImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      try {
+        const compressed = await compressImageToDataUrl(file);
+        setPostImageUrl(compressed);
+      } catch {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPostImageUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
   };
 
   const handleRemoveMedia = () => {

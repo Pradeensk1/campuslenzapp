@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip } from 'lucide-react';
-import { isVideoMedia, formatFileSize } from '@/lib/mediaUtils';
+import { isVideoMedia, formatFileSize, compressImageToDataUrl } from '@/lib/mediaUtils';
 
 export default function CreateClient({
   initialColleges = [],
@@ -16,6 +16,8 @@ export default function CreateClient({
 
   const [activeTab, setActiveTab] = useState<'post' | 'review'>('post');
   const [postError, setPostError] = useState<string | null>(null);
+  const [isOptimizingMedia, setIsOptimizingMedia] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeColleges = colleges.length > 0 ? colleges : initialColleges;
 
@@ -29,19 +31,23 @@ export default function CreateClient({
   const [mediaFileSize, setMediaFileSize] = useState<number>(0);
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
 
-  // Handle lossless full-resolution image or video selection
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle optimized image or video selection
+  const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 50 * 1024 * 1024) {
-        setPostError('Media file size must be under 50MB.');
-        return;
-      }
-      setMediaFileName(file.name);
-      setMediaFileSize(file.size);
-      const isVid = file.type.startsWith('video/');
-      setMediaFileType(isVid ? 'video' : 'image');
+    if (!file) return;
 
+    const isVid = file.type.startsWith('video/');
+    if (isVid && file.size > 4.5 * 1024 * 1024) {
+      setPostError('Direct video files must be under 4.5MB due to cloud serverless payload limits. For longer videos, please provide an external link.');
+      return;
+    }
+
+    setMediaFileName(file.name);
+    setMediaFileSize(file.size);
+    setMediaFileType(isVid ? 'video' : 'image');
+    setPostError(null);
+
+    if (isVid) {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -49,6 +55,20 @@ export default function CreateClient({
         }
       };
       reader.readAsDataURL(file);
+    } else {
+      setIsOptimizingMedia(true);
+      try {
+        const compressed = await compressImageToDataUrl(file);
+        setPostImageUrl(compressed);
+      } catch {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) setPostImageUrl(event.target.result as string);
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsOptimizingMedia(false);
+      }
     }
   };
 
@@ -84,14 +104,19 @@ export default function CreateClient({
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!postContent.trim()) return;
+    if (isOptimizingMedia) {
+      setPostError('Media is still processing. Please wait a moment...');
+      return;
+    }
 
+    setIsSubmitting(true);
     setPostError(null);
     const chosenCollege = colleges.find(c => c.id === postCollegeId);
 
     const res = addPost({
       authorId: currentUser?.id || 'guest',
       authorUsername: currentUser?.username || 'student_guest',
-      authorName: currentUser?.fullName || 'Student',
+      authorName: currentUser?.fullName || (currentUser as any)?.name || 'Student',
       authorRole: currentUser?.role || 'student',
       authorHeadline: currentUser?.headline || 'Student Contributor',
       isVerifiedAuthor: Boolean(currentUser?.isVerified),
@@ -102,6 +127,8 @@ export default function CreateClient({
       topic: postTopic,
       imageUrl: postImageUrl || undefined
     });
+
+    setIsSubmitting(false);
 
     if (!res.success) {
       setPostError(res.message || 'Submission rejected by moderation policy.');

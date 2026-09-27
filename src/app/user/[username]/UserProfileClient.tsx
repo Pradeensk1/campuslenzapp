@@ -63,13 +63,16 @@ export default function UserProfileClient({
 
   const activePosts = posts.length > 0 ? posts : initialPosts;
 
-  // Get all posts authored by this specific user (safe ID and username matching)
-  const userPosts = activePosts.filter(
-    (p: any) =>
-      p.authorId === profileUser.id ||
-      p.authorId === `user-${profileUser.username}` ||
-      (p.authorUsername && profileUser.username && p.authorUsername.toLowerCase() === profileUser.username.toLowerCase())
-  );
+  // Get all posts authored by this specific user (safe ID, username, and authorName matching)
+  const userPosts = activePosts.filter((p: any) => {
+    const matchesId = p.authorId === profileUser.id || p.authorId === `user-${profileUser.username}`;
+    const matchesUsername = Boolean(p.authorUsername && profileUser.username && p.authorUsername.toLowerCase() === profileUser.username.toLowerCase());
+    const matchesName = Boolean(p.authorName && (
+      (profileUser.fullName && p.authorName.toLowerCase() === profileUser.fullName.toLowerCase()) ||
+      (profileUser.name && p.authorName.toLowerCase() === profileUser.name.toLowerCase())
+    ));
+    return matchesId || matchesUsername || matchesName;
+  });
   const userReposts = activePosts.filter(
     (p: any) =>
       (profileUser.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(profileUser.id)) ||
