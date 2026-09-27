@@ -232,6 +232,7 @@ export interface Post {
     studentName: string;
     repostedAt: string;
   };
+  repostedUserIds?: string[];
   isKnowledgeBased?: boolean;
   reportedByInstitution?: {
     reportedAt: string;

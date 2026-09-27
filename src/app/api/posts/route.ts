@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     const posts = (data || []).map((row: any) => ({
       id: row.id,
-      authorId: row.author_id || `user-${row.author_username}`,
+      authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
       authorUsername: row.author_username,
       authorName: row.author_name,
       authorRole: row.author_role,
@@ -46,11 +46,12 @@ export async function GET(request: Request) {
       content: row.content,
       topic: row.topic,
       imageUrl: row.image_url,
-      likes: row.likes || [],
+      likes: Array.isArray(row.likes) ? row.likes : [],
       likesCount: row.likes_count ?? 0,
       comments: [],
       commentsCount: row.comments_count ?? 0,
       sharesCount: row.shares_count ?? 0,
+      repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
       moderationStatus: row.moderation_status || 'normal',
       sentiment: row.sentiment || 'neutral',
       sentimentScore: row.sentiment_score ?? 0,
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
     const {
       content,
       imageUrl,
+      authorId,
       authorUsername,
       authorName,
       authorRole = 'student',
@@ -92,6 +94,17 @@ export async function POST(request: Request) {
 
     if (!content || !content.trim()) {
       return NextResponse.json({ success: false, message: 'Content cannot be empty.' }, { status: 400 });
+    }
+
+    // Resolve author_id from profiles if possible
+    let resolvedAuthorId: string | null = authorId || null;
+    if (resolvedAuthorId) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').eq('id', resolvedAuthorId).maybeSingle();
+      if (!pCheck) resolvedAuthorId = null;
+    }
+    if (!resolvedAuthorId && authorUsername) {
+      const { data: pCheck } = await supabase.from('profiles').select('id').ilike('username', authorUsername).maybeSingle();
+      if (pCheck) resolvedAuthorId = pCheck.id;
     }
 
     // Run Automated Open-Source AI Moderation
@@ -114,6 +127,7 @@ export async function POST(request: Request) {
     const isQuarantined = aiResult.actionRecommended === 'quarantine';
 
     const postPayload = {
+      author_id: resolvedAuthorId,
       author_username: authorUsername,
       author_name: authorName,
       author_role: authorRole,

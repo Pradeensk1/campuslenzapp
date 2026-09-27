@@ -23,11 +23,17 @@ import {
   FileText,
   Sparkles,
   Lock,
-  GraduationCap
+  GraduationCap,
+  Heart,
+  MessageSquare,
+  ZoomIn
 } from 'lucide-react';
 import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 import FollowersListModal from '@/components/FollowersListModal';
+import PinterestImageModal from '@/components/PinterestImageModal';
+import { isVideoMedia } from '@/lib/mediaUtils';
+import { Post } from '@/types';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -40,10 +46,14 @@ export default function ProfilePage() {
     posts,
     servers,
     leaveServer,
-    leaveGroup
+    leaveGroup,
+    toggleLikePost,
+    repostPost,
+    addComment
   } = useApp();
-  const [activeTab, setActiveTab] = useState<'details' | 'saved' | 'verification'>('details');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'details' | 'saved' | 'verification'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
   const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
 
   const handleLogout = () => {
@@ -52,7 +62,16 @@ export default function ProfilePage() {
   };
 
   const savedColleges = colleges.filter(c => savedCollegeIds.includes(c.id));
-  const userPosts = posts.filter(p => p.authorId === currentUser?.id);
+  const userPosts = posts.filter(p =>
+    (currentUser?.id && (p.authorId === currentUser.id || p.authorId === `user-${currentUser.username}`)) ||
+    (p.authorUsername && currentUser?.username && p.authorUsername.toLowerCase() === currentUser.username.toLowerCase())
+  );
+  const userReposts = posts.filter(p =>
+    (currentUser?.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(currentUser.id)) ||
+    (currentUser?.id && p.repostedByStudent?.studentId === currentUser.id) ||
+    (currentUser?.id && p.repostedByFaculty?.facultyId === currentUser.id) ||
+    (currentUser?.id && p.repostedByInstitution?.institutionId === currentUser.id)
+  );
 
   // Verification request form state
   const [docType, setDocType] = useState('Alumni Degree Certificate');
@@ -191,72 +210,418 @@ export default function ProfilePage() {
         </div>
 
         {/* INSTAGRAM-STYLE INTERACTIVE FOLLOWERS / FOLLOWING STATS BAR */}
-        <div className="mt-6 grid grid-cols-3 gap-3 border-t border-[#F1F5F9] pt-4 text-center">
-          <div className="p-2 rounded-xl bg-slate-50/60">
-            <p className="text-base sm:text-lg font-black text-slate-900">{userPosts.length}</p>
-            <p className="text-[10px] uppercase font-semibold text-slate-500">Posts</p>
-          </div>
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 border-t border-[#F1F5F9] pt-4 text-center">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`p-2.5 rounded-2xl transition cursor-pointer group text-center ${
+              activeTab === 'posts' ? 'bg-blue-50/80 border border-blue-200' : 'bg-slate-50/60 hover:bg-slate-100/60'
+            }`}
+          >
+            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-blue-600 transition">
+              {userPosts.length}
+            </p>
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
+              Posts (View)
+            </p>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reposts')}
+            className={`p-2.5 rounded-2xl transition cursor-pointer group text-center ${
+              activeTab === 'reposts' ? 'bg-purple-50/80 border border-purple-200' : 'bg-slate-50/60 hover:bg-slate-100/60'
+            }`}
+          >
+            <p className="text-base sm:text-lg font-black text-purple-600 group-hover:text-purple-700 transition">
+              {userReposts.length}
+            </p>
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-purple-600">
+              Reposts (View)
+            </p>
+          </button>
 
           <button
             onClick={() => setFollowersModalTitle('Followers')}
-            className="p-2 rounded-xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer"
+            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer text-center"
           >
             <p className="text-base sm:text-lg font-black text-blue-600 group-hover:underline">
-              {currentUser.followersCount}
+              {currentUser.followersCount || (currentUser.followers || []).length}
             </p>
-            <p className="text-[10px] uppercase font-semibold text-slate-500 group-hover:text-blue-600">
-              Followers (View)
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
+              Followers (Live)
             </p>
           </button>
 
           <button
             onClick={() => setFollowersModalTitle('Following')}
-            className="p-2 rounded-xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer"
+            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer text-center"
           >
-            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:underline">
-              {currentUser.followingCount}
+            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-blue-600 group-hover:underline">
+              {currentUser.followingCount || (currentUser.following || []).length}
             </p>
-            <p className="text-[10px] uppercase font-semibold text-slate-500 group-hover:text-blue-600">
-              Following (View)
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
+              Following (Live)
             </p>
           </button>
         </div>
 
         {/* Tab switch */}
-        <div className="mt-6 flex space-x-2 border-t border-[#F1F5F9] pt-4 text-xs">
+        <div className="mt-6 flex flex-wrap gap-2 border-t border-[#F1F5F9] pt-4 text-xs">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
+              activeTab === 'posts'
+                ? 'bg-[#2563EB] text-white shadow-xs'
+                : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>Posts ({userPosts.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reposts')}
+            className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
+              activeTab === 'reposts'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-[#64748B] hover:text-purple-600 hover:bg-purple-50'
+            }`}
+          >
+            <Repeat className="h-3.5 w-3.5" />
+            <span>Reposts ({userReposts.length})</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('details')}
             className={`rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'details'
                 ? 'bg-[#2563EB] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
             Academic Profile
           </button>
+
           <button
             onClick={() => setActiveTab('saved')}
             className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'saved'
                 ? 'bg-[#2563EB] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
             <Bookmark className="h-3.5 w-3.5" />
             <span>Saved Colleges ({savedColleges.length})</span>
           </button>
+
           <button
             onClick={() => setActiveTab('verification')}
             className={`rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'verification'
                 ? 'bg-[#2563EB] text-white shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
+                : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
             Identity Verification
           </button>
         </div>
       </div>
+
+      {/* TAB CONTENT: POSTS AUTHORED BY USER */}
+      {activeTab === 'posts' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span>Posts Authored by You ({userPosts.length})</span>
+            </h2>
+            <Link
+              href="/create"
+              className="apple-button-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Create New Post</span>
+            </Link>
+          </div>
+
+          {userPosts.length === 0 ? (
+            <div className="apple-card p-12 text-center text-xs text-slate-500 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
+              </div>
+              <p className="font-bold text-sm text-slate-900">No posts published yet</p>
+              <p className="max-w-sm mx-auto text-slate-500">
+                Share campus updates, academic discussions, projects, or achievements with peers.
+              </p>
+              <Link
+                href="/create"
+                className="inline-flex items-center gap-1.5 apple-button-primary text-xs font-bold py-2 px-4"
+              >
+                <span>Write First Post</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userPosts.map(post => {
+                const isLiked = currentUser ? (post.likes || []).includes(currentUser.id) : false;
+                const hasReposted = (post.repostedUserIds || []).includes(currentUser.id);
+                return (
+                  <div key={post.id} className="apple-card p-5 sm:p-6 space-y-3 transition-all hover:border-slate-300">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                          #{post.topic || 'Campus'}
+                        </span>
+                        {post.isAnonymous && (
+                          <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                            Anonymous
+                          </span>
+                        )}
+                      </div>
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+
+                    <p className="text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
+                      {post.content}
+                    </p>
+
+                    {/* Media preview (video / image) */}
+                    {post.imageUrl && (
+                      isVideoMedia(post.imageUrl) ? (
+                        <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
+                          <video
+                            src={post.imageUrl}
+                            controls
+                            className="w-full max-h-[420px] rounded-2xl bg-black"
+                            preload="metadata"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => setZoomedPost(post)}
+                          className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
+                        >
+                          <img
+                            src={post.imageUrl}
+                            alt="Post attachment"
+                            loading="lazy"
+                            className="w-full max-h-[420px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                          />
+                          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                            <ZoomIn className="w-3.5 h-3.5" />
+                            <span>Zoom Full</span>
+                          </div>
+                        </div>
+                      )
+                    )}
+
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => toggleLikePost(post.id)}
+                          className={`flex items-center gap-1.5 transition-colors ${
+                            isLiked ? 'text-rose-600 font-bold' : 'hover:text-rose-600'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                          <span>{post.likesCount}</span>
+                        </button>
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{post.commentsCount} comments</span>
+                        </span>
+                        <button
+                          onClick={() => repostPost(post.id)}
+                          className={`flex items-center gap-1.5 transition-colors ${
+                            hasReposted ? 'text-purple-600 font-bold' : 'hover:text-purple-600'
+                          }`}
+                        >
+                          <Repeat className="w-3.5 h-3.5" />
+                          <span>{post.sharesCount} reposts</span>
+                        </button>
+                      </div>
+
+                      <Link
+                        href={`/#${post.id}`}
+                        className="text-blue-600 font-semibold hover:underline flex items-center gap-1 text-[11px]"
+                      >
+                        <span>View in Feed</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: REPOSTS */}
+      {activeTab === 'reposts' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Repeat className="w-4 h-4 text-purple-600" />
+              <span>Posts Reposted by You ({userReposts.length})</span>
+            </h2>
+            <Link
+              href="/"
+              className="apple-button-secondary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5"
+            >
+              <span>Explore Campus Feed</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {userReposts.length === 0 ? (
+            <div className="apple-card p-12 text-center text-xs text-slate-500 space-y-3">
+              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <Repeat className="w-6 h-6" />
+              </div>
+              <p className="font-bold text-sm text-slate-900">No reposts yet</p>
+              <p className="max-w-sm mx-auto text-slate-500">
+                When you repost campus announcements, student achievements, or discussions from the feed, they will show up here.
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 apple-button-secondary text-xs font-bold py-2 px-4"
+              >
+                <span>Browse Campus Feed</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userReposts.map(post => {
+                const isLiked = currentUser ? (post.likes || []).includes(currentUser.id) : false;
+                return (
+                  <div key={post.id} className="apple-card p-5 sm:p-6 space-y-3 border-l-4 border-l-purple-500">
+                    {/* Repost Header Badge */}
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs text-purple-700 font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <Repeat className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Reposted to your profile</span>
+                      </div>
+                      <button
+                        onClick={() => repostPost(post.id)}
+                        className="text-[11px] text-slate-400 hover:text-rose-600 font-medium transition cursor-pointer"
+                      >
+                        Undo Repost
+                      </button>
+                    </div>
+
+                    {/* Original Author Info */}
+                    <div className="flex items-center gap-3">
+                      <Link href={`/user/${post.authorUsername}`}>
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                          {post.authorName?.[0] || 'U'}
+                        </div>
+                      </Link>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Link
+                            href={`/user/${post.authorUsername}`}
+                            className="text-xs font-bold text-slate-900 hover:text-blue-600 transition"
+                          >
+                            {post.authorName}
+                          </Link>
+                          {post.isVerifiedAuthor && (
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          )}
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            @{post.authorUsername}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                            {post.authorRole}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">
+                          {new Date(post.createdAt).toLocaleDateString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <p className="text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
+                      {post.content}
+                    </p>
+
+                    {/* Media */}
+                    {post.imageUrl && (
+                      isVideoMedia(post.imageUrl) ? (
+                        <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
+                          <video
+                            src={post.imageUrl}
+                            controls
+                            className="w-full max-h-[420px] rounded-2xl bg-black"
+                            preload="metadata"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => setZoomedPost(post)}
+                          className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
+                        >
+                          <img
+                            src={post.imageUrl}
+                            alt="Post attachment"
+                            loading="lazy"
+                            className="w-full max-h-[420px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                          />
+                          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                            <ZoomIn className="w-3.5 h-3.5" />
+                            <span>Zoom Full</span>
+                          </div>
+                        </div>
+                      )
+                    )}
+
+                    {/* Footer Stats & Actions */}
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => toggleLikePost(post.id)}
+                          className={`flex items-center gap-1.5 transition-colors ${
+                            isLiked ? 'text-rose-600 font-bold' : 'hover:text-rose-600'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                          <span>{post.likesCount}</span>
+                        </button>
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{post.commentsCount} comments</span>
+                        </span>
+                        <span className="flex items-center gap-1.5 text-purple-600 font-semibold">
+                          <Repeat className="w-3.5 h-3.5" />
+                          <span>{post.sharesCount} reposts</span>
+                        </span>
+                      </div>
+
+                      <Link
+                        href={`/#${post.id}`}
+                        className="text-blue-600 font-semibold hover:underline flex items-center gap-1 text-[11px]"
+                      >
+                        <span>View in Feed</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === 'details' && (
         <div className="space-y-6">
@@ -602,39 +967,6 @@ export default function ProfilePage() {
             </>
           )}
 
-          {/* Authored Posts Grid across all roles */}
-          <div className="apple-card p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-900">
-                  Posts Authored by {currentUser.fullName} ({userPosts.length})
-                </h3>
-              </div>
-            </div>
-
-            {userPosts.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-4">
-                No posts published yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {userPosts.map(p => (
-                  <div key={p.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="font-semibold text-blue-600">#{p.topic || 'Update'}</span>
-                      <span className="text-slate-400">{new Date(p.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-xs text-slate-800 line-clamp-2">{p.content}</p>
-                    <div className="flex items-center gap-3 text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
-                      <span>👍 {p.likesCount} likes</span>
-                      <span>💬 {p.commentsCount} comments</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -746,7 +1078,18 @@ export default function ProfilePage() {
           isOpen={Boolean(followersModalTitle)}
           onClose={() => setFollowersModalTitle(null)}
           title={followersModalTitle}
-          userIds={followersModalTitle === 'Followers' ? currentUser.followers : currentUser.following}
+          userIds={followersModalTitle === 'Followers' ? (currentUser.followers || []) : (currentUser.following || [])}
+        />
+      )}
+
+      {/* PINTEREST ZOOM MODAL */}
+      {zoomedPost && (
+        <PinterestImageModal
+          post={zoomedPost}
+          onClose={() => setZoomedPost(null)}
+          onLike={toggleLikePost}
+          onComment={addComment}
+          currentUser={currentUser}
         />
       )}
     </div>

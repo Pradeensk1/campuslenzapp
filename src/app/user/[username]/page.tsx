@@ -20,7 +20,8 @@ import {
   Edit3,
   ZoomIn,
   Trash2,
-  Award
+  Award,
+  Repeat
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,9 +34,9 @@ import { isVideoMedia } from '@/lib/mediaUtils';
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile, deleteUser } = useApp();
+  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile, deleteUser, repostPost } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'about'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
   const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
@@ -49,10 +50,24 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
   }
 
   const isSelf = currentUser ? profileUser.id === currentUser.id : false;
-  const isFollowing = currentUser ? currentUser.following.includes(profileUser.id) : false;
+  const isFollowing = currentUser
+    ? ((currentUser.following || []).includes(profileUser.id) || (currentUser.following || []).includes(profileUser.username))
+    : false;
 
-  // Get all posts authored by this specific user
-  const userPosts = posts.filter((p) => p.authorId === profileUser.id);
+  // Get all posts authored by this specific user (safe ID and username matching)
+  const userPosts = posts.filter(
+    (p) =>
+      p.authorId === profileUser.id ||
+      p.authorId === `user-${profileUser.username}` ||
+      (p.authorUsername && profileUser.username && p.authorUsername.toLowerCase() === profileUser.username.toLowerCase())
+  );
+  const userReposts = posts.filter(
+    (p) =>
+      (profileUser.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(profileUser.id)) ||
+      (profileUser.id && p.repostedByStudent?.studentId === profileUser.id) ||
+      (profileUser.id && p.repostedByFaculty?.facultyId === profileUser.id) ||
+      (profileUser.id && p.repostedByInstitution?.institutionId === profileUser.id)
+  );
   const totalLikesReceived = userPosts.reduce((acc, p) => acc + p.likesCount, 0);
 
   return (
@@ -158,18 +173,36 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
               </div>
             </div>
 
-            {/* INSTAGRAM 4-STAT GRID (Phase 3 Requirement: Posts, Followers, Following, Likes) */}
-            <div className="grid grid-cols-4 gap-2 border-y border-[#F1F5F9] py-3 text-center">
-              <div>
-                <p className="text-base sm:text-lg font-black text-[#0F172A]">{userPosts.length}</p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B]">Posts</p>
-              </div>
+            {/* INSTAGRAM 5-STAT GRID (Posts, Reposts, Followers, Following, Likes) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 border-y border-[#F1F5F9] py-3 text-center">
+              <button
+                onClick={() => setActiveTab('posts')}
+                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+              >
+                <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:text-blue-600">
+                  {userPosts.length}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                  Posts
+                </p>
+              </button>
+              <button
+                onClick={() => setActiveTab('reposts')}
+                className="hover:bg-purple-50/60 rounded-xl p-1 transition cursor-pointer group"
+              >
+                <p className="text-base sm:text-lg font-black text-purple-600 group-hover:text-purple-700">
+                  {userReposts.length}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-purple-600">
+                  Reposts
+                </p>
+              </button>
               <button
                 onClick={() => setFollowersModalTitle('Followers')}
                 className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
               >
                 <p className="text-base sm:text-lg font-black text-[#2563EB] group-hover:underline">
-                  {profileUser.followersCount}
+                  {profileUser.followersCount || (profileUser.followers || []).length}
                 </p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
                   Followers
@@ -180,13 +213,13 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
               >
                 <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:underline">
-                  {profileUser.followingCount}
+                  {profileUser.followingCount || (profileUser.following || []).length}
                 </p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
                   Following
                 </p>
               </button>
-              <div>
+              <div className="p-1">
                 <p className="text-base sm:text-lg font-black text-[#D97706]">{totalLikesReceived}</p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B]">Likes</p>
               </div>
@@ -228,6 +261,17 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           >
             <Grid className="h-4 w-4" />
             <span>POSTS ({userPosts.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('reposts')}
+            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+              activeTab === 'reposts'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-[#64748B] hover:text-purple-600'
+            }`}
+          >
+            <Repeat className="h-4 w-4" />
+            <span>REPOSTS ({userReposts.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('about')}
@@ -309,6 +353,142 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                       <MessageSquare className="h-4 w-4" />
                       <span>{post.commentsCount} comments</span>
                     </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: REPOSTS */}
+      {activeTab === 'reposts' && (
+        <div className="space-y-4">
+          {userReposts.length === 0 ? (
+            <div className="apple-card p-10 text-center text-xs text-[#64748B] space-y-2">
+              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <Repeat className="w-6 h-6" />
+              </div>
+              <p className="font-semibold text-sm text-[#0F172A]">No reposts yet</p>
+              <p>Posts reposted by @{profileUser.username} will appear here.</p>
+            </div>
+          ) : (
+            userReposts.map((post) => {
+              const isLiked = currentUser ? (post.likes || []).includes(currentUser.id) : false;
+              const hasCurrentUserReposted = currentUser ? (post.repostedUserIds || []).includes(currentUser.id) : false;
+              return (
+                <div key={post.id} className="apple-card p-6 space-y-3 border-l-4 border-l-purple-500">
+                  {/* Repost Header Badge */}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs text-purple-700 font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <Repeat className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Reposted by @{profileUser.username}</span>
+                    </div>
+                  </div>
+
+                  {/* Original Author Info */}
+                  <div className="flex items-center gap-3">
+                    <Link href={`/user/${post.authorUsername}`}>
+                      <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs">
+                        {post.authorName?.[0] || 'U'}
+                      </div>
+                    </Link>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Link
+                          href={`/user/${post.authorUsername}`}
+                          className="text-xs font-bold text-slate-900 hover:text-blue-600 transition"
+                        >
+                          {post.authorName}
+                        </Link>
+                        {post.isVerifiedAuthor && (
+                          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          @{post.authorUsername}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                          {post.authorRole}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        {new Date(post.createdAt).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <p className="text-sm text-[#1E293B] leading-relaxed whitespace-pre-line">
+                    {post.content}
+                  </p>
+
+                  {/* High Resolution Post Image with Zoom Trigger or Video Player */}
+                  {post.imageUrl && (
+                    isVideoMedia(post.imageUrl) ? (
+                      <div className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-black">
+                        <video
+                          src={post.imageUrl}
+                          controls
+                          className="w-full max-h-[380px] rounded-xl bg-black object-contain"
+                          preload="metadata"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => setZoomedPost(post)}
+                        className="mt-3 rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] relative group cursor-zoom-in"
+                      >
+                        <img
+                          src={post.imageUrl}
+                          alt="Post media attachment"
+                          loading="lazy"
+                          className="w-full max-h-[360px] object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.01]"
+                        />
+                        <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1">
+                          <ZoomIn className="h-3 w-3" />
+                          <span>Zoom</span>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* Footer Stats & Actions */}
+                  <div className="flex items-center justify-between border-t border-[#F1F5F9] pt-3 text-xs text-[#64748B]">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => toggleLikePost(post.id)}
+                        className={`flex items-center space-x-1.5 font-semibold transition-colors ${
+                          isLiked ? 'text-[#2563EB]' : 'hover:text-[#0F172A]'
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                        <span>{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
+                      </button>
+                      <div className="flex items-center space-x-1">
+                        <MessageSquare className="h-4 w-4" />
+                        <span>{post.commentsCount} comments</span>
+                      </div>
+                      <button
+                        onClick={() => repostPost(post.id)}
+                        className={`flex items-center space-x-1.5 font-semibold transition-colors ${
+                          hasCurrentUserReposted ? 'text-purple-600 font-bold' : 'hover:text-purple-600'
+                        }`}
+                      >
+                        <Repeat className="h-4 w-4" />
+                        <span>{post.sharesCount} reposts</span>
+                      </button>
+                    </div>
+
+                    <Link
+                      href={`/#${post.id}`}
+                      className="text-blue-600 font-semibold hover:underline text-[11px]"
+                    >
+                      View in Feed
+                    </Link>
                   </div>
                 </div>
               );
@@ -435,7 +615,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           isOpen={Boolean(followersModalTitle)}
           onClose={() => setFollowersModalTitle(null)}
           title={followersModalTitle}
-          userIds={followersModalTitle === 'Followers' ? profileUser.followers : profileUser.following}
+          userIds={followersModalTitle === 'Followers' ? (profileUser.followers || []) : (profileUser.following || [])}
         />
       )}
     </div>

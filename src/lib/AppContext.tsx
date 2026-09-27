@@ -382,7 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!error && data && data.length > 0) {
           const mapped: Post[] = data.map((row: any) => ({
             id: row.id,
-            authorId: row.author_id || `user-${row.author_username}`,
+            authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
             authorUsername: row.author_username,
             authorName: row.author_name,
             authorRole: row.author_role || 'student',
@@ -394,11 +394,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             content: row.content,
             topic: row.topic,
             imageUrl: row.image_url,
-            likes: [],
+            likes: Array.isArray(row.likes) ? row.likes : [],
             likesCount: row.likes_count ?? 0,
             comments: [],
             commentsCount: row.comments_count ?? 0,
             sharesCount: row.shares_count ?? 0,
+            repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
             moderationStatus: row.moderation_status || 'normal',
             sentiment: row.sentiment || 'neutral',
             sentimentScore: row.sentiment_score ?? 0,
@@ -438,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (prev.some(p => p.id === row.id || p.content === row.content)) return prev;
             const incoming: Post = {
               id: row.id,
-              authorId: row.author_id || `user-${row.author_username}`,
+              authorId: row.author_id || (row.author_username ? `user-${row.author_username}` : row.id),
               authorUsername: row.author_username,
               authorName: row.author_name,
               authorRole: row.author_role || 'student',
@@ -450,11 +451,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               content: row.content,
               topic: row.topic,
               imageUrl: row.image_url,
-              likes: [],
+              likes: Array.isArray(row.likes) ? row.likes : [],
               likesCount: row.likes_count ?? 0,
               comments: [],
               commentsCount: row.comments_count ?? 0,
               sharesCount: row.shares_count ?? 0,
+              repostedUserIds: Array.isArray(row.reposted_user_ids) ? row.reposted_user_ids : [],
               moderationStatus: row.moderation_status || 'normal',
               sentiment: row.sentiment || 'neutral',
               sentimentScore: row.sentiment_score ?? 0,
@@ -616,6 +618,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const userData = await userRes.value.json();
           if (userData.success && Array.isArray(userData.users)) {
             setAllUsers(userData.users);
+            setCurrentUser(prevUser => {
+              if (!prevUser) return null;
+              const fresh = userData.users.find((u: UserProfile) =>
+                u.id === prevUser.id ||
+                (u.username && prevUser.username && u.username.toLowerCase() === prevUser.username.toLowerCase())
+              );
+              return fresh ? { ...prevUser, ...fresh } : prevUser;
+            });
           }
         }
 
@@ -1311,6 +1321,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseConfigured() && supabase) {
       const client = supabase;
       client.from('posts').insert({
+        author_id: currentUser?.id || null,
         author_username: post.authorUsername,
         author_name: post.authorName,
         author_role: post.authorRole,
@@ -1330,7 +1341,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         is_quarantined: post.isQuarantined,
         ai_model_metadata: post.aiModelMetadata,
         moderation_status: post.moderationStatus
-      }).then(() => {});
+      }).then(({ error }) => {
+        if (error) {
+          console.warn('Supabase post insert note:', error.message);
+        }
+      });
     }
 
     return { success: true };
@@ -1575,42 +1590,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    setPosts(prev =>
-      prev.map(p => {
-        if (p.id === postId) {
-          const updated: Post = {
-            ...p,
-            sharesCount: p.sharesCount + 1
-          };
-          if (currentUser.role === 'institution') {
-            updated.repostedByInstitution = {
-              institutionId: currentUser.id,
-              institutionName: currentUser.fullName,
-              repostedAt: new Date().toISOString()
-            };
-          } else if (currentUser.role === 'faculty') {
-            updated.repostedByFaculty = {
-              facultyId: currentUser.id,
-              facultyName: currentUser.fullName,
-              repostedAt: new Date().toISOString()
-            };
-          } else if (currentUser.role === 'student') {
-            updated.repostedByStudent = {
-              studentId: currentUser.id,
-              studentName: currentUser.fullName,
-              repostedAt: new Date().toISOString()
-            };
-          }
-          return updated;
-        }
-        return p;
-      })
-    );
+    const currentRepostedIds = Array.isArray(targetPost.repostedUserIds) ? targetPost.repostedUserIds : [];
+    const isAlreadyReposted =
+      currentRepostedIds.includes(currentUser.id) ||
+      (currentUser.role === 'student' && targetPost.repostedByStudent?.studentId === currentUser.id) ||
+      (currentUser.role === 'faculty' && targetPost.repostedByFaculty?.facultyId === currentUser.id) ||
+      (currentUser.role === 'institution' && targetPost.repostedByInstitution?.institutionId === currentUser.id);
 
-    return {
-      success: true,
-      message: `Reposted successfully to your ${currentUser.role} feed!`
-    };
+    if (isAlreadyReposted) {
+      // Toggle off / Undo Repost
+      const updatedRepostedIds = currentRepostedIds.filter(id => id !== currentUser.id);
+      const newSharesCount = Math.max(0, (targetPost.sharesCount || 1) - 1);
+
+      setPosts(prev =>
+        prev.map(p => {
+          if (p.id === postId) {
+            const updated: Post = {
+              ...p,
+              sharesCount: newSharesCount,
+              repostedUserIds: updatedRepostedIds
+            };
+            if (currentUser.role === 'student' && updated.repostedByStudent?.studentId === currentUser.id) {
+              delete updated.repostedByStudent;
+            }
+            if (currentUser.role === 'faculty' && updated.repostedByFaculty?.facultyId === currentUser.id) {
+              delete updated.repostedByFaculty;
+            }
+            if (currentUser.role === 'institution' && updated.repostedByInstitution?.institutionId === currentUser.id) {
+              delete updated.repostedByInstitution;
+            }
+            return updated;
+          }
+          return p;
+        })
+      );
+
+      if (isSupabaseConfigured() && supabase) {
+        supabase
+          .from('posts')
+          .update({ shares_count: newSharesCount })
+          .eq('id', postId)
+          .then(() => {});
+      }
+
+      return {
+        success: true,
+        message: 'Repost removed from your profile.'
+      };
+    } else {
+      // Add Repost
+      const updatedRepostedIds = [...currentRepostedIds.filter(id => id !== currentUser.id), currentUser.id];
+      const newSharesCount = (targetPost.sharesCount || 0) + 1;
+
+      setPosts(prev =>
+        prev.map(p => {
+          if (p.id === postId) {
+            const updated: Post = {
+              ...p,
+              sharesCount: newSharesCount,
+              repostedUserIds: updatedRepostedIds
+            };
+            if (currentUser.role === 'institution') {
+              updated.repostedByInstitution = {
+                institutionId: currentUser.id,
+                institutionName: currentUser.fullName,
+                repostedAt: new Date().toISOString()
+              };
+            } else if (currentUser.role === 'faculty') {
+              updated.repostedByFaculty = {
+                facultyId: currentUser.id,
+                facultyName: currentUser.fullName,
+                repostedAt: new Date().toISOString()
+              };
+            } else if (currentUser.role === 'student') {
+              updated.repostedByStudent = {
+                studentId: currentUser.id,
+                studentName: currentUser.fullName,
+                repostedAt: new Date().toISOString()
+              };
+            }
+            return updated;
+          }
+          return p;
+        })
+      );
+
+      if (isSupabaseConfigured() && supabase) {
+        supabase
+          .from('posts')
+          .update({ shares_count: newSharesCount })
+          .eq('id', postId)
+          .then(() => {});
+      }
+
+      return {
+        success: true,
+        message: `Reposted to your profile and campus feed!`
+      };
+    }
   };
 
   // Content Reporting (Faculty, Institution & Admin)
@@ -1818,49 +1895,110 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: 'Community request rejected and cleared.' };
   };
 
-  const toggleFollowUser = (targetUserId: string) => {
-    if (!currentUser || targetUserId === currentUser.id) return;
+  const toggleFollowUser = (targetUserIdOrUsername: string) => {
+    if (!currentUser) return;
 
+    // Resolve target in allUsers by ID or username
+    const target = allUsers.find(
+      u => u.id === targetUserIdOrUsername ||
+      (u.username && u.username.toLowerCase() === targetUserIdOrUsername.toLowerCase())
+    );
+
+    if (!target || target.id === currentUser.id || target.username.toLowerCase() === currentUser.username.toLowerCase()) {
+      return;
+    }
+
+    const targetFollowers = Array.isArray(target.followers) ? target.followers : [];
+    const myFollowing = Array.isArray(currentUser.following) ? currentUser.following : [];
+
+    const isAlreadyFollowing =
+      targetFollowers.includes(currentUser.id) ||
+      targetFollowers.includes(currentUser.username) ||
+      myFollowing.includes(target.id) ||
+      myFollowing.includes(target.username);
+
+    let nextTargetFollowers: string[];
+    let nextMyFollowing: string[];
+
+    if (isAlreadyFollowing) {
+      nextTargetFollowers = targetFollowers.filter(
+        id => id !== currentUser.id && id !== currentUser.username
+      );
+      nextMyFollowing = myFollowing.filter(
+        id => id !== target.id && id !== target.username
+      );
+    } else {
+      nextTargetFollowers = [...targetFollowers.filter(id => id !== currentUser.id && id !== currentUser.username), currentUser.id];
+      nextMyFollowing = [...myFollowing.filter(id => id !== target.id && id !== target.username), target.id];
+    }
+
+    // Optimistically update allUsers
     setAllUsers(prev =>
       prev.map(u => {
-        if (u.id === targetUserId) {
-          const isFollowing = u.followers.includes(currentUser.id);
-          const nextFollowers = isFollowing
-            ? u.followers.filter(id => id !== currentUser.id)
-            : [...u.followers, currentUser.id];
+        if (u.id === target.id || u.username.toLowerCase() === target.username.toLowerCase()) {
           return {
             ...u,
-            followers: nextFollowers,
-            followersCount: nextFollowers.length
+            followers: nextTargetFollowers,
+            followersCount: nextTargetFollowers.length
           };
         }
-        if (u.id === currentUser.id) {
-          const isFollowing = u.following.includes(targetUserId);
-          const nextFollowing = isFollowing
-            ? u.following.filter(id => id !== targetUserId)
-            : [...u.following, targetUserId];
+        if (u.id === currentUser.id || u.username.toLowerCase() === currentUser.username.toLowerCase()) {
           return {
             ...u,
-            following: nextFollowing,
-            followingCount: nextFollowing.length
+            following: nextMyFollowing,
+            followingCount: nextMyFollowing.length
           };
         }
         return u;
       })
     );
 
-    setCurrentUser(prev => {
-      if (!prev) return null;
-      const isFollowing = prev.following.includes(targetUserId);
-      const nextFollowing = isFollowing
-        ? prev.following.filter(id => id !== targetUserId)
-        : [...prev.following, targetUserId];
-      return {
-        ...prev,
-        following: nextFollowing,
-        followingCount: nextFollowing.length
-      };
-    });
+    // Optimistically update currentUser
+    const updatedCurrentUser = {
+      ...currentUser,
+      following: nextMyFollowing,
+      followingCount: nextMyFollowing.length
+    };
+    setCurrentUser(updatedCurrentUser);
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(updatedCurrentUser));
+    } catch {}
+
+    // Synchronize to Supabase via follow API
+    fetch(`/api/users/${encodeURIComponent(target.username)}/follow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        followerId: currentUser.id,
+        followerUsername: currentUser.username
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.targetUser && data.followerUser) {
+          setAllUsers(prev =>
+            prev.map(u => {
+              if (u.id === data.targetUser.id) {
+                return {
+                  ...u,
+                  followers: data.targetUser.followers,
+                  followersCount: data.targetUser.followersCount
+                };
+              }
+              if (u.id === data.followerUser.id) {
+                return {
+                  ...u,
+                  following: data.followerUser.following,
+                  followingCount: data.followerUser.followingCount
+                };
+              }
+              return u;
+            })
+          );
+        }
+      })
+      .catch(err => console.warn('Follow API sync notice:', err));
   };
 
   const addInstitutionReply = (reviewId: string, replyText: string) => {
@@ -1912,6 +2050,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
     } catch {}
+
+    if (currentUser.username) {
+      fetch(`/api/users/${encodeURIComponent(currentUser.username)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      }).catch(err => console.warn('Profile sync notice:', err));
+    }
   };
 
   // WhatsApp Community / Campus Servers: Send Message
