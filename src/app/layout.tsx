@@ -3,7 +3,6 @@ import "./globals.css";
 import { AppProvider } from "@/lib/AppContext";
 import Navigation from "@/components/Navigation";
 import PageTransition from "@/components/PageTransition";
-import RolePersonaSwitcher from "@/components/RolePersonaSwitcher";
 import EmergencyBroadcastBanner from "@/components/EmergencyBroadcastBanner";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
@@ -46,7 +45,6 @@ export default function RootLayout({
                 {children}
               </PageTransition>
             </main>
-            <RolePersonaSwitcher />
             <PWAInstallPrompt />
           </div>
         </AppProvider>

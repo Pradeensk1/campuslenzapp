@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,10 +41,13 @@ import {
   Check,
   X,
   PlusCircle,
-  LogIn
+  LogIn,
+  Paperclip,
+  Video
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
+import { isVideoMedia, formatFileSize } from '@/lib/mediaUtils';
 import PinterestImageModal from '@/components/PinterestImageModal';
 import AlumniHomeView from '@/components/home/AlumniHomeView';
 import FacultyHomeView from '@/components/home/FacultyHomeView';
@@ -68,10 +71,6 @@ export default function HomePage() {
     deletePost,
     deleteComment,
     checkAlumniPostEligibility,
-    isLiveFeedActive,
-    setIsLiveFeedActive,
-    triggerLiveActivity,
-    resetAllUserData,
     sensitiveContentShieldActive,
     toggleSensitiveContentShield,
     runOpenSourceAIModeration
@@ -119,7 +118,39 @@ export default function HomePage() {
   const [postContent, setPostContent] = useState('');
   const [postTopic, setPostTopic] = useState('Campus Update');
   const [postImageUrl, setPostImageUrl] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
+
+  const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      setActionFeedback('⚠️ Media file size must be less than 50MB.');
+      setTimeout(() => setActionFeedback(null), 3500);
+      return;
+    }
+
+    const isVid = file.type.startsWith('video/');
+    setMediaFile(file);
+    setMediaFileType(isVid ? 'video' : 'image');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setPostImageUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveMedia = () => {
+    setMediaFile(null);
+    setMediaFileType(null);
+    setPostImageUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const formatTimeAgo = (dateStr: string) => {
     try {
@@ -175,21 +206,13 @@ export default function HomePage() {
 
     if (res.success) {
       setPostContent('');
-      setPostImageUrl('');
+      handleRemoveMedia();
       setIsAnonymousPost(false);
       setIsComposing(false);
       setActionFeedback('🎉 Post published to live campus stream!');
       setTimeout(() => setActionFeedback(null), 4000);
     } else {
       setActionFeedback(res.message || 'Could not publish post.');
-      setTimeout(() => setActionFeedback(null), 4000);
-    }
-  };
-
-  const handleWipeAllData = () => {
-    if (window.confirm('⚠️ Are you sure you want to delete all user data and reset the dynamic feed database? This will clear all local storage and start fresh.')) {
-      resetAllUserData();
-      setActionFeedback('🧹 All user data wiped successfully. Fresh dynamic live feed initialized!');
       setTimeout(() => setActionFeedback(null), 4000);
     }
   };
@@ -578,61 +601,7 @@ export default function HomePage() {
             <StudentFeaturesHub />
           ) : (
             <>
-              {/* 1. Real-Time Live Feed Network Bar (LinkedIn & Instagram Style) */}
-              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-3.5 rounded-2xl shadow-sm space-y-2.5">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  {isLiveFeedActive && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  )}
-                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLiveFeedActive ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
-                </span>
-                <span className="text-xs font-bold tracking-tight">
-                  {isLiveFeedActive ? 'Live Campus Stream Active' : 'Live Stream Paused'}
-                </span>
-                <span className="text-[10px] font-semibold text-blue-200 bg-white/10 px-2 py-0.5 rounded-full hidden sm:inline">
-                  ⚡ Auto-Applied
-                </span>
-              </div>
-
-              {/* Feed Controls */}
-              <div className="flex items-center gap-1.5 text-xs">
-                <button
-                  onClick={() => setIsLiveFeedActive(!isLiveFeedActive)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold transition"
-                  title={isLiveFeedActive ? 'Pause auto live updates' : 'Resume auto live updates'}
-                >
-                  {isLiveFeedActive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                  <span>{isLiveFeedActive ? 'Pause' : 'Stream'}</span>
-                </button>
-
-                <button
-                  onClick={triggerLiveActivity}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-[11px] font-bold text-white transition shadow-2xs"
-                  title="Immediately simulate a live network event"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>+ Live Event</span>
-                </button>
-
-                <button
-                  onClick={handleWipeAllData}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[11px] font-semibold transition"
-                  title="Wipe all data and reset dynamic database"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span className="hidden sm:inline">Reset All</span>
-                </button>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-300 leading-tight">
-              Real-time activity stream: verified peer achievements, campus recruitment milestones, and faculty circulars synced dynamically.
-            </p>
-          </div>
-
-          {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
+              {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
               {/* Role Context & Quota Banners */}
@@ -806,16 +775,74 @@ export default function HomePage() {
                         ))}
                       </div>
 
-                      {/* Optional Image URL Input */}
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                      {/* Media File (Image / Video) Upload & URL Attachment */}
+                      <div className="space-y-2">
                         <input
-                          type="url"
-                          value={postImageUrl}
-                          onChange={e => setPostImageUrl(e.target.value)}
-                          placeholder="Optional image URL (e.g. Unsplash or direct photo link)"
-                          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-hidden"
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*,video/*"
+                          onChange={handleMediaFileChange}
+                          className="hidden"
                         />
+
+                        {postImageUrl ? (
+                          <div className="relative rounded-2xl border border-slate-200 bg-slate-900 overflow-hidden p-2 shadow-xs">
+                            {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? (
+                              <video
+                                src={postImageUrl}
+                                controls
+                                className="w-full max-h-60 rounded-xl bg-black object-contain"
+                              />
+                            ) : (
+                              <img
+                                src={postImageUrl}
+                                alt="Attachment preview"
+                                className="w-full max-h-60 rounded-xl object-cover"
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={handleRemoveMedia}
+                              className="absolute top-4 right-4 p-1.5 bg-black/75 hover:bg-black text-white rounded-full transition shadow-md"
+                              title="Remove media"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <div className="px-2 pt-2 text-white/90 text-[11px] flex items-center justify-between">
+                              <span className="truncate max-w-[280px]">
+                                {mediaFile ? mediaFile.name : 'Attached Media'}
+                              </span>
+                              <span className="text-[10px] text-white/70">
+                                {mediaFile ? formatFileSize(mediaFile.size) : ''} • {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? 'Video' : 'Image'}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs font-semibold text-slate-700 hover:text-blue-600 transition"
+                            >
+                              <Paperclip className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Attach Photo or Video</span>
+                            </button>
+
+                            <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white">
+                              <ImageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <input
+                                type="url"
+                                value={postImageUrl}
+                                onChange={e => {
+                                  setPostImageUrl(e.target.value);
+                                  setMediaFileType(isVideoMedia(e.target.value) ? 'video' : 'image');
+                                }}
+                                placeholder="or paste image/video URL..."
+                                className="w-full text-xs text-slate-800 focus:outline-hidden"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Post Actions */}
@@ -1244,23 +1271,34 @@ export default function HomePage() {
                             {post.content}
                           </p>
 
-                          {/* Image Attachment with Pinterest Zoom Click */}
+                          {/* Media Attachment (Image with Zoom or Video with Player) */}
                           {post.imageUrl && (
-                            <div
-                              onClick={() => setZoomedPost(post)}
-                              className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
-                            >
-                              <img
-                                src={post.imageUrl}
-                                alt="Post visual attachment"
-                                loading="lazy"
-                                className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
-                              />
-                              <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
-                                <ZoomIn className="w-3.5 h-3.5" />
-                                <span>Zoom Full</span>
+                            isVideoMedia(post.imageUrl) ? (
+                              <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
+                                <video
+                                  src={post.imageUrl}
+                                  controls
+                                  className="w-full max-h-[480px] rounded-2xl bg-black"
+                                  preload="metadata"
+                                />
                               </div>
-                            </div>
+                            ) : (
+                              <div
+                                onClick={() => setZoomedPost(post)}
+                                className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
+                              >
+                                <img
+                                  src={post.imageUrl}
+                                  alt="Post visual attachment"
+                                  loading="lazy"
+                                  className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                                />
+                                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                                  <ZoomIn className="w-3.5 h-3.5" />
+                                  <span>Zoom Full</span>
+                                </div>
+                              </div>
+                            )
                           )}
                         </>
                       )}

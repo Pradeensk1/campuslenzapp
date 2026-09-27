@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ThumbsUp, MessageSquare, Share2, ZoomIn, ZoomOut, Maximize2, Send, UserCheck, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { Post, UserProfile } from '@/types';
+import { isVideoMedia } from '@/lib/mediaUtils';
 
 interface PinterestModalProps {
   post: Post | null;
@@ -65,29 +66,41 @@ export default function PinterestImageModal({
             <X className="h-5 w-5" />
           </button>
 
-          {/* LEFT: PINTEREST ZOOMABLE IMAGE CONTAINER */}
+          {/* LEFT: PINTEREST ZOOMABLE IMAGE / VIDEO CONTAINER */}
           <div className="relative md:w-3/5 bg-[#0F172A] flex items-center justify-center p-2 overflow-hidden min-h-[300px] md:min-h-[580px]">
             <div className="relative w-full h-full flex items-center justify-center overflow-auto">
-              <img
-                src={post.imageUrl}
-                alt="Zoomed campus post photo"
-                onClick={() => setIsZoomed(!isZoomed)}
-                className={`max-w-full max-h-[85vh] object-contain transition-all duration-300 select-none cursor-pointer ${
-                  isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in hover:opacity-95'
-                }`}
-              />
+              {isVideoMedia(post.imageUrl) ? (
+                <video
+                  src={post.imageUrl}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={post.imageUrl}
+                  alt="Zoomed campus post photo"
+                  onClick={() => setIsZoomed(!isZoomed)}
+                  className={`max-w-full max-h-[85vh] object-contain transition-all duration-300 select-none cursor-pointer ${
+                    isZoomed ? 'scale-150 cursor-zoom-out' : 'cursor-zoom-in hover:opacity-95'
+                  }`}
+                />
+              )}
             </div>
 
-            {/* Bottom Controls for Zoom */}
-            <div className="absolute bottom-4 left-4 flex items-center space-x-2 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs">
-              <button
-                onClick={() => setIsZoomed(!isZoomed)}
-                className="flex items-center space-x-1 hover:text-[#38E6A5] transition"
-              >
-                {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
-                <span>{isZoomed ? 'Reset Zoom' : 'Click Photo to Zoom (150%)'}</span>
-              </button>
-            </div>
+            {/* Bottom Controls for Zoom (Only for images) */}
+            {!isVideoMedia(post.imageUrl) && (
+              <div className="absolute bottom-4 left-4 flex items-center space-x-2 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs">
+                <button
+                  onClick={() => setIsZoomed(!isZoomed)}
+                  className="flex items-center space-x-1 hover:text-[#38E6A5] transition"
+                >
+                  {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
+                  <span>{isZoomed ? 'Reset Zoom' : 'Click Photo to Zoom (150%)'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: PINTEREST PIN DETAILS & COMMENTS SIDEBAR */}

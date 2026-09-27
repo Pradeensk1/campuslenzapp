@@ -302,35 +302,35 @@ const DYNAMIC_CAMPUS_FEED_POOL: Array<Omit<Post, 'id' | 'createdAt' | 'likes' | 
 ];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [colleges, setColleges] = useState<College[]>(INITIAL_COLLEGES);
-  const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
-  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
-  const [communities, setCommunities] = useState<Community[]>(INITIAL_COMMUNITIES);
+  const [reviews, setReviews] = useState<CollegeReview[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
   const [servers, setServers] = useState<DiscordServer[]>(INITIAL_DISCORD_SERVERS);
-  const [serverMessages, setServerMessages] = useState<ServerMessage[]>(INITIAL_SERVER_MESSAGES);
-  const [directMessages, setDirectMessages] = useState<DirectMessage[]>(INITIAL_DIRECT_MESSAGES);
-  const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
+  const [serverMessages, setServerMessages] = useState<ServerMessage[]>([]);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>([]);
   const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>([]);
   const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
 
   // Advanced Role Features State
-  const [studyRooms, setStudyRooms] = useState<StudyRoom[]>(INITIAL_STUDY_ROOMS);
-  const [courseQuestions, setCourseQuestions] = useState<CourseQuestion[]>(INITIAL_COURSE_QUESTIONS);
-  const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(INITIAL_MARKETPLACE_ITEMS);
-  const [assignmentTasks, setAssignmentTasks] = useState<AssignmentTask[]>(INITIAL_ASSIGNMENTS);
-  const [examMilestones, setExamMilestones] = useState<ExamMilestone[]>(INITIAL_EXAMS);
-  const [mentorshipSlots, setMentorshipSlots] = useState<MentorshipSlot[]>(INITIAL_MENTORSHIP_SLOTS);
-  const [alumniJobReferrals, setAlumniJobReferrals] = useState<AlumniJobReferral[]>(INITIAL_ALUMNI_REFERRALS);
-  const [referralRequests, setReferralRequests] = useState<ReferralRequest[]>(INITIAL_REFERRAL_REQUESTS);
-  const [industryAmaEvents, setIndustryAmaEvents] = useState<IndustryAMAEvent[]>(INITIAL_AMA_EVENTS);
-  const [officeHourQueue, setOfficeHourQueue] = useState<OfficeHourQueueItem[]>(INITIAL_OFFICE_HOUR_QUEUE);
-  const [researchOpenings, setResearchOpenings] = useState<ResearchOpening[]>(INITIAL_RESEARCH_OPENINGS);
-  const [lectureMaterials, setLectureMaterials] = useState<LectureMaterialVersion[]>(INITIAL_LECTURE_MATERIALS);
-  const [emergencyBroadcast, setEmergencyBroadcast] = useState<EmergencyBroadcast | null>(INITIAL_EMERGENCY_BROADCAST);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
+  const [studyRooms, setStudyRooms] = useState<StudyRoom[]>([]);
+  const [courseQuestions, setCourseQuestions] = useState<CourseQuestion[]>([]);
+  const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
+  const [assignmentTasks, setAssignmentTasks] = useState<AssignmentTask[]>([]);
+  const [examMilestones, setExamMilestones] = useState<ExamMilestone[]>([]);
+  const [mentorshipSlots, setMentorshipSlots] = useState<MentorshipSlot[]>([]);
+  const [alumniJobReferrals, setAlumniJobReferrals] = useState<AlumniJobReferral[]>([]);
+  const [referralRequests, setReferralRequests] = useState<ReferralRequest[]>([]);
+  const [industryAmaEvents, setIndustryAmaEvents] = useState<IndustryAMAEvent[]>([]);
+  const [officeHourQueue, setOfficeHourQueue] = useState<OfficeHourQueueItem[]>([]);
+  const [researchOpenings, setResearchOpenings] = useState<ResearchOpening[]>([]);
+  const [lectureMaterials, setLectureMaterials] = useState<LectureMaterialVersion[]>([]);
+  const [emergencyBroadcast, setEmergencyBroadcast] = useState<EmergencyBroadcast | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
   // Automated Open-Source AI Moderation & Sensitivity Shield State
   const [sensitiveContentShieldActive, setSensitiveContentShieldActive] = useState<boolean>(true);
@@ -465,61 +465,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 1. Hydrate and Clean Legacy Storage on Initial Client Mount
   useEffect(() => {
     try {
-      const rawDb = localStorage.getItem('CL_FRESH_DB_V6') || localStorage.getItem('CL_FRESH_DB_V5');
+      // Clean legacy storage caches
+      try {
+        localStorage.removeItem('CL_FRESH_DB_V6');
+        localStorage.removeItem('CL_FRESH_DB_V5');
+        localStorage.removeItem('CL_FRESH_DB_V4');
+        localStorage.removeItem('campus_lenz_state_v3');
+      } catch {}
+
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V7');
       if (rawDb) {
         const parsed = JSON.parse(rawDb);
 
-        // Ensure baseline personas are always merged with locally created accounts
-        if (parsed.allUsers && Array.isArray(parsed.allUsers) && parsed.allUsers.length > 0) {
-          const merged = [...parsed.allUsers];
-          INITIAL_USERS.forEach(initU => {
-            if (!merged.some(u => u.id === initU.id || u.username.toLowerCase() === initU.username.toLowerCase())) {
-              merged.push(initU);
-            }
-          });
-          setAllUsers(merged);
-        } else {
-          setAllUsers(INITIAL_USERS);
+        if (parsed.allUsers && Array.isArray(parsed.allUsers)) {
+          setAllUsers(parsed.allUsers);
         }
-
         if (parsed.currentUser) {
           setCurrentUser(parsed.currentUser);
           setIsAuthenticated(true);
         }
-        if (parsed.posts && Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+        if (parsed.posts && Array.isArray(parsed.posts)) {
           setPosts(parsed.posts);
-        } else {
-          setPosts(INITIAL_POSTS);
         }
-        if (parsed.reviews && Array.isArray(parsed.reviews) && parsed.reviews.length > 0) {
+        if (parsed.reviews && Array.isArray(parsed.reviews)) {
           setReviews(parsed.reviews);
-        } else {
-          setReviews(INITIAL_REVIEWS);
         }
-        if (parsed.communities && Array.isArray(parsed.communities) && parsed.communities.length > 0) {
+        if (parsed.communities && Array.isArray(parsed.communities)) {
           setCommunities(parsed.communities);
-        } else {
-          setCommunities(INITIAL_COMMUNITIES);
         }
-        if (parsed.servers && Array.isArray(parsed.servers) && parsed.servers.length > 0) {
+        if (parsed.servers && Array.isArray(parsed.servers)) {
           setServers(parsed.servers);
-        } else {
-          setServers(INITIAL_DISCORD_SERVERS);
         }
-        if (parsed.serverMessages && Array.isArray(parsed.serverMessages) && parsed.serverMessages.length > 0) {
+        if (parsed.serverMessages && Array.isArray(parsed.serverMessages)) {
           setServerMessages(parsed.serverMessages);
-        } else {
-          setServerMessages(INITIAL_SERVER_MESSAGES);
         }
-        if (parsed.directMessages && Array.isArray(parsed.directMessages) && parsed.directMessages.length > 0) {
+        if (parsed.directMessages && Array.isArray(parsed.directMessages)) {
           setDirectMessages(parsed.directMessages);
-        } else {
-          setDirectMessages(INITIAL_DIRECT_MESSAGES);
         }
-        if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports) && parsed.grievanceReports.length > 0) {
+        if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports)) {
           setGrievanceReports(parsed.grievanceReports);
-        } else {
-          setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
         }
         if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) {
           setSavedCollegeIds(parsed.savedCollegeIds);
@@ -536,37 +520,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.officeHourQueue && Array.isArray(parsed.officeHourQueue)) setOfficeHourQueue(parsed.officeHourQueue);
         if (parsed.researchOpenings && Array.isArray(parsed.researchOpenings)) setResearchOpenings(parsed.researchOpenings);
         if (parsed.lectureMaterials && Array.isArray(parsed.lectureMaterials)) setLectureMaterials(parsed.lectureMaterials);
-        if (parsed.emergencyBroadcast !== undefined) setEmergencyBroadcast(parsed.emergencyBroadcast);
+        if (parsed.emergencyBroadcast !== undefined) {
+          setEmergencyBroadcast(parsed.emergencyBroadcast);
+        } else {
+          setEmergencyBroadcast(null);
+        }
         if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) setAuditLogs(parsed.auditLogs);
       } else {
-        setAllUsers(INITIAL_USERS);
-        setPosts(INITIAL_POSTS);
-        setReviews(INITIAL_REVIEWS);
-        setCommunities(INITIAL_COMMUNITIES);
+        setAllUsers([]);
+        setPosts([]);
+        setReviews([]);
+        setCommunities([]);
         setServers(INITIAL_DISCORD_SERVERS);
-        setServerMessages(INITIAL_SERVER_MESSAGES);
-        setDirectMessages(INITIAL_DIRECT_MESSAGES);
-        setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
-        setStudyRooms(INITIAL_STUDY_ROOMS);
-        setCourseQuestions(INITIAL_COURSE_QUESTIONS);
-        setMarketplaceItems(INITIAL_MARKETPLACE_ITEMS);
-        setAssignmentTasks(INITIAL_ASSIGNMENTS);
-        setExamMilestones(INITIAL_EXAMS);
-        setMentorshipSlots(INITIAL_MENTORSHIP_SLOTS);
-        setAlumniJobReferrals(INITIAL_ALUMNI_REFERRALS);
-        setReferralRequests(INITIAL_REFERRAL_REQUESTS);
-        setIndustryAmaEvents(INITIAL_AMA_EVENTS);
-        setOfficeHourQueue(INITIAL_OFFICE_HOUR_QUEUE);
-        setResearchOpenings(INITIAL_RESEARCH_OPENINGS);
-        setLectureMaterials(INITIAL_LECTURE_MATERIALS);
-        setEmergencyBroadcast(INITIAL_EMERGENCY_BROADCAST);
-        setAuditLogs(INITIAL_AUDIT_LOGS);
+        setServerMessages([]);
+        setDirectMessages([]);
+        setGrievanceReports([]);
+        setStudyRooms([]);
+        setCourseQuestions([]);
+        setMarketplaceItems([]);
+        setAssignmentTasks([]);
+        setExamMilestones([]);
+        setMentorshipSlots([]);
+        setAlumniJobReferrals([]);
+        setReferralRequests([]);
+        setIndustryAmaEvents([]);
+        setOfficeHourQueue([]);
+        setResearchOpenings([]);
+        setLectureMaterials([]);
+        setEmergencyBroadcast(null);
+        setAuditLogs([]);
       }
     } catch (e) {
       console.error('Storage hydration error:', e);
-      setAllUsers(INITIAL_USERS);
+      setAllUsers([]);
       setServers(INITIAL_DISCORD_SERVERS);
-      setPosts(INITIAL_POSTS);
+      setPosts([]);
+      setEmergencyBroadcast(null);
     } finally {
       setHasHydrated(true);
     }
@@ -597,35 +586,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (postRes.status === 'fulfilled' && postRes.value.ok) {
           const postData = await postRes.value.json();
-          if (postData.success && postData.posts?.length > 0) {
+          if (postData.success && Array.isArray(postData.posts)) {
             setPosts(postData.posts);
           }
         }
 
         if (revRes.status === 'fulfilled' && revRes.value.ok) {
           const revData = await revRes.value.json();
-          if (revData.success && revData.reviews?.length > 0) {
+          if (revData.success && Array.isArray(revData.reviews)) {
             setReviews(revData.reviews);
           }
         }
 
         if (userRes.status === 'fulfilled' && userRes.value.ok) {
           const userData = await userRes.value.json();
-          if (userData.success && userData.users?.length > 0) {
+          if (userData.success && Array.isArray(userData.users)) {
             setAllUsers(userData.users);
           }
         }
 
         if (commRes.status === 'fulfilled' && commRes.value.ok) {
           const commData = await commRes.value.json();
-          if (commData.success && commData.communities?.length > 0) {
+          if (commData.success && Array.isArray(commData.communities)) {
             setCommunities(commData.communities);
           }
         }
 
         if (grvRes.status === 'fulfilled' && grvRes.value.ok) {
           const grvData = await grvRes.value.json();
-          if (grvData.success && grvData.grievances?.length > 0) {
+          if (grvData.success && Array.isArray(grvData.grievances)) {
             setGrievanceReports(grvData.grievances);
           }
         }
@@ -671,7 +660,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         emergencyBroadcast,
         auditLogs
       };
-      localStorage.setItem('CL_FRESH_DB_V6', JSON.stringify(dataToSave));
+      localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(dataToSave));
       if (currentUser) {
         localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
         localStorage.setItem('campus_lenz_auth', 'true');
@@ -709,48 +698,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     auditLogs
   ]);
 
-  // 3. Automated Dynamic Live Activity Ticker (Runs in Background)
-  useEffect(() => {
-    if (!hasHydrated || !isLiveFeedActive) return;
-
-    let poolIndex = 0;
-    const interval = setInterval(() => {
-      const template = DYNAMIC_CAMPUS_FEED_POOL[poolIndex % DYNAMIC_CAMPUS_FEED_POOL.length];
-      poolIndex++;
-
-      const newPost: Post = {
-        ...template,
-        id: `post-live-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        likes: [],
-        likesCount: Math.floor(Math.random() * 30) + 15,
-        comments: [],
-        commentsCount: Math.floor(Math.random() * 3) + 1,
-        sharesCount: Math.floor(Math.random() * 10) + 3,
-        moderationStatus: 'normal'
-      };
-
-      setPosts(prev => [newPost, ...prev]);
-    }, 28000);
-
-    return () => clearInterval(interval);
-  }, [hasHydrated, isLiveFeedActive]);
-
-  // Manually trigger a live post right now
+  // 3. Live Stream Engine (No synthetic fake posts auto-injected)
   const triggerLiveActivity = () => {
-    const randomTemplate = DYNAMIC_CAMPUS_FEED_POOL[Math.floor(Math.random() * DYNAMIC_CAMPUS_FEED_POOL.length)];
-    const manualPost: Post = {
-      ...randomTemplate,
-      id: `post-manual-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      likes: [],
-      likesCount: Math.floor(Math.random() * 20) + 10,
-      comments: [],
-      commentsCount: 1,
-      sharesCount: Math.floor(Math.random() * 5) + 1,
-      moderationStatus: 'normal'
-    };
-    setPosts(prev => [manualPost, ...prev]);
+    // No-op on clean platform
   };
 
   const applyUnreadLivePosts = () => {
@@ -760,9 +710,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Complete Data Wipe & Reset Engine - restores rich baseline data
+  // Complete Data Wipe & Reset Engine
   const resetAllUserData = () => {
     try {
+      localStorage.removeItem('CL_FRESH_DB_V7');
       localStorage.removeItem('CL_FRESH_DB_V6');
       localStorage.removeItem('CL_FRESH_DB_V5');
       localStorage.removeItem('CL_DYNAMIC_DB_V4');
@@ -771,24 +722,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('campus_lenz_saved');
     } catch {}
 
-    setAllUsers(INITIAL_USERS);
-    setCurrentUser(INITIAL_USERS[0]);
-    setIsAuthenticated(true);
-    setPosts(INITIAL_POSTS);
-    setReviews(INITIAL_REVIEWS);
-    setCommunities(INITIAL_COMMUNITIES);
+    setAllUsers([]);
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setPosts([]);
+    setReviews([]);
+    setCommunities([]);
     setServers(INITIAL_DISCORD_SERVERS);
-    setServerMessages(INITIAL_SERVER_MESSAGES);
-    setDirectMessages(INITIAL_DIRECT_MESSAGES);
-    setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
+    setServerMessages([]);
+    setDirectMessages([]);
+    setGrievanceReports([]);
+    setStudyRooms([]);
+    setCourseQuestions([]);
+    setMarketplaceItems([]);
+    setEmergencyBroadcast(null);
     setSavedCollegeIds([]);
     setStagedLivePosts([]);
     setIsLiveFeedActive(false);
-
-    try {
-      localStorage.setItem('campus_lenz_user', JSON.stringify(INITIAL_USERS[0]));
-      localStorage.setItem('campus_lenz_auth', 'true');
-    } catch {}
   };
 
   // Initialize a fresh test persona on demand for seamless instant role testing
@@ -881,56 +831,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // 1. Search existing user directory by username or email
-    let matched = allUsers.find(
+    // Search registered users by username or email
+    const matched = allUsers.find(
       u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
     );
 
-    // 2. If not matched by exact text, check if identifier is a demo keyword for portalRole
-    if (!matched && portalRole && (cleanId.includes(portalRole) || cleanId === 'demo' || cleanId === 'test')) {
-      matched = allUsers.find(u => u.role === portalRole);
-    }
-
-    // 3. Dynamic Local System Auto-Provisioning:
-    // If not found in database, dynamically provision and add the persona so anyone can sign in anywhere!
     if (!matched) {
-      const assignedRole: UserRole = portalRole || 'student';
-      const cleanUsername = cleanId.replace(/[^a-zA-Z0-9_.-]/g, '_').toLowerCase();
-      const displayName = identifier.includes('@')
-        ? identifier.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-        : identifier.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-      matched = {
-        id: `user-local-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        username: cleanUsername || `user_${Date.now()}`,
-        email: identifier.includes('@') ? identifier : `${cleanUsername}@campuslenz.edu`,
-        role: assignedRole,
-        fullName: displayName,
-        headline:
-          assignedRole === 'student'
-            ? 'Campus Scholar | Active Learner'
-            : assignedRole === 'alumni'
-            ? 'Alumni Industry Mentor | Tech Professional'
-            : assignedRole === 'institution'
-            ? 'Official Institutional Representative'
-            : assignedRole === 'faculty'
-            ? 'Faculty Mentor & Academic Guide'
-            : 'Campus Administrator & Moderator',
-        bio: `Member on Campus Lenz local system base.`,
-        collegeId: 'col-psg',
-        collegeName: 'PSG College of Technology',
-        department: 'Computer Science & Engineering',
-        course: assignedRole === 'student' ? 'B.Tech CSE' : undefined,
-        graduationBatch: assignedRole === 'student' ? '2026' : assignedRole === 'alumni' ? '2023' : undefined,
-        isVerified: true,
-        followersCount: 12,
-        followingCount: 15,
-        followers: ['user-junith-1', 'user-arun-2'],
-        following: ['user-karthika-3', 'user-student-demo'],
-        createdAt: new Date().toISOString()
+      return {
+        success: false,
+        redirectUrl: '/login',
+        message: `No registered account found with "${identifier}". Please click "Register" to create your account.`
       };
-
-      setAllUsers(prev => [matched!, ...prev]);
     }
 
     setCurrentUser(matched);

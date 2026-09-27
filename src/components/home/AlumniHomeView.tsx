@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/lib/AppContext';
+import { isVideoMedia } from '@/lib/mediaUtils';
 import {
   Briefcase,
   Users,
@@ -415,9 +416,15 @@ export default function AlumniHomeView() {
                 </p>
 
                 {post.imageUrl && (
-                  <div className="rounded-xl overflow-hidden border border-slate-200 max-h-60 bg-slate-50">
-                    <img src={post.imageUrl} alt="attachment" className="w-full h-full object-cover" />
-                  </div>
+                  isVideoMedia(post.imageUrl) ? (
+                    <div className="rounded-xl overflow-hidden border border-slate-200 max-h-72 bg-black">
+                      <video src={post.imageUrl} controls className="w-full h-full max-h-72 bg-black object-contain" preload="metadata" />
+                    </div>
+                  ) : (
+                    <div className="rounded-xl overflow-hidden border border-slate-200 max-h-60 bg-slate-50">
+                      <img src={post.imageUrl} alt="attachment" className="w-full h-full object-cover" />
+                    </div>
+                  )
                 )}
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">

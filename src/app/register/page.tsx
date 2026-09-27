@@ -123,7 +123,7 @@ export default function ProfessionalRegistrationPage() {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('demo1234');
+  const [password, setPassword] = useState('');
   const [headline, setHeadline] = useState('');
 
   // 1. College Cascading Selection State
@@ -207,13 +207,13 @@ export default function ProfessionalRegistrationPage() {
 
   // Additional Role-Specific State
   const [studentRollNo, setStudentRollNo] = useState('');
-  const [currentCompany, setCurrentCompany] = useState('Microsoft');
-  const [alumniJobTitle, setAlumniJobTitle] = useState('Software Development Engineer II');
-  const [aisheCode, setAisheCode] = useState('C-37013');
-  const [institutionDesignation, setInstitutionDesignation] = useState('Director of Academic Affairs & Principal');
-  const [facultyRank, setFacultyRank] = useState('Professor & Head of Department');
-  const [facultyStaffId, setFacultyStaffId] = useState('FAC-CS-104');
-  const [adminToken, setAdminToken] = useState('CAMPUSLENZ_ROOT_DEV');
+  const [currentCompany, setCurrentCompany] = useState('');
+  const [alumniJobTitle, setAlumniJobTitle] = useState('');
+  const [aisheCode, setAisheCode] = useState('');
+  const [institutionDesignation, setInstitutionDesignation] = useState('');
+  const [facultyRank, setFacultyRank] = useState('');
+  const [facultyStaffId, setFacultyStaffId] = useState('');
+  const [adminToken, setAdminToken] = useState('');
 
   // Feedback State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -232,6 +232,11 @@ export default function ProfessionalRegistrationPage() {
       return;
     }
 
+    if (!password.trim()) {
+      setErrorMessage('Please create a secure password for your account.');
+      return;
+    }
+
     if (toYear <= fromYear) {
       setErrorMessage('Graduation "To Year" must be strictly greater than "From Year".');
       return;
@@ -247,13 +252,13 @@ export default function ProfessionalRegistrationPage() {
         if (selectedRole === 'student') {
           finalHeadline = `${selectedCourse} @ ${activeCollege.shortName} | Class of ${formattedBatchRange}`;
         } else if (selectedRole === 'alumni') {
-          finalHeadline = `${alumniJobTitle} @ ${currentCompany} | ${activeCollege.shortName} Alum (Batch ${formattedBatchRange})`;
+          finalHeadline = `${alumniJobTitle || 'Alum'} @ ${currentCompany || 'Industry'} | ${activeCollege.shortName} Alum (Batch ${formattedBatchRange})`;
         } else if (selectedRole === 'institution') {
-          finalHeadline = `${institutionDesignation} • ${activeCollege.name}`;
+          finalHeadline = `${institutionDesignation || 'Campus Administration'} • ${activeCollege.name}`;
         } else if (selectedRole === 'faculty') {
-          finalHeadline = `${facultyRank} • ${selectedDepartment} @ ${activeCollege.shortName}`;
+          finalHeadline = `${facultyRank || 'Faculty Guide'} • ${selectedDepartment} @ ${activeCollege.shortName}`;
         } else {
-          finalHeadline = `Campus Lenz Super Administrator & Platform Lead`;
+          finalHeadline = `Campus Lenz Administrator`;
         }
       }
 
@@ -446,9 +451,10 @@ export default function ProfessionalRegistrationPage() {
                   </label>
                   <input
                     type="password"
+                    required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="demo1234"
+                    placeholder="Create a secure account password..."
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>

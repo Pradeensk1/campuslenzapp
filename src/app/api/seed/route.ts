@@ -237,3 +237,52 @@ export async function POST() {
     );
   }
 }
+
+export async function DELETE() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { success: false, message: 'Supabase credentials not configured in environment.' },
+      { status: 500 }
+    );
+  }
+
+  const results: Record<string, string> = {};
+
+  try {
+    // Purge mock tables while strictly preserving 'colleges'
+    const tablesToClear = [
+      'comments',
+      'posts',
+      'reviews',
+      'grievance_reports',
+      'communities',
+      'direct_messages',
+      'study_rooms',
+      'marketplace_items',
+      'audit_logs',
+      'profiles'
+    ];
+
+    for (const table of tablesToClear) {
+      const { error } = await supabase.from(table).delete().neq('id', 'keep_none_placeholder');
+      results[table] = error ? `Error: ${error.message}` : 'Cleared';
+    }
+
+    // Verify colleges still exist
+    const { count: collegesCount } = await supabase.from('colleges').select('*', { count: 'exact', head: true });
+    results['colleges_preserved'] = `Colleges count in DB: ${collegesCount ?? 'active'}`;
+
+    return NextResponse.json({
+      success: true,
+      message: 'Mock demo data purged from Supabase. Colleges preserved for user registrations.',
+      details: results,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: err.message || 'Failed to purge mock data.' },
+      { status: 500 }
+    );
+  }
+}
+

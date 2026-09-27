@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { UserRole } from '@/types';
 import {
-  Lock,
   Mail,
   KeyRound,
   Eye,
@@ -19,10 +18,7 @@ import {
   Building2,
   BookOpen,
   ShieldCheck,
-  UserPlus,
-  Terminal,
-  HelpCircle,
-  Sparkles
+  UserPlus
 } from 'lucide-react';
 
 interface RoleTab {
@@ -33,9 +29,6 @@ interface RoleTab {
   icon: any;
   targetRedirect: string;
   targetPageName: string;
-  demoUsername: string;
-  demoEmail: string;
-  demoDisplayName: string;
   tagline: string;
 }
 
@@ -48,9 +41,6 @@ const ROLE_TABS: RoleTab[] = [
     icon: GraduationCap,
     targetRedirect: '/',
     targetPageName: 'Campus Feed & Servers',
-    demoUsername: 'student_scholar',
-    demoEmail: 'student@campuslenz.edu',
-    demoDisplayName: 'Verified Campus Student (B.Tech CSE, PSG Tech)',
     tagline: 'Access campus feeds, join Discord servers & submit confidential faculty grievances'
   },
   {
@@ -61,9 +51,6 @@ const ROLE_TABS: RoleTab[] = [
     icon: Briefcase,
     targetRedirect: '/',
     targetPageName: 'Alumni Mentorship Feed',
-    demoUsername: 'alumni_mentor',
-    demoEmail: 'alumni@campuslenz.edu',
-    demoDisplayName: 'Alumni Industry Mentor (Senior SWE @ Microsoft)',
     tagline: 'Preview student achievements, provide career guidance & comment on posts'
   },
   {
@@ -74,9 +61,6 @@ const ROLE_TABS: RoleTab[] = [
     icon: Building2,
     targetRedirect: '/servers',
     targetPageName: 'Campus Server Builder',
-    demoUsername: 'institution_admin',
-    demoEmail: 'admin@psgtech.edu',
-    demoDisplayName: 'PSG Tech Administration Desk',
     tagline: 'Govern campus Discord servers, repost student achievements & report false claims'
   },
   {
@@ -87,9 +71,6 @@ const ROLE_TABS: RoleTab[] = [
     icon: BookOpen,
     targetRedirect: '/',
     targetPageName: 'Academic Mentorship Desk',
-    demoUsername: 'academic_faculty',
-    demoEmail: 'faculty@psgtech.edu',
-    demoDisplayName: 'Dr. Academic Faculty Guide (Head of CSE)',
     tagline: 'Preview student projects, provide academic guidance comments and department coordination'
   },
   {
@@ -100,16 +81,13 @@ const ROLE_TABS: RoleTab[] = [
     icon: ShieldCheck,
     targetRedirect: '/admin',
     targetPageName: 'Developer Terminal & Governance',
-    demoUsername: 'system_admin',
-    demoEmail: 'admin@campuslenz.org',
-    demoDisplayName: 'Platform Super Administrator',
     tagline: 'Global content moderation, platform diagnostics & exclusive interactive Developer Terminal'
   }
 ];
 
 export default function ProfessionalLoginPage() {
   const router = useRouter();
-  const { loginUser, allUsers, initializeTestUser } = useApp();
+  const { loginUser } = useApp();
 
   const [selectedPortal, setSelectedPortal] = useState<UserRole>('student');
   const [identifier, setIdentifier] = useState('');
@@ -119,7 +97,6 @@ export default function ProfessionalLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [showDemoDrawer, setShowDemoDrawer] = useState(true);
 
   const activeTab = ROLE_TABS.find(t => t.id === selectedPortal) || ROLE_TABS[0];
 
@@ -128,49 +105,37 @@ export default function ProfessionalLoginPage() {
     setErrorMessage(null);
   };
 
-  const handleQuickFill = (tab: RoleTab) => {
-    setSelectedPortal(tab.id);
-    setIdentifier(tab.demoUsername);
-    setPassword('demo1234');
-    setErrorMessage(null);
-  };
-
-  const handleInstantLaunch = (role: UserRole) => {
-    setIsSubmitting(true);
-    setErrorMessage(null);
-    const result = initializeTestUser(role);
-    setSuccessMessage(`${result.message} Directing to destination...`);
-    setTimeout(() => {
-      router.push(result.redirectUrl);
-    }, 500);
-  };
-
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const targetIdentifier = identifier.trim() || activeTab.demoUsername;
+    const targetIdentifier = identifier.trim();
+    if (!targetIdentifier) {
+      setErrorMessage('Please enter your username or registered email.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     setTimeout(() => {
-      const result = loginUser(targetIdentifier, password || 'demo1234', selectedPortal);
+      const result = loginUser(targetIdentifier, password, selectedPortal);
       setIsSubmitting(false);
 
       if (result.success && result.user) {
         setSuccessMessage(`${result.message} Directing to ${activeTab.targetPageName}...`);
         setTimeout(() => {
           router.push(result.redirectUrl);
-        }, 600);
+        }, 500);
       } else {
         setErrorMessage(result.message);
       }
-    }, 300);
+    }, 250);
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto w-full space-y-8">
+      <div className="max-w-xl mx-auto w-full space-y-6">
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -205,7 +170,7 @@ export default function ProfessionalLoginPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => handlePortalSwitch(tab.id)}
-                className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all ${
                   isSelected
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
@@ -218,203 +183,116 @@ export default function ProfessionalLoginPage() {
           })}
         </div>
 
-        {/* Main Login Card with Split Columns */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
-          
-          {/* Left Column: Form (7 cols on md) */}
-          <div className="md:col-span-7 p-6 sm:p-8 space-y-6">
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-900">{activeTab.badge} Sign In</h2>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${activeTab.badgeColor}`}>
-                    {activeTab.label}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">{activeTab.tagline}</p>
+        {/* Main Login Card */}
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-900">{activeTab.badge} Sign In</h2>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${activeTab.badgeColor}`}>
+                  {activeTab.label}
+                </span>
               </div>
+              <p className="text-xs text-slate-500 mt-1">{activeTab.tagline}</p>
             </div>
-
-            {/* Fresh Platform Reset Banner */}
-            {allUsers.length === 0 && (
-              <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-sky-950 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-sky-600 shrink-0" />
-                  <div>
-                    <span className="font-bold text-sky-900">Database is Fresh & Empty (0 users).</span>
-                    <p className="text-[11px] text-sky-700">Register a new profile or launch an instant test session.</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleInstantLaunch(selectedPortal)}
-                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs whitespace-nowrap transition flex items-center gap-1 shadow-xs"
-                >
-                  <span>⚡ Launch Test {activeTab.label}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Error & Success Feedback */}
-            {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Username or Institutional Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={identifier}
-                    onChange={e => setIdentifier(e.target.value)}
-                    placeholder={`e.g. ${activeTab.demoUsername} or ${activeTab.demoEmail}`}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Password / Access Code
-                  </label>
-                  <span className="text-[11px] text-slate-400">
-                    Any password works for test accounts
-                  </span>
-                </div>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Enter account password..."
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={e => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span>Keep me signed in on this browser</span>
-                </label>
-
-                <div className="text-xs text-slate-400">
-                  Target: <strong className="text-slate-700">{activeTab.targetPageName}</strong>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
-              >
-                <span>{isSubmitting ? 'Authenticating...' : `Sign In to ${activeTab.label} Portal`}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-
-            {/* Link to Registration Page */}
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Need a custom test persona?</span>
-              <Link
-                href="/register"
-                className="font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Register New Account for Testing →
-              </Link>
-            </div>
-
           </div>
 
-          {/* Right Column: Testing Credentials & Specific Role Destinations (5 cols on md) */}
-          <div className="md:col-span-5 bg-slate-50/80 border-t md:border-t-0 md:border-l border-slate-200 p-6 space-y-4">
-            
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                Quick Test Credentials
-              </h3>
-              <span className="text-[10px] text-slate-400">1-Click Auto-Fill</span>
+          {/* Error & Success Feedback */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Username or Institutional Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={identifier}
+                  onChange={e => setIdentifier(e.target.value)}
+                  placeholder="Enter your username or email..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Click any verified test persona below to automatically populate valid login details and test role-specific destination routing:
-            </p>
-
-            <div className="space-y-2">
-              {ROLE_TABS.map(tab => {
-                const Icon = tab.icon;
-                const isCurrent = selectedPortal === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleQuickFill(tab)}
-                    className={`w-full text-left p-3 rounded-2xl border transition-all ${
-                      isCurrent
-                        ? 'bg-white border-blue-500 shadow-xs ring-1 ring-blue-500/20'
-                        : 'bg-white/80 border-slate-200 hover:border-slate-300 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <Icon className="w-3.5 h-3.5 text-slate-600" />
-                        <span className="text-xs font-bold text-slate-900">{tab.label}</span>
-                      </div>
-                      <span className="text-[10px] font-mono font-semibold text-blue-600">
-                        → {tab.targetPageName}
-                      </span>
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-500">
-                      User: <strong className="text-slate-800">{tab.demoUsername}</strong>
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {tab.demoDisplayName}
-                    </div>
-                  </button>
-                );
-              })}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Password / Access Code
+                </label>
+              </div>
+              <div className="relative">
+                <KeyRound className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your account password..."
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-blue-800 space-y-1">
-              <span className="font-bold">Role-Based Routing Guarantee:</span>
-              <p className="text-blue-700 leading-tight">
-                Authenticating as <strong>Admin</strong> opens the Developer Terminal CLI, <strong>Institution</strong> opens the Campus Server Builder, and <strong>Student</strong> unlocks the confidential Grievance tunnel.
-              </p>
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Remember me</span>
+              </label>
+
+              <div className="text-xs text-slate-400">
+                Destination: <strong className="text-slate-700">{activeTab.targetPageName}</strong>
+              </div>
             </div>
 
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
+            >
+              <span>{isSubmitting ? 'Authenticating...' : `Sign In to ${activeTab.label} Portal`}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+
+          {/* Link to Registration Page */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">Don't have an account?</span>
+            <Link
+              href="/register"
+              className="font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Register New Account →
+            </Link>
           </div>
 
         </div>

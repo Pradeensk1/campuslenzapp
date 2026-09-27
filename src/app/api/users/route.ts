@@ -78,7 +78,9 @@ export async function POST(request: Request) {
       graduationBatch,
     } = body;
 
-    if (!username || !fullName) {
+    const effectiveFullName = fullName || body.name;
+
+    if (!username || !effectiveFullName) {
       return NextResponse.json({ success: false, message: 'Username and Full Name are required' }, { status: 400 });
     }
 
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
     const newProfile = {
       username: username.trim().toLowerCase(),
       email: email || null,
-      full_name: fullName.trim(),
+      full_name: effectiveFullName.trim(),
       role,
       headline: headline || `${course || role} @ ${collegeName || 'Campus'}`,
       bio: bio || '',

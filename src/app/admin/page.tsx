@@ -34,12 +34,14 @@ import {
   Eye,
   Sliders,
   Image as ImageIcon,
+  Video,
   Bot,
   Shield,
   SlidersHorizontal,
   ToggleLeft,
   ToggleRight
 } from 'lucide-react';
+import { isVideoMedia } from '@/lib/mediaUtils';
 
 interface TerminalEntry {
   type: 'input' | 'output';
@@ -1389,8 +1391,17 @@ Developer environment initialized. Type 'help' to view available system commands
 
                           {post.imageUrl && (
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-200 flex items-center gap-1">
-                              <ImageIcon className="w-3 h-3" />
-                              Image Attached
+                              {isVideoMedia(post.imageUrl) ? (
+                                <>
+                                  <Video className="w-3 h-3 text-purple-600" />
+                                  Video Attached
+                                </>
+                              ) : (
+                                <>
+                                  <ImageIcon className="w-3 h-3 text-purple-600" />
+                                  Image Attached
+                                </>
+                              )}
                             </span>
                           )}
 

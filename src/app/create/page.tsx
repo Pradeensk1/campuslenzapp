@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
-import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle } from 'lucide-react';
+import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip } from 'lucide-react';
+import { isVideoMedia, formatFileSize } from '@/lib/mediaUtils';
 
 export default function CreateContentPage() {
   const router = useRouter();
@@ -18,17 +19,26 @@ export default function CreateContentPage() {
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
   const [postImageUrl, setPostImageUrl] = useState<string>('');
-  const [imageFileName, setImageFileName] = useState<string>('');
+  const [mediaFileName, setMediaFileName] = useState<string>('');
+  const [mediaFileSize, setMediaFileSize] = useState<number>(0);
+  const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
 
-  // Handle lossless full-resolution image selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle lossless full-resolution image or video selection
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFileName(file.name);
+      if (file.size > 50 * 1024 * 1024) {
+        setPostError('Media file size must be under 50MB.');
+        return;
+      }
+      setMediaFileName(file.name);
+      setMediaFileSize(file.size);
+      const isVid = file.type.startsWith('video/');
+      setMediaFileType(isVid ? 'video' : 'image');
+
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          // Full resolution base64/data URI preservation without lossy compression
           setPostImageUrl(event.target.result as string);
         }
       };
@@ -36,9 +46,11 @@ export default function CreateContentPage() {
     }
   };
 
-  const removeImage = () => {
+  const removeMedia = () => {
     setPostImageUrl('');
-    setImageFileName('');
+    setMediaFileName('');
+    setMediaFileSize(0);
+    setMediaFileType(null);
   };
 
   // Review form state
@@ -200,30 +212,44 @@ export default function CreateContentPage() {
             />
           </div>
 
-          {/* High-Resolution Image Attachment Support */}
+          {/* High-Resolution Photo or Video Attachment Support */}
           <div>
             <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
-              Attach High-Resolution Image (Preserves 100% Quality)
+              Attach Photo or Video Media (Lossless Quality)
             </label>
             
             {postImageUrl ? (
-              <div className="relative rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2 overflow-hidden">
-                <img
-                  src={postImageUrl}
-                  alt="High quality post attachment"
-                  className="w-full max-h-64 object-cover rounded-lg"
-                />
+              <div className="relative rounded-xl border border-[#E2E8F0] bg-slate-950 p-2 overflow-hidden">
+                {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? (
+                  <video
+                    src={postImageUrl}
+                    controls
+                    className="w-full max-h-72 object-contain rounded-lg bg-black"
+                  />
+                ) : (
+                  <img
+                    src={postImageUrl}
+                    alt="Post media attachment"
+                    className="w-full max-h-72 object-cover rounded-lg"
+                  />
+                )}
                 <button
                   type="button"
-                  onClick={removeImage}
-                  className="absolute top-4 right-4 bg-[#0F172A]/80 text-white rounded-full p-1.5 hover:bg-[#0F172A] transition"
-                  title="Remove image"
+                  onClick={removeMedia}
+                  className="absolute top-4 right-4 bg-[#0F172A]/90 hover:bg-black text-white rounded-full p-1.5 transition shadow-md"
+                  title="Remove media"
                 >
                   <X className="h-4 w-4" />
                 </button>
-                <p className="mt-1 text-[11px] text-[#64748B] px-1 truncate">
-                  Attached: <strong>{imageFileName}</strong> (Lossless original quality)
-                </p>
+                <div className="mt-2 text-[11px] text-slate-300 px-1 flex items-center justify-between">
+                  <span className="truncate max-w-[320px]">
+                    Attached: <strong>{mediaFileName || 'Media Upload'}</strong>
+                  </span>
+                  <span>
+                    {mediaFileSize ? formatFileSize(mediaFileSize) + ' • ' : ''}
+                    {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? 'Video' : 'Photo'}
+                  </span>
+                </div>
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 cursor-pointer hover:border-[#2563EB] hover:bg-[#EFF6FF]/40 transition">
@@ -232,16 +258,16 @@ export default function CreateContentPage() {
                     <ImageIcon className="h-5 w-5" />
                   </div>
                   <p className="text-xs font-bold text-[#0F172A]">
-                    Click to upload or drag & drop high-res image
+                    Click to upload or drag & drop photo or video
                   </p>
                   <p className="text-[10px] text-[#64748B]">
-                    PNG, JPG, WebP, GIF supported • No blurry compression or downscaling
+                    Images (PNG, JPG, WebP, GIF) & Videos (MP4, WebM, MOV) up to 50MB
                   </p>
                 </div>
                 <input
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
+                  accept="image/*,video/*"
+                  onChange={handleMediaChange}
                   className="hidden"
                 />
               </label>
