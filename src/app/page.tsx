@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Trash2,
   Shield,
+  ShieldCheck,
   CheckCircle2,
   Lock,
   BookOpen,
@@ -45,6 +46,10 @@ import {
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
 import PinterestImageModal from '@/components/PinterestImageModal';
+import AlumniHomeView from '@/components/home/AlumniHomeView';
+import FacultyHomeView from '@/components/home/FacultyHomeView';
+import InstitutionHomeView from '@/components/home/InstitutionHomeView';
+import StudentFeaturesHub from '@/components/student/StudentFeaturesHub';
 
 export default function HomePage() {
   const {
@@ -57,12 +62,19 @@ export default function HomePage() {
     toggleFollowUser,
     allUsers,
     repostToInstitution,
+    repostPost,
     reportFalseInfoPost,
+    reportPost,
     deletePost,
+    deleteComment,
+    checkAlumniPostEligibility,
     isLiveFeedActive,
     setIsLiveFeedActive,
     triggerLiveActivity,
-    resetAllUserData
+    resetAllUserData,
+    sensitiveContentShieldActive,
+    toggleSensitiveContentShield,
+    runOpenSourceAIModeration
   } = useApp();
   
   // Track open comment trays per post
@@ -72,13 +84,25 @@ export default function HomePage() {
   // Track Pinterest-style zoomed post
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
 
-  // Institution Reporting State
+  // Reporting State (Faculty / Institution / Admin)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState<string>('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   // Feed Filter Tabs: 'all' | 'students' | 'alumni' | 'institution'
   const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution'>('all');
+
+  // AI Sentiment & Safety Feed Filter: 'all' | 'positive' | 'academic' | 'sensitive'
+  const [feedSentimentFilter, setFeedSentimentFilter] = useState<'all' | 'positive' | 'academic' | 'sensitive'>('all');
+  const [unhiddenSensitivePostIds, setUnhiddenSensitivePostIds] = useState<string[]>([]);
+
+  const handleRevealSensitivePost = (postId: string) => {
+    setUnhiddenSensitivePostIds(prev => [...prev, postId]);
+  };
+
+  // Role-Specific Workspace vs Global Stream View
+  const [roleWorkspaceMode, setRoleWorkspaceMode] = useState<boolean>(true);
+  const [studentViewMode, setStudentViewMode] = useState<'feed' | 'hub'>('feed');
 
   // Bookmarks
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -95,6 +119,7 @@ export default function HomePage() {
   const [postContent, setPostContent] = useState('');
   const [postTopic, setPostTopic] = useState('Campus Update');
   const [postImageUrl, setPostImageUrl] = useState('');
+  const [isAnonymousPost, setIsAnonymousPost] = useState(false);
 
   const formatTimeAgo = (dateStr: string) => {
     try {
@@ -129,14 +154,18 @@ export default function HomePage() {
     }
     if (!postContent.trim()) return;
 
+    const isAnonymous = currentUser.role === 'student' ? isAnonymousPost : false;
+    const isKnowledgeBased = currentUser.role === 'faculty';
+
     const res = addPost({
       authorId: currentUser.id,
-      authorUsername: currentUser.username,
-      authorName: currentUser.fullName,
+      authorUsername: isAnonymous ? 'anonymous_student' : currentUser.username,
+      authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
       authorRole: currentUser.role,
-      authorHeadline: currentUser.headline,
-      isVerifiedAuthor: currentUser.isVerified,
-      isAnonymous: false,
+      authorHeadline: isAnonymous ? 'Verified Student (Anonymous Post)' : currentUser.headline,
+      isVerifiedAuthor: isAnonymous ? false : currentUser.isVerified,
+      isAnonymous,
+      isKnowledgeBased,
       collegeId: currentUser.collegeId,
       collegeName: currentUser.collegeName,
       content: postContent.trim(),
@@ -147,6 +176,7 @@ export default function HomePage() {
     if (res.success) {
       setPostContent('');
       setPostImageUrl('');
+      setIsAnonymousPost(false);
       setIsComposing(false);
       setActionFeedback('🎉 Post published to live campus stream!');
       setTimeout(() => setActionFeedback(null), 4000);
@@ -165,9 +195,19 @@ export default function HomePage() {
   };
 
   const filteredPosts = posts.filter((p) => {
-    if (feedFilter === 'students') return p.authorRole === 'student';
-    if (feedFilter === 'alumni') return p.authorRole === 'alumni';
-    if (feedFilter === 'institution') return p.authorRole === 'institution';
+    // Hide quarantined posts from non-admin users
+    if (p.isQuarantined && currentUser?.role !== 'admin') return false;
+
+    // Role filter
+    if (feedFilter === 'students' && p.authorRole !== 'student') return false;
+    if (feedFilter === 'alumni' && p.authorRole !== 'alumni') return false;
+    if (feedFilter === 'institution' && p.authorRole !== 'institution') return false;
+
+    // AI Sentiment & Safety filter
+    if (feedSentimentFilter === 'positive' && p.sentiment !== 'positive') return false;
+    if (feedSentimentFilter === 'academic' && !p.isKnowledgeBased && !p.topic?.includes('Academic') && !p.topic?.includes('Research') && !p.topic?.includes('Placement') && !p.topic?.includes('Notes')) return false;
+    if (feedSentimentFilter === 'sensitive' && !p.isSensitive) return false;
+
     return true;
   });
 
@@ -189,23 +229,172 @@ export default function HomePage() {
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
   };
 
-  const handleInstitutionRepost = (postId: string) => {
-    const res = repostToInstitution(postId);
+  const handleRepost = (postId: string) => {
+    const res = repostPost(postId);
     setActionFeedback(res.message);
     setTimeout(() => setActionFeedback(null), 4000);
   };
 
-  const handleReportFalseInfo = (postId: string) => {
+  const handleReportPostSubmit = (postId: string) => {
     if (!reportReason.trim()) return;
-    const res = reportFalseInfoPost(postId, reportReason.trim());
+    const res = reportPost(postId, reportReason.trim());
     setActionFeedback(res.message);
     setReportingPostId(null);
     setReportReason('');
     setTimeout(() => setActionFeedback(null), 4000);
   };
 
+  // If user is Alumni and wants their dedicated Mentorship HQ workspace
+  if (currentUser?.role === 'alumni' && roleWorkspaceMode) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-xl bg-emerald-50 text-emerald-600">
+              <Briefcase className="w-4 h-4" />
+            </span>
+            <div>
+              <span className="text-xs font-bold text-slate-900">Alumni Mentorship HQ</span>
+              <span className="text-[10px] text-slate-400 ml-2">Dedicated Alumni View</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(true)}
+              className="px-3 py-1 rounded-lg bg-white text-emerald-700 shadow-2xs font-bold"
+            >
+              Mentorship HQ
+            </button>
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(false)}
+              className="px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900"
+            >
+              Browse Campus Feed
+            </button>
+          </div>
+        </div>
+        <AlumniHomeView />
+      </div>
+    );
+  }
+
+  // If user is Faculty and wants their dedicated Academic Knowledge Exchange workspace
+  if (currentUser?.role === 'faculty' && roleWorkspaceMode) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-xl bg-amber-50 text-amber-700">
+              <BookOpen className="w-4 h-4" />
+            </span>
+            <div>
+              <span className="text-xs font-bold text-slate-900">Faculty Academic Knowledge Portal</span>
+              <span className="text-[10px] text-slate-400 ml-2">Peer-Reviewed Publishing & Circulars</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(true)}
+              className="px-3 py-1 rounded-lg bg-white text-amber-700 shadow-2xs font-bold"
+            >
+              Academic Portal
+            </button>
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(false)}
+              className="px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900"
+            >
+              Browse Campus Feed
+            </button>
+          </div>
+        </div>
+        <FacultyHomeView />
+      </div>
+    );
+  }
+
+  // If user is Institution and wants their dedicated Governance & Broadcast workspace
+  if (currentUser?.role === 'institution' && roleWorkspaceMode) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-xl bg-purple-50 text-purple-700">
+              <Building2 className="w-4 h-4" />
+            </span>
+            <div>
+              <span className="text-xs font-bold text-slate-900">University Executive Governance Console</span>
+              <span className="text-[10px] text-slate-400 ml-2">Official Broadcasts & Community Controller</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(true)}
+              className="px-3 py-1 rounded-lg bg-white text-purple-700 shadow-2xs font-bold"
+            >
+              Governance Console
+            </button>
+            <button
+              type="button"
+              onClick={() => setRoleWorkspaceMode(false)}
+              className="px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900"
+            >
+              Browse Campus Feed
+            </button>
+          </div>
+        </div>
+        <InstitutionHomeView />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Role Workspace Return Banner if browsing feed */}
+      {currentUser && (currentUser.role === 'alumni' || currentUser.role === 'faculty' || currentUser.role === 'institution') && (
+        <div className="mb-6 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+            <span className="text-xs font-bold text-slate-900">
+              Browsing Campus Feed as {currentUser.role.toUpperCase()}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              (Role permissions and restrictions apply)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRoleWorkspaceMode(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-xs"
+          >
+            Return to {currentUser.role === 'alumni' ? 'Mentorship HQ' : currentUser.role === 'faculty' ? 'Academic Portal' : 'Governance Console'} →
+          </button>
+        </div>
+      )}
+
+      {/* Admin Quick Governance Alert Banner */}
+      {currentUser?.role === 'admin' && (
+        <div className="mb-6 p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="text-xs font-bold">
+              Root Administrator Active: Full user account purge, post moderation & terminal privileges enabled
+            </span>
+          </div>
+          <Link
+            href="/admin"
+            className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 shrink-0"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Open Admin Platform Console →</span>
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         
         {/* ========================================================= */}
@@ -356,8 +545,41 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 1. Real-Time Live Feed Network Bar (LinkedIn & Instagram Style) */}
-          <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-3.5 rounded-2xl shadow-sm space-y-2.5">
+          {/* Student Mode Switcher: Social Stream vs Student Hub & Utilities */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl text-xs font-semibold w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setStudentViewMode('feed')}
+                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition ${
+                  studentViewMode === 'feed'
+                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Campus Social Stream
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentViewMode('hub')}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg transition ${
+                  studentViewMode === 'hub'
+                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#0071e3]" />
+                <span>Student Hub & Utilities</span>
+              </button>
+            </div>
+          </div>
+
+          {studentViewMode === 'hub' ? (
+            <StudentFeaturesHub />
+          ) : (
+            <>
+              {/* 1. Real-Time Live Feed Network Bar (LinkedIn & Instagram Style) */}
+              <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-3.5 rounded-2xl shadow-sm space-y-2.5">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2.5 w-2.5">
@@ -410,9 +632,72 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 2. Interactive Dynamic Post Composer */}
-          {currentUser && (currentUser.role === 'student' || currentUser.role === 'alumni' || currentUser.role === 'admin') && (
+          {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
+          {currentUser && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+              {/* Role Context & Quota Banners */}
+              {currentUser.role === 'alumni' && (() => {
+                const elig = checkAlumniPostEligibility(currentUser);
+                if (!elig.eligible) {
+                  return (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-bold">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Alumni Public Posting Restriction</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-amber-800">
+                        {elig.message}
+                      </p>
+                      {elig.followerCount < elig.requiredFollowers && (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span>Follower Eligibility Progress</span>
+                            <span>{elig.followerCount} / {elig.requiredFollowers} Followers</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-amber-200 overflow-hidden">
+                            <div
+                              className="h-full bg-amber-600 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(100, (elig.followerCount / elig.requiredFollowers) * 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-[10px] text-amber-700 italic">
+                            💡 Tip: Mentor students via Direct Messages in Connect Hub to gain followers!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center justify-between flex-wrap gap-1">
+                    <span className="font-semibold">
+                      🎓 Alumni Quota: <strong>{elig.weeklyCount} / {elig.maxWeekly} posts</strong> used this week
+                    </span>
+                    <span className="text-[10px] text-emerald-700 bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                      Anti-Ragebait Shield Active
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {currentUser.role === 'faculty' && (
+                <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>
+                    <strong>Academic Faculty Stream:</strong> Posts are tagged as academic curriculum, research publications, or laboratory resources.
+                  </span>
+                </div>
+              )}
+
+              {currentUser.role === 'institution' && (
+                <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-[11px] flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>
+                    <strong>Official Institutional Channel:</strong> Broadcast verified circulars, recruitment drives, and collegiate milestones.
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-start gap-3">
                 <Link href={`/user/${currentUser.username}`}>
                   <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0">
@@ -426,7 +711,13 @@ export default function HomePage() {
                       onClick={() => setIsComposing(true)}
                       className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition"
                     >
-                      Share campus thoughts, job offers, or project releases...
+                      {currentUser.role === 'faculty'
+                        ? 'Publish academic research, curriculum notes, or lecture slides...'
+                        : currentUser.role === 'institution'
+                        ? 'Publish official campus circular or recruitment announcement...'
+                        : currentUser.role === 'alumni'
+                        ? 'Share career guidance, interview insights, or hiring openings...'
+                        : 'Share campus thoughts, job offers, or project releases...'}
                     </button>
                   ) : (
                     <form onSubmit={handleQuickPostSubmit} className="space-y-3">
@@ -434,15 +725,76 @@ export default function HomePage() {
                         rows={3}
                         value={postContent}
                         onChange={e => setPostContent(e.target.value)}
-                        placeholder="What's happening on campus? Share interview tips, symposium invites, or project milestones..."
+                        placeholder={
+                          currentUser.role === 'faculty'
+                            ? 'Share syllabus guidance, research publications, or seminar alerts...'
+                            : currentUser.role === 'institution'
+                            ? 'Official notification content (Admissions, Examinations, Accreditation)...'
+                            : currentUser.role === 'alumni'
+                            ? 'Share mentorship advice, career insights, or industry interview tips...'
+                            : "What's happening on campus? Share interview tips, symposium invites, or milestones..."
+                        }
                         className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden resize-none"
                         autoFocus
                       />
 
+                      {/* Live Open-Source AI Telemetry Pill */}
+                      {postContent.trim().length > 3 && (() => {
+                        const ai = runOpenSourceAIModeration(postContent, postImageUrl);
+                        const isSevere = ai.toxicity.score >= 80;
+                        const isSens = ai.isSensitive;
+                        return (
+                          <div className={`p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between transition-all ${
+                            isSevere
+                              ? 'bg-rose-50 border border-rose-200 text-rose-800'
+                              : isSens
+                              ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                          }`}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">
+                                {isSevere ? (
+                                  <>🚨 <strong>Critical Toxicity ({ai.toxicity.score}%):</strong> Submission will be rejected & user auto-banned!</>
+                                ) : isSens ? (
+                                  <>⚠️ <strong>Sensitive ({ai.toxicity.score}% tox):</strong> Post will be masked behind AI feed blur shield.</>
+                                ) : (
+                                  <>✨ <strong>Clean ({ai.sentiment.label}):</strong> Toxicity {ai.toxicity.score}% • Sentiment +{ai.sentiment.polarity}</>
+                                )}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline shrink-0 ml-2">
+                              unitary/toxic-bert + distilbert-sst2
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Student Anonymous Toggle */}
+                      {currentUser.role === 'student' && (
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                          <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={isAnonymousPost}
+                              onChange={e => setIsAnonymousPost(e.target.checked)}
+                              className="h-3.5 w-3.5 rounded text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Post Anonymously (Hide Name & Profile)</span>
+                          </label>
+                          <span className="text-[10px] text-slate-400">Protects student privacy</span>
+                        </div>
+                      )}
+
                       {/* Hashtag suggestions */}
                       <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
                         <span className="text-slate-400 font-semibold">Suggested:</span>
-                        {['#Placements2026', '#Hackathon', '#AlumniMentorship', '#Projects', '#CampusLife'].map(tag => (
+                        {(currentUser.role === 'faculty'
+                          ? ['#Research', '#AcademicSyllabus', '#LabProjects', '#GuestLecture', '#ExamGuide']
+                          : currentUser.role === 'institution'
+                          ? ['#CampusCircular', '#Placements2026', '#Accreditation', '#NIRFRanking']
+                          : ['#Placements2026', '#Hackathon', '#AlumniMentorship', '#Projects', '#CampusLife']
+                        ).map(tag => (
                           <button
                             key={tag}
                             type="button"
@@ -473,11 +825,30 @@ export default function HomePage() {
                           onChange={e => setPostTopic(e.target.value)}
                           className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5"
                         >
-                          <option value="Campus Update">Campus Update</option>
-                          <option value="Campus Placements">Campus Placements</option>
-                          <option value="Hackathons & Projects">Hackathons & Projects</option>
-                          <option value="Alumni Mentorship">Alumni Mentorship</option>
-                          <option value="Research & Achievements">Research & Achievements</option>
+                          {currentUser.role === 'faculty' ? (
+                            <>
+                              <option value="Research & Publications">Academic: Research & Publications</option>
+                              <option value="Curriculum & Syllabus">Academic: Curriculum & Syllabus</option>
+                              <option value="Lab & Project Guidance">Academic: Lab & Project Guidance</option>
+                              <option value="Industry Guest Lecture">Academic: Industry Guest Lecture</option>
+                              <option value="Examination Guidelines">Academic: Examination Guidelines</option>
+                            </>
+                          ) : currentUser.role === 'institution' ? (
+                            <>
+                              <option value="Official Circular">Official Campus Circular</option>
+                              <option value="Placement Drives">Placement Drives & Milestone</option>
+                              <option value="Academic Calendar">Academic Calendar Update</option>
+                              <option value="Accreditation & Awards">Accreditation & NAAC Milestone</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Campus Update">Campus Update</option>
+                              <option value="Campus Placements">Campus Placements</option>
+                              <option value="Hackathons & Projects">Hackathons & Projects</option>
+                              <option value="Alumni Mentorship">Alumni Mentorship</option>
+                              <option value="Research & Achievements">Research & Achievements</option>
+                            </>
+                          )}
                         </select>
 
                         <div className="flex items-center gap-2">
@@ -487,6 +858,7 @@ export default function HomePage() {
                               setIsComposing(false);
                               setPostContent('');
                               setPostImageUrl('');
+                              setIsAnonymousPost(false);
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
                           >
@@ -494,7 +866,7 @@ export default function HomePage() {
                           </button>
                           <button
                             type="submit"
-                            disabled={!postContent.trim()}
+                            disabled={!postContent.trim() || (currentUser.role === 'alumni' && !checkAlumniPostEligibility(currentUser).eligible)}
                             className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition"
                           >
                             Publish Post
@@ -562,54 +934,127 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 3. Feed Filter Tabs (Like LinkedIn & Instagram) */}
-          <div className="flex items-center justify-between px-1 flex-wrap gap-2">
-            <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
+          {/* 3. Feed Filter & AI Safety Controls Bar */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-2.5">
+            {/* Row 1: Role tabs + AI Content Shield Switch */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl text-xs font-semibold">
+                <button
+                  onClick={() => setFeedFilter('all')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    feedFilter === 'all'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Posts ({posts.length})
+                </button>
+                <button
+                  onClick={() => setFeedFilter('students')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    feedFilter === 'students'
+                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Students ({posts.filter(p => p.authorRole === 'student').length})
+                </button>
+                <button
+                  onClick={() => setFeedFilter('alumni')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    feedFilter === 'alumni'
+                      ? 'bg-white text-emerald-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Alumni ({posts.filter(p => p.authorRole === 'alumni').length})
+                </button>
+                <button
+                  onClick={() => setFeedFilter('institution')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    feedFilter === 'institution'
+                      ? 'bg-white text-purple-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Circulars
+                </button>
+              </div>
+
+              {/* AI Content Shield Toggle Button */}
               <button
-                onClick={() => setFeedFilter('all')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  feedFilter === 'all'
-                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                type="button"
+                onClick={toggleSensitiveContentShield}
+                title={sensitiveContentShieldActive ? 'AI Sensitive Content Shield is Active' : 'AI Shield is Paused'}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                  sensitiveContentShieldActive
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                All Posts ({posts.length})
-              </button>
-              <button
-                onClick={() => setFeedFilter('students')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  feedFilter === 'students'
-                    ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Students ({posts.filter(p => p.authorRole === 'student').length})
-              </button>
-              <button
-                onClick={() => setFeedFilter('alumni')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  feedFilter === 'alumni'
-                    ? 'bg-white text-emerald-600 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Alumni ({posts.filter(p => p.authorRole === 'alumni').length})
-              </button>
-              <button
-                onClick={() => setFeedFilter('institution')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  feedFilter === 'institution'
-                    ? 'bg-white text-purple-600 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Circulars
+                <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <span>AI Shield: {sensitiveContentShieldActive ? 'Active' : 'Off'}</span>
               </button>
             </div>
 
-            <span className="text-[11px] text-slate-400">
-              Showing {filteredPosts.length} dynamic posts
-            </span>
+            {/* Row 2: Sentiment & AI Classification Filter Pills */}
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2 flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" /> AI Filter:
+                </span>
+                <button
+                  onClick={() => setFeedSentimentFilter('all')}
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition ${
+                    feedSentimentFilter === 'all'
+                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  All Sentiments
+                </button>
+                <button
+                  onClick={() => setFeedSentimentFilter('positive')}
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+                    feedSentimentFilter === 'positive'
+                      ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>🌟 Positive & Inspiring</span>
+                  <span className="text-[10px] opacity-75">
+                    ({posts.filter(p => p.sentiment === 'positive').length})
+                  </span>
+                </button>
+                <button
+                  onClick={() => setFeedSentimentFilter('academic')}
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+                    feedSentimentFilter === 'academic'
+                      ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>📘 Academic Guidance</span>
+                </button>
+                <button
+                  onClick={() => setFeedSentimentFilter('sensitive')}
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
+                    feedSentimentFilter === 'sensitive'
+                      ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>⚠️ Sensitive / Flagged</span>
+                  <span className="text-[10px] px-1 rounded-full bg-amber-100 text-amber-800 font-bold">
+                    {posts.filter(p => p.isSensitive).length}
+                  </span>
+                </button>
+              </div>
+
+              <span className="text-[11px] text-slate-400 font-medium">
+                {filteredPosts.length} posts matching AI filters
+              </span>
+            </div>
           </div>
 
           {/* 4. Stream of Dynamic Post Cards */}
@@ -621,6 +1066,8 @@ export default function HomePage() {
                 const isAuthorSelf = currentUser ? post.authorId === currentUser.id : false;
                 const isFollowingAuthor = currentUser ? currentUser.following.includes(post.authorId) : false;
                 const isSaved = savedPosts.includes(post.id);
+                const isSensitive = Boolean(post.isSensitive);
+                const isShielded = isSensitive && sensitiveContentShieldActive && !unhiddenSensitivePostIds.includes(post.id);
 
                 return (
                   <motion.article
@@ -634,6 +1081,22 @@ export default function HomePage() {
                       <div className="bg-purple-50/60 border-b border-purple-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-purple-900">
                         <Repeat className="w-3.5 h-3.5 text-purple-600" />
                         <span>Reposted by {post.repostedByInstitution.institutionName}</span>
+                      </div>
+                    )}
+
+                    {/* Top Micro-Banner for Faculty Repost */}
+                    {post.repostedByFaculty && (
+                      <div className="bg-indigo-50/60 border-b border-indigo-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-900">
+                        <Repeat className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Recommended by Faculty ({post.repostedByFaculty.facultyName})</span>
+                      </div>
+                    )}
+
+                    {/* Top Micro-Banner for Knowledge-Based Post */}
+                    {post.isKnowledgeBased && (
+                      <div className="bg-blue-50/50 border-b border-blue-100/60 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-900">
+                        <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Academic & Peer-Reviewed Resource</span>
                       </div>
                     )}
 
@@ -681,7 +1144,7 @@ export default function HomePage() {
                             </p>
 
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                              <span>{formatTimeAgo(post.createdAt)}</span>
+                              <span suppressHydrationWarning>{formatTimeAgo(post.createdAt)}</span>
                               <span>•</span>
                               <span className="text-blue-600 font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
                             </div>
@@ -703,6 +1166,24 @@ export default function HomePage() {
                             </button>
                           )}
 
+                          {/* Report Post Trigger (Faculty, Institution, Admin, Students) */}
+                          {!isAuthorSelf && currentUser && (
+                            <button
+                              onClick={() => {
+                                setReportingPostId(reportingPostId === post.id ? null : post.id);
+                                setReportReason('');
+                              }}
+                              title="Report Content"
+                              className={`p-1.5 rounded-lg transition ${
+                                reportingPostId === post.id
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                              }`}
+                            >
+                              <AlertTriangle className="w-4 h-4" />
+                            </button>
+                          )}
+
                           {/* Delete Post (Available to Author or Admin) */}
                           {(currentUser?.role === 'admin' || isAuthorSelf) && (
                             <button
@@ -716,38 +1197,102 @@ export default function HomePage() {
                         </div>
                       </div>
 
-                      {/* Post Body Content */}
-                      <p className="mt-3 text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
-                        {post.content}
-                      </p>
+                      {/* Post Content (Protected by Apple-style Frosted Sensitive Blur Shield if flagged) */}
+                      {isShielded ? (
+                        <div className="relative mt-3 rounded-2xl border border-amber-200 bg-amber-50/20 overflow-hidden">
+                          {/* Frosted/Blurred Background Preview */}
+                          <div className="filter blur-md select-none pointer-events-none opacity-40 p-4">
+                            <p className="text-[13.5px] leading-relaxed text-slate-800 line-clamp-3">
+                              {post.content}
+                            </p>
+                            {post.imageUrl && (
+                              <div className="mt-2 h-28 bg-slate-200 rounded-xl" />
+                            )}
+                          </div>
 
-                      {/* Image Attachment with Pinterest Zoom Click */}
-                      {post.imageUrl && (
-                        <div
-                          onClick={() => setZoomedPost(post)}
-                          className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
-                        >
-                          <img
-                            src={post.imageUrl}
-                            alt="Post visual attachment"
-                            loading="lazy"
-                            className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
-                          />
-                          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
-                            <ZoomIn className="w-3.5 h-3.5" />
-                            <span>Zoom Full</span>
+                          {/* Centered Sensitive Content Warning Shield */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center bg-white/75 backdrop-blur-xs space-y-2">
+                            <div className="p-2 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 shadow-xs">
+                              <AlertTriangle className="w-5 h-5" />
+                            </div>
+                            <div className="space-y-0.5 max-w-sm">
+                              <h4 className="text-xs font-bold text-slate-900 tracking-tight">
+                                Sensitive Content Shield Activated
+                              </h4>
+                              <p className="text-[11px] text-slate-600 leading-snug">
+                                Flagged by open-source AI ({post.aiModelMetadata || 'unitary/toxic-bert'}):{' '}
+                                <span className="font-semibold text-amber-900">
+                                  {post.sensitiveReason || 'Hostile or controversial discourse'}
+                                </span>{' '}
+                                (Toxicity: {post.toxicityScore ?? 54}%)
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRevealSensitivePost(post.id)}
+                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Show Content Anyway</span>
+                            </button>
                           </div>
                         </div>
+                      ) : (
+                        <>
+                          {/* Post Body Content */}
+                          <p className="mt-3 text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
+                            {post.content}
+                          </p>
+
+                          {/* Image Attachment with Pinterest Zoom Click */}
+                          {post.imageUrl && (
+                            <div
+                              onClick={() => setZoomedPost(post)}
+                              className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
+                            >
+                              <img
+                                src={post.imageUrl}
+                                alt="Post visual attachment"
+                                loading="lazy"
+                                className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                              />
+                              <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                                <ZoomIn className="w-3.5 h-3.5" />
+                                <span>Zoom Full</span>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
 
-                      {/* Topic Tag */}
-                      {post.topic && (
-                        <div className="mt-2.5">
+                      {/* Topic Tag & AI Provenance Badge */}
+                      <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
+                        {post.topic && (
                           <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
                             #{post.topic.replace(/\s+/g, '')}
                           </span>
+                        )}
+
+                        {/* Open-Source AI Telemetry Badge */}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${
+                            post.sentiment === 'positive'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : post.isSensitive || post.sentiment === 'ragebait'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : post.sentiment === 'toxic'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}
+                          title={`AI Model: ${post.aiModelMetadata || 'toxic-bert + distilbert'} | Toxicity: ${post.toxicityScore ?? 4}%`}
+                          >
+                            <Sparkles className="w-2.5 h-2.5" />
+                            <span>{post.sentiment || 'clean'}</span>
+                            <span>•</span>
+                            <span>{post.toxicityScore ?? 4}% tox</span>
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Reactions & Engagement Summary Bar */}
@@ -775,79 +1320,97 @@ export default function HomePage() {
                     </div>
 
                     {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
-                    {currentUser?.role === 'institution' ? (
-                      <div className="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 text-xs font-semibold">
-                        <button
-                          onClick={() => handleInstitutionRepost(post.id)}
-                          className="flex items-center justify-center gap-1.5 py-2.5 text-purple-700 hover:bg-purple-50 transition-colors"
-                        >
-                          <Repeat className="w-4 h-4" />
-                          <span>Repost to Institution</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setReportingPostId(post.id);
-                            setReportReason('');
-                          }}
-                          className="flex items-center justify-center gap-1.5 py-2.5 text-rose-700 hover:bg-rose-50 transition-colors border-l border-slate-100"
-                        >
-                          <AlertTriangle className="w-4 h-4" />
-                          <span>Report False Info</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 border-t border-slate-100 text-xs font-semibold text-slate-600">
-                        <button
-                          onClick={() => toggleLikePost(post.id)}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                            isLiked ? 'text-blue-600 font-bold' : ''
-                          }`}
-                        >
-                          <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                          <span>{isLiked ? 'Liked' : 'Like'}</span>
-                        </button>
+                    <div className="grid grid-cols-5 border-t border-slate-100 text-xs font-semibold text-slate-600">
+                      <button
+                        onClick={() => toggleLikePost(post.id)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isLiked ? 'text-blue-600 font-bold' : ''
+                        }`}
+                      >
+                        <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span className="hidden sm:inline">{isLiked ? 'Liked' : 'Like'}</span>
+                      </button>
 
-                        <button
-                          onClick={() => handleToggleComments(post.id)}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                            isCommentsOpen ? 'text-blue-600 font-bold' : ''
-                          }`}
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          <span>Comment</span>
-                        </button>
+                      <button
+                        onClick={() => handleToggleComments(post.id)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isCommentsOpen ? 'text-blue-600 font-bold' : ''
+                        }`}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Comment</span>
+                      </button>
 
-                        <button
-                          onClick={() => toggleSavePost(post.id)}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                            isSaved ? 'text-amber-600 font-bold' : ''
-                          }`}
-                        >
-                          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                          <span>{isSaved ? 'Saved' : 'Save'}</span>
-                        </button>
+                      <button
+                        onClick={() => handleRepost(post.id)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
+                          post.repostedByInstitution || post.repostedByFaculty || post.repostedByStudent
+                            ? 'text-purple-600 font-bold'
+                            : ''
+                        }`}
+                        title={
+                          currentUser?.role === 'faculty'
+                            ? 'Repost official institution circular'
+                            : currentUser?.role === 'institution'
+                            ? 'Showcase student achievement'
+                            : currentUser?.role === 'alumni'
+                            ? 'Alumni restricted from reposting'
+                            : 'Repost to campus network'
+                        }
+                      >
+                        <Repeat className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">
+                          {currentUser?.role === 'institution'
+                            ? 'Showcase'
+                            : currentUser?.role === 'faculty'
+                            ? 'Circular'
+                            : 'Repost'}
+                        </span>
+                      </button>
 
-                        <button
-                          onClick={() => handleSharePost(post.id)}
-                          className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                        >
-                          <Share2 className="w-4 h-4" />
-                          <span>Share</span>
-                        </button>
-                      </div>
-                    )}
+                      <button
+                        onClick={() => toggleSavePost(post.id)}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isSaved ? 'text-amber-600 font-bold' : ''
+                        }`}
+                      >
+                        <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                        <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+                      </button>
 
-                    {/* Institution Reporting Drawer if active */}
+                      <button
+                        onClick={() => handleSharePost(post.id)}
+                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Share</span>
+                      </button>
+                    </div>
+
+                    {/* Reporting Drawer if active */}
                     {reportingPostId === post.id && (
                       <div className="p-4 border-t border-rose-100 bg-rose-50/50 space-y-2">
-                        <label className="block text-xs font-bold text-rose-900">
-                          State specific false information or unverified claim:
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-rose-900">
+                            {currentUser?.role === 'institution'
+                              ? 'Issue Official Disputed Claim Notice:'
+                              : currentUser?.role === 'faculty'
+                              ? 'Report Academic or Conduct Policy Violation:'
+                              : 'Report Inappropriate or Misleading Content:'}
+                          </label>
+                          <span className="text-[10px] text-rose-600 font-medium">Confidential Review</span>
+                        </div>
                         <input
                           type="text"
                           value={reportReason}
                           onChange={e => setReportReason(e.target.value)}
-                          placeholder="e.g. Inaccurate lab infrastructure or unverified placement statistics..."
+                          placeholder={
+                            currentUser?.role === 'institution'
+                              ? 'e.g. Inaccurate lab infrastructure or unverified placement statistics...'
+                              : currentUser?.role === 'faculty'
+                              ? 'e.g. Academic misconduct, non-educational content, or student guideline breach...'
+                              : 'e.g. Harassment, spam, or misleading claims...'
+                          }
                           className="w-full px-3 py-2 text-xs rounded-xl border border-rose-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                         />
                         <div className="flex justify-end gap-2 pt-1">
@@ -860,10 +1423,10 @@ export default function HomePage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleReportFalseInfo(post.id)}
-                            className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700"
+                            onClick={() => handleReportPostSubmit(post.id)}
+                            className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-xs"
                           >
-                            Submit Flag
+                            Submit Report
                           </button>
                         </div>
                       </div>
@@ -937,9 +1500,20 @@ export default function HomePage() {
                                         {cmt.authorRole}
                                       </span>
                                     </div>
-                                    <span className="text-[10px] text-slate-400">
-                                      {new Date(cmt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span suppressHydrationWarning className="text-[10px] text-slate-400">
+                                        {new Date(cmt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                      {currentUser?.role === 'admin' && (
+                                        <button
+                                          onClick={() => deleteComment(post.id, cmt.id)}
+                                          title="Delete comment (Admin clearance)"
+                                          className="text-slate-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                   <p className="mt-1 text-slate-700 leading-relaxed text-[11px]">{cmt.content}</p>
                                 </div>
@@ -992,6 +1566,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
+            </>
+          )}
         </main>
 
         {/* ========================================================= */}

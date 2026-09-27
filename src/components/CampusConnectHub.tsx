@@ -44,7 +44,9 @@ import {
   FileText,
   Eye,
   EyeOff,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  Share2
 } from 'lucide-react';
 
 interface CampusConnectHubProps {
@@ -64,13 +66,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     tabFromQuery || initialTab
   );
 
-  // Sync if query param changes
-  useEffect(() => {
-    if (tabFromQuery && (tabFromQuery === 'community' || tabFromQuery === 'messages' || tabFromQuery === 'grievance')) {
-      setActiveTab(tabFromQuery);
-    }
-  }, [tabFromQuery]);
-
   const {
     currentUser,
     allUsers,
@@ -85,8 +80,41 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     toggleLikeDirectMessage,
     grievanceReports,
     submitGrievanceReport,
-    resolveGrievanceReport
+    resolveGrievanceReport,
+    joinServer,
+    leaveServer,
+    joinGroup,
+    leaveGroup,
+    requestFacultyCommunity,
+    approveFacultyCommunity,
+    rejectFacultyCommunity
   } = useApp();
+
+  const isAlumni = currentUser?.role === 'alumni';
+  const isStudent = currentUser?.role === 'student';
+  const isFaculty = currentUser?.role === 'faculty';
+  const isInstitution = currentUser?.role === 'institution';
+  const isAdmin = currentUser?.role === 'admin';
+
+  const [connectFeedback, setConnectFeedback] = useState<string | null>(null);
+
+  // If alumni, automatically switch away from community tab
+  useEffect(() => {
+    if (isAlumni && activeTab === 'community') {
+      setActiveTab('messages');
+    }
+  }, [isAlumni, activeTab]);
+
+  // Sync if query param changes
+  useEffect(() => {
+    if (tabFromQuery && (tabFromQuery === 'community' || tabFromQuery === 'messages' || tabFromQuery === 'grievance')) {
+      if (isAlumni && tabFromQuery === 'community') {
+        setActiveTab('messages');
+      } else {
+        setActiveTab(tabFromQuery);
+      }
+    }
+  }, [tabFromQuery, isAlumni]);
 
   // =========================================================================
   // TAB 1: WHATSAPP COMMUNITY GROUPS STATE & LOGIC
@@ -98,11 +126,28 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     servers.find((s) => s.id === activeCommunityId) || servers[0];
 
   const [activeGroupId, setActiveGroupId] = useState<string>(
-    activeCommunity?.channels[0]?.id || 'ch-announcements'
+    activeCommunity?.channels?.[0]?.id || 'ch-announcements'
   );
   const activeGroup =
-    activeCommunity?.channels.find((c) => c.id === activeGroupId) ||
-    activeCommunity?.channels[0];
+    activeCommunity?.channels?.find((c) => c.id === activeGroupId) ||
+    activeCommunity?.channels?.[0];
+
+  // Keep activeCommunity in sync when servers hydrate or change
+  useEffect(() => {
+    if (!servers.some((s) => s.id === activeCommunityId) && servers.length > 0) {
+      setActiveCommunityId(servers[0].id);
+    }
+  }, [servers, activeCommunityId]);
+
+  // Keep activeGroup in sync when activeCommunity changes
+  useEffect(() => {
+    if (activeCommunity?.channels && activeCommunity.channels.length > 0) {
+      const channelExists = activeCommunity.channels.some((c) => c.id === activeGroupId);
+      if (!channelExists) {
+        setActiveGroupId(activeCommunity.channels[0].id);
+      }
+    }
+  }, [activeCommunity, activeGroupId]);
 
   const [groupSearch, setGroupSearch] = useState('');
   const [communityMessageInput, setCommunityMessageInput] = useState('');
@@ -230,6 +275,34 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     e.preventDefault();
     if (!newCommunityName.trim()) return;
 
+    if (isFaculty) {
+      const res = requestFacultyCommunity(
+        newCommunityName.trim(),
+        newCommunityDesc.trim() || 'Academic faculty student interaction hub.',
+        newCommunityCollegeId
+      );
+      setConnectFeedback(res.message);
+      setShowCreateCommunityModal(false);
+      setNewCommunityName('');
+      setNewCommunityDesc('');
+      setTimeout(() => setConnectFeedback(null), 4000);
+      return;
+    }
+
+    if (isInstitution) {
+      const existingInstCommunity = servers.find(
+        (s) => s.institutionOwnerId === currentUser?.id && !s.pendingApproval
+      );
+      if (existingInstCommunity) {
+        setConnectFeedback(
+          `⚠️ Institution Limit: You have already created your 1 official campus community (${existingInstCommunity.name}).`
+        );
+        setShowCreateCommunityModal(false);
+        setTimeout(() => setConnectFeedback(null), 4000);
+        return;
+      }
+    }
+
     const created = createDiscordServer(
       newCommunityName.trim(),
       newCommunityDesc.trim() || 'WhatsApp-style Campus Community for collegiate collaboration.',
@@ -281,13 +354,17 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     setShowCreateCommunityModal(false);
     setNewCommunityName('');
     setNewCommunityDesc('');
+    setConnectFeedback('🎉 Campus Community launched successfully!');
+    setTimeout(() => setConnectFeedback(null), 3000);
   };
 
   // =========================================================================
   // TAB 2: INSTAGRAM DIRECT MESSAGES STATE & LOGIC
   // =========================================================================
   const initialPartnerId = useMemo(() => {
-    if (!currentUser) return null;
+    if (!currentUser) {
+      return allUsers[0]?.id || null;
+    }
     const lastMsg = directMessages
       .filter((m) => m.senderId === currentUser.id || m.receiverId === currentUser.id)
       .slice(-1)[0];
@@ -297,10 +374,18 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
         : lastMsg.senderId;
     }
     const otherUser = allUsers.find((u) => u.id !== currentUser.id);
-    return otherUser ? otherUser.id : null;
+    return otherUser ? otherUser.id : (allUsers[0]?.id || null);
   }, [directMessages, currentUser?.id, allUsers]);
 
   const [activePartnerId, setActivePartnerId] = useState<string | null>(initialPartnerId);
+
+  // Synchronize activePartnerId when initialPartnerId becomes available
+  useEffect(() => {
+    if (!activePartnerId && initialPartnerId) {
+      setActivePartnerId(initialPartnerId);
+    }
+  }, [activePartnerId, initialPartnerId]);
+
   const activePartner = useMemo(() => {
     return allUsers.find((u) => u.id === activePartnerId) || null;
   }, [allUsers, activePartnerId]);
@@ -385,8 +470,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   }, [currentChatMessages, activeTab]);
 
   const candidateUsers = useMemo(() => {
-    if (!currentUser) return [];
-    const list = allUsers.filter((u) => u.id !== currentUser.id);
+    const list = allUsers.filter((u) => !currentUser || u.id !== currentUser.id);
     if (!userSearchQuery.trim()) return list;
     const q = userSearchQuery.toLowerCase();
     return list.filter(
@@ -565,22 +649,24 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             </div>
           </div>
 
-          {/* Unified 3-Pill Tab Switcher */}
+          {/* Unified Tab Switcher (Communities hidden for Alumni as requested) */}
           <div className="flex items-center bg-[#F1F5F9] p-1 rounded-2xl border border-[#E2E8F0] text-xs font-bold w-full md:w-auto">
-            <button
-              onClick={() => setActiveTab('community')}
-              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
-                activeTab === 'community'
-                  ? 'bg-white text-emerald-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Users className="w-4 h-4 text-emerald-600" />
-              <span>Communities</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
-                {activeCommunity?.channels.length || 0}
-              </span>
-            </button>
+            {!isAlumni && (
+              <button
+                onClick={() => setActiveTab('community')}
+                className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
+                  activeTab === 'community'
+                    ? 'bg-white text-emerald-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span>Communities</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
+                  {activeCommunity?.channels.length || 0}
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('messages')}
@@ -620,10 +706,38 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
           </div>
         </div>
 
+        {/* Feedback Alert Banner */}
+        {connectFeedback && (
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{connectFeedback}</span>
+            </div>
+            <button onClick={() => setConnectFeedback(null)} className="text-emerald-700 hover:text-emerald-900">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* =============================================================== */}
         {/* TAB 1: WHATSAPP COMMUNITY GROUPS                                */}
         {/* =============================================================== */}
         {activeTab === 'community' && (
+          !activeCommunity ? (
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-12 text-center shadow-xs">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800">No Campus Communities Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Deploy an official campus community to connect students, alumni, and faculty in structured discussion channels.
+              </p>
+              <button
+                onClick={() => setShowCreateCommunityModal(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" /> Deploy Community
+              </button>
+            </div>
+          ) : (
           <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
             {/* Left Sidebar: Community Info & Groups */}
             <div className="md:col-span-4 border-r border-[#E2E8F0] bg-[#F8FAFC] flex flex-col justify-between">
@@ -632,7 +746,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs flex-shrink-0">
-                        {activeCommunity.name.substring(0, 2).toUpperCase()}
+                        {(activeCommunity.name || 'Campus').substring(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <h2 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
@@ -670,6 +784,115 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   <p className="text-xs text-slate-600 leading-relaxed bg-[#F8FAFC] p-2.5 rounded-xl border border-slate-100">
                     {activeCommunity.description}
                   </p>
+
+                  {/* Role Specific Actions Bar for Community */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                    {/* Student Join/Leave Server Button */}
+                    {isStudent && (
+                      currentUser?.joinedServerIds?.includes(activeCommunity.id) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            leaveServer(activeCommunity.id);
+                            setConnectFeedback(`Exited ${activeCommunity.name}`);
+                            setTimeout(() => setConnectFeedback(null), 3000);
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition"
+                        >
+                          Exit Community
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            joinServer(activeCommunity.id);
+                            setConnectFeedback(`Joined ${activeCommunity.name} successfully!`);
+                            setTimeout(() => setConnectFeedback(null), 3000);
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs"
+                        >
+                          + Join Community
+                        </button>
+                      )
+                    )}
+
+                    {/* Institution Share Community Link */}
+                    {isInstitution && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${window.location.origin}/servers?community=${activeCommunity.id}`;
+                          navigator.clipboard.writeText(url);
+                          setConnectFeedback('🔗 Community invite link copied to clipboard!');
+                          setTimeout(() => setConnectFeedback(null), 3000);
+                        }}
+                        className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 flex items-center gap-1 transition"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        <span>Share Invite Link</span>
+                      </button>
+                    )}
+
+                    {/* Faculty Request Community button */}
+                    {isFaculty && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateCommunityModal(true)}
+                        className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition"
+                      >
+                        + Request Community Approval
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Pending Faculty Community Requests (Institution Approval Desk) */}
+                  {(isInstitution || isAdmin) && (() => {
+                    const pendingFacultyServers = servers.filter(
+                      (s) => s.pendingApproval && (s.collegeId === currentUser?.collegeId || isAdmin)
+                    );
+                    if (pendingFacultyServers.length === 0) return null;
+
+                    return (
+                      <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-purple-900 font-bold text-[11px]">
+                          <span>Faculty Proposal Queue ({pendingFacultyServers.length})</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-800">
+                            Awaiting Dean
+                          </span>
+                        </div>
+                        {pendingFacultyServers.map((s) => (
+                          <div key={s.id} className="p-2 rounded-lg bg-white border border-purple-100 space-y-1 text-[11px]">
+                            <p className="font-bold text-slate-800">{s.name}</p>
+                            <p className="text-[10px] text-slate-500">Proposed by {s.requestedByFacultyName}</p>
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const res = approveFacultyCommunity(s.id);
+                                  setConnectFeedback(res.message);
+                                  setTimeout(() => setConnectFeedback(null), 3000);
+                                }}
+                                className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px]"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const res = rejectFacultyCommunity(s.id);
+                                  setConnectFeedback(res.message);
+                                  setTimeout(() => setConnectFeedback(null), 3000);
+                                }}
+                                className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[10px]"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -725,7 +948,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                                   {group.name}
                                 </h4>
                                 {lastMsg && (
-                                  <span className="text-[10px] text-slate-400 font-medium">
+                                  <span suppressHydrationWarning className="text-[10px] text-slate-400 font-medium">
                                     {new Date(lastMsg.createdAt).toLocaleTimeString([], {
                                       hour: '2-digit',
                                       minute: '2-digit'
@@ -808,7 +1031,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                                   #{group.name}
                                 </h4>
                                 {lastMsg && (
-                                  <span className="text-[10px] text-slate-400 font-medium">
+                                  <span suppressHydrationWarning className="text-[10px] text-slate-400 font-medium">
                                     {new Date(lastMsg.createdAt).toLocaleTimeString([], {
                                       hour: '2-digit',
                                       minute: '2-digit'
@@ -820,7 +1043,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                                 {lastMsg ? `${lastMsg.authorName}: ${lastMsg.content}` : group.description}
                               </p>
                               <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-                                <span>{group.memberCount || activeCommunity.memberCount} members</span>
+                                <span>{group.memberCount || activeCommunity?.memberCount || 120} members</span>
                                 {group.isRagebaitProtected && (
                                   <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
                                     <Shield className="w-2.5 h-2.5" /> Shielded
@@ -840,16 +1063,20 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               <div className="p-3 border-t border-[#E2E8F0] bg-white flex items-center justify-between">
                 <div className="flex items-center gap-2 truncate">
                   <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
-                    {currentUser.fullName.charAt(0)}
+                    {currentUser?.fullName ? currentUser.fullName.charAt(0) : 'U'}
                   </div>
                   <div className="truncate">
-                    <div className="text-xs font-bold text-slate-900 truncate">{currentUser.fullName}</div>
-                    <div className="text-[10px] text-slate-500 capitalize">{currentUser.role}</div>
+                    <div className="text-xs font-bold text-slate-900 truncate">
+                      {currentUser?.fullName || 'Guest Visitor'}
+                    </div>
+                    <div className="text-[10px] text-slate-500 capitalize">
+                      {currentUser?.role || 'Guest'}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {(currentUser.role === 'institution' || currentUser.role === 'admin') && (
+                  {(currentUser?.role === 'institution' || currentUser?.role === 'admin') && (
                     <button
                       onClick={() => setShowAddGroupModal(true)}
                       title="Add Group"
@@ -890,18 +1117,60 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                     <p className="text-[11px] text-slate-500 line-clamp-1">
                       {isAnnouncementGroup
                         ? 'Official Community Announcements (Broadcast only)'
-                        : activeGroup?.description || `${activeGroup?.memberCount || activeCommunity.memberCount} participants`}
+                        : activeGroup?.description || `${activeGroup?.memberCount || activeCommunity?.memberCount || 120} participants`}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setShowGroupInfo(true)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 transition-colors"
-                >
-                  <Info className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">Info</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {isStudent && activeCommunity && activeGroup && (
+                    <>
+                      {currentUser?.joinedGroupIds?.includes(activeGroup.id) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            leaveGroup(activeCommunity.id, activeGroup.id);
+                            setConnectFeedback(`Exited #${activeGroup.name}`);
+                            setTimeout(() => setConnectFeedback(null), 3000);
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition"
+                        >
+                          Leave Channel
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            joinGroup(activeCommunity.id, activeGroup.id);
+                            setConnectFeedback(`Joined #${activeGroup.name}`);
+                            setTimeout(() => setConnectFeedback(null), 3000);
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 transition shadow-2xs"
+                        >
+                          + Join Channel
+                        </button>
+                      )}
+
+                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Lock className="w-3 h-3 text-emerald-600" />
+                        <span>E2E Protected</span>
+                      </span>
+
+                      <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        <ShieldCheck className="w-3 h-3 text-blue-600" />
+                        <span>Screenshot Shield</span>
+                      </span>
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => setShowGroupInfo(true)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 transition-colors"
+                  >
+                    <Info className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="hidden sm:inline">Info</span>
+                  </button>
+                </div>
               </div>
 
               {/* Chat Stream */}
@@ -912,7 +1181,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   </div>
                 ) : (
                   communityChannelMessages.map((msg) => {
-                    const isMe = msg.authorId === currentUser.id;
+                    const isMe = msg.authorId === currentUser?.id;
                     const roleTextColor =
                       msg.authorRole === 'institution'
                         ? 'text-purple-700'
@@ -948,7 +1217,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                             {msg.content}
                           </p>
                           <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
-                            <span>
+                            <span suppressHydrationWarning>
                               {new Date(msg.createdAt).toLocaleTimeString([], {
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -1000,13 +1269,28 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               </div>
             </div>
           </div>
-        )}
+        ))}
 
         {/* =============================================================== */}
         {/* TAB 2: INSTAGRAM DIRECT MESSAGES                                */}
         {/* =============================================================== */}
         {activeTab === 'messages' && (
           <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
+            {/* Alumni Mentorship Mode Banner */}
+            {isAlumni && (
+              <div className="md:col-span-12 p-3.5 bg-amber-50/90 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-amber-600 shrink-0" />
+                  <span>
+                    <strong>Alumni 1-on-1 Mentorship Mode:</strong> Public community and group channel feeds are hidden for alumni. Direct Messages are your dedicated bridge to guide and connect with students.
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
+                  Verified Alumni Bridge
+                </span>
+              </div>
+            )}
+
             {/* Left Panel: Conversations list */}
             <div className="md:col-span-4 border-r border-[#E2E8F0] bg-white flex flex-col justify-between">
               <div className="flex flex-col flex-1 overflow-hidden">
@@ -1056,7 +1340,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   ) : (
                     filteredConversations.map(({ partner, lastMessage }) => {
                       const isSelected = activePartner?.id === partner.id;
-                      const isFromMe = lastMessage.senderId === currentUser.id;
+                      const isFromMe = lastMessage.senderId === currentUser?.id;
 
                       return (
                         <button
@@ -1078,7 +1362,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                               <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                                 {partner.fullName}
                               </h4>
-                              <span className="text-[10px] text-slate-400 font-medium">
+                              <span suppressHydrationWarning className="text-[10px] text-slate-400 font-medium">
                                 {new Date(lastMessage.createdAt).toLocaleTimeString([], {
                                   hour: '2-digit',
                                   minute: '2-digit'
@@ -1151,6 +1435,18 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {isStudent && (
+                        <div className="flex items-center gap-1.5 mr-1">
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Lock className="w-3 h-3 text-emerald-600" />
+                            <span>E2E Protected</span>
+                          </span>
+                          <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            <ShieldCheck className="w-3 h-3 text-blue-600" />
+                            <span>Screenshot Shield</span>
+                          </span>
+                        </div>
+                      )}
                       <Link
                         href={`/user/${activePartner.username}`}
                         title="View Full Profile"
@@ -1164,7 +1460,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   {/* Message Stream */}
                   <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[440px] bg-white">
                     {currentChatMessages.map((msg) => {
-                      const isMe = msg.senderId === currentUser.id;
+                      const isMe = msg.senderId === currentUser?.id;
                       return (
                         <div
                           key={msg.id}
@@ -1194,7 +1490,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                             </div>
 
                             <div className={`flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <span>
+                              <span suppressHydrationWarning>
                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                               {isMe && <span>• Seen</span>}
@@ -1635,35 +1931,41 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                 Suggested People ({candidateUsers.length})
               </div>
 
-              {candidateUsers.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => handleStartChatWithUser(user)}
-                  className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
-                      {user.fullName.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-slate-900">{user.fullName}</span>
-                        {user.isVerified && <span className="text-[10px] text-blue-500">✓</span>}
-                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border ${getRoleBadge(user.role)}`}>
-                          {user.role}
-                        </span>
+              {candidateUsers.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  No users found matching &quot;{userSearchQuery}&quot;.
+                </div>
+              ) : (
+                candidateUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleStartChatWithUser(user)}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                        {user.fullName.charAt(0)}
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        @{user.username} • {user.collegeName}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-slate-900">{user.fullName}</span>
+                          {user.isVerified && <span className="text-[10px] text-blue-500">✓</span>}
+                          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border ${getRoleBadge(user.role)}`}>
+                            {user.role}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          @{user.username} • {user.collegeName}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <span className="text-xs font-bold text-blue-600 hover:text-blue-700">
-                    Chat
-                  </span>
-                </button>
-              ))}
+                    <span className="text-xs font-bold text-blue-600 hover:text-blue-700">
+                      Chat
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
 
             <button
@@ -1686,7 +1988,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">{activeCommunity.name}</h3>
+                  <h3 className="font-bold text-sm text-slate-900">{activeCommunity?.name}</h3>
                   <p className="text-[11px] text-slate-500">Group: #{activeGroup?.name}</p>
                 </div>
               </div>
@@ -1713,7 +2015,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                   Community Rules
                 </span>
                 <ul className="mt-1 space-y-1 text-slate-600 list-disc list-inside">
-                  {activeCommunity.antiRagebaitRules.map((rule, idx) => (
+                  {(activeCommunity?.antiRagebaitRules || []).map((rule, idx) => (
                     <li key={idx}>{rule}</li>
                   ))}
                 </ul>
@@ -1738,7 +2040,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               <div className="flex items-center gap-2">
                 <Plus className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-base font-bold text-slate-900">
-                  Add Sub-Group to {activeCommunity.name}
+                  Add Sub-Group to {activeCommunity?.name}
                 </h3>
               </div>
               <button

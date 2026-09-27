@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import {
   UserCheck,
   Building2,
@@ -18,21 +18,26 @@ import {
   GraduationCap,
   Heart,
   Edit3,
-  ZoomIn
+  ZoomIn,
+  Trash2,
+  Award
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Post } from '@/types';
 import EditProfileModal from '@/components/EditProfileModal';
 import PinterestImageModal from '@/components/PinterestImageModal';
+import FollowersListModal from '@/components/FollowersListModal';
 
 export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const router = useRouter();
   const resolvedParams = use(params);
-  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile } = useApp();
+  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile, deleteUser } = useApp();
 
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
+  const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
 
   const profileUser = allUsers.find(
     (u) => u.username.toLowerCase() === resolvedParams.username.toLowerCase()
@@ -65,9 +70,17 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           {/* Instagram Circular Avatar */}
           <div className="relative shrink-0">
-            <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-[#EFF6FF] bg-[#2563EB] text-white flex items-center justify-center text-3xl font-black shadow-md">
-              {profileUser.fullName[0]}
-            </div>
+            {profileUser.avatarUrl ? (
+              <img
+                src={profileUser.avatarUrl}
+                alt={profileUser.fullName}
+                className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-[#EFF6FF] object-cover shadow-md"
+              />
+            ) : (
+              <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-[#EFF6FF] bg-gradient-to-tr from-[#2563EB] to-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-md">
+                {profileUser.fullName[0]}
+              </div>
+            )}
             {profileUser.isVerified && (
               <span className="absolute bottom-1 right-1 rounded-full bg-[#059669] p-1 text-white border-2 border-white shadow-xs">
                 <UserCheck className="h-4 w-4" />
@@ -79,19 +92,25 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           <div className="flex-1 text-center sm:text-left space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center justify-center sm:justify-start space-x-2">
+                <div className="flex items-center justify-center sm:justify-start space-x-2 flex-wrap">
                   <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
                     {profileUser.fullName}
                   </h1>
                   <span className="rounded-md bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-bold text-[#2563EB] capitalize">
                     {profileUser.role}
                   </span>
+                  {profileUser.role === 'institution' && profileUser.accreditationGrade && (
+                    <span className="flex items-center space-x-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">
+                      <Award className="h-3.5 w-3.5" />
+                      <span>{profileUser.accreditationGrade}</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-[#64748B] mt-0.5">@{profileUser.username}</p>
               </div>
 
-              {/* Action Buttons (Follow / Message) */}
-              <div className="flex items-center justify-center space-x-2">
+              {/* Action Buttons (Follow / Message / Admin Delete User) */}
+              <div className="flex items-center justify-center space-x-2 flex-wrap gap-y-1">
                 {!isSelf ? (
                   <>
                     <button
@@ -108,6 +127,23 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                     >
                       Message
                     </Link>
+
+                    {/* Admin Delete User Authority */}
+                    {currentUser?.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`⚠️ SUPER ADMIN CONFIRMATION:\n\nPermanently delete user @${profileUser.username} (${profileUser.fullName}) and purge all their posts from the platform?`)) {
+                            deleteUser(profileUser.id);
+                            router.push('/admin');
+                          }
+                        }}
+                        className="apple-button-secondary text-xs !py-1.5 !px-3 font-semibold text-rose-600 hover:bg-rose-50 border-rose-200 flex items-center space-x-1"
+                        title="Admin Action: Delete User"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Delete User</span>
+                      </button>
+                    )}
                   </>
                 ) : (
                   <button
@@ -127,14 +163,28 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
                 <p className="text-base sm:text-lg font-black text-[#0F172A]">{userPosts.length}</p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B]">Posts</p>
               </div>
-              <div>
-                <p className="text-base sm:text-lg font-black text-[#2563EB]">{profileUser.followersCount}</p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B]">Followers</p>
-              </div>
-              <div>
-                <p className="text-base sm:text-lg font-black text-[#0F172A]">{profileUser.followingCount}</p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B]">Following</p>
-              </div>
+              <button
+                onClick={() => setFollowersModalTitle('Followers')}
+                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+              >
+                <p className="text-base sm:text-lg font-black text-[#2563EB] group-hover:underline">
+                  {profileUser.followersCount}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                  Followers
+                </p>
+              </button>
+              <button
+                onClick={() => setFollowersModalTitle('Following')}
+                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+              >
+                <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:underline">
+                  {profileUser.followingCount}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                  Following
+                </p>
+              </button>
               <div>
                 <p className="text-base sm:text-lg font-black text-[#D97706]">{totalLikesReceived}</p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B]">Likes</p>
@@ -258,26 +308,92 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
       {/* TAB CONTENT: ABOUT */}
       {activeTab === 'about' && (
         <div className="apple-card p-6 space-y-4 text-xs">
-          <h2 className="text-sm font-bold text-[#0F172A] uppercase tracking-wider">
-            Verified Academic Records
-          </h2>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-[#0F172A] uppercase tracking-wider">
+              {profileUser.role === 'institution'
+                ? 'Official Institutional Accreditation & Governance'
+                : profileUser.role === 'alumni'
+                ? 'Alumni Industry & Career Credentials'
+                : profileUser.role === 'faculty'
+                ? 'Faculty Academic & Department Portfolio'
+                : 'Verified Academic Records'}
+            </h2>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize bg-blue-50 text-blue-700 border border-blue-200">
+              {profileUser.role} Profile
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
               <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Affiliated College</span>
               <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.collegeName || 'Not Listed'}</strong>
             </div>
-            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Department</span>
-              <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.department || 'Not Listed'}</strong>
-            </div>
-            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Degree / Program</span>
-              <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.course || 'Not Listed'}</strong>
-            </div>
-            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-              <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Graduation Batch</span>
-              <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.graduationBatch || 'Not Listed'}</strong>
-            </div>
+
+            {profileUser.role === 'institution' ? (
+              <>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Certified License Number</span>
+                  <strong className="mt-1 block text-sm font-bold text-purple-700 font-mono">
+                    {profileUser.certifiedLicenseNumber || 'AICTE-TN-2024-8841'}
+                  </strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Accreditation Grade</span>
+                  <strong className="mt-1 block text-sm font-bold text-emerald-700">
+                    {profileUser.accreditationGrade || 'NAAC A++'}
+                  </strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Institutional Status</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">AICTE Approved & NAAC Accredited</strong>
+                </div>
+              </>
+            ) : profileUser.role === 'alumni' ? (
+              <>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Current Role / Company</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.headline || 'Industry Professional'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Graduation Batch</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.graduationBatch || '2021'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Mentorship Mode</span>
+                  <strong className="mt-1 block text-sm font-bold text-emerald-700">Open to 1-on-1 Student Guidance</strong>
+                </div>
+              </>
+            ) : profileUser.role === 'faculty' ? (
+              <>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Designation</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.headline || 'Academic Faculty'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Department</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.department || 'Computer Science'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Research Focus</span>
+                  <strong className="mt-1 block text-sm font-bold text-amber-800">Advanced Computing & Systems</strong>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Department</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.department || 'Not Listed'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Degree / Program</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.course || 'Not Listed'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                  <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Graduation Batch</span>
+                  <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.graduationBatch || 'Not Listed'}</strong>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -298,6 +414,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           onClose={() => setIsEditingProfile(false)}
           currentUser={currentUser}
           onSave={updateProfile}
+        />
+      )}
+
+      {/* FOLLOWERS / FOLLOWING INTERACTIVE MODAL */}
+      {followersModalTitle && (
+        <FollowersListModal
+          isOpen={Boolean(followersModalTitle)}
+          onClose={() => setFollowersModalTitle(null)}
+          title={followersModalTitle}
+          userIds={followersModalTitle === 'Followers' ? profileUser.followers : profileUser.following}
         />
       )}
     </div>

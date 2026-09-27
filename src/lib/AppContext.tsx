@@ -13,8 +13,30 @@ import {
   ServerChannel,
   ServerMessage,
   PrivateGrievanceReport,
-  DirectMessage
+  DirectMessage,
+  StudyRoom,
+  CourseQuestion,
+  CourseAnswer,
+  MarketplaceItem,
+  AssignmentTask,
+  ExamMilestone,
+  MentorshipSlot,
+  AlumniJobReferral,
+  ReferralRequest,
+  IndustryAMAEvent,
+  OfficeHourQueueItem,
+  ResearchOpening,
+  ResearchApplication,
+  LectureMaterialVersion,
+  EmergencyBroadcast,
+  AuditLogEntry,
+  AIModelSettings,
+  UnifiedAIModerationResult
 } from '@/types';
+import {
+  runUnifiedAIModeration,
+  DEFAULT_AI_MODEL_SETTINGS
+} from './aiModerationModels';
 import {
   INITIAL_USERS,
   INITIAL_COLLEGES,
@@ -24,7 +46,21 @@ import {
   INITIAL_DISCORD_SERVERS,
   INITIAL_SERVER_MESSAGES,
   INITIAL_GRIEVANCE_REPORTS,
-  INITIAL_DIRECT_MESSAGES
+  INITIAL_DIRECT_MESSAGES,
+  INITIAL_STUDY_ROOMS,
+  INITIAL_COURSE_QUESTIONS,
+  INITIAL_MARKETPLACE_ITEMS,
+  INITIAL_ASSIGNMENTS,
+  INITIAL_EXAMS,
+  INITIAL_MENTORSHIP_SLOTS,
+  INITIAL_ALUMNI_REFERRALS,
+  INITIAL_REFERRAL_REQUESTS,
+  INITIAL_AMA_EVENTS,
+  INITIAL_OFFICE_HOUR_QUEUE,
+  INITIAL_RESEARCH_OPENINGS,
+  INITIAL_LECTURE_MATERIALS,
+  INITIAL_EMERGENCY_BROADCAST,
+  INITIAL_AUDIT_LOGS
 } from './mockData';
 
 export interface RegisterPayload {
@@ -88,6 +124,8 @@ interface AppContextType {
   grievanceReports: PrivateGrievanceReport[];
   savedCollegeIds: string[];
   toggleSaveCollege: (collegeId: string) => void;
+  savedPostIds: string[];
+  toggleSavePost: (postId: string) => { success: boolean; message: string };
   addReview: (review: Omit<CollegeReview, 'id' | 'createdAt'>) => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => { success: boolean; message?: string };
   toggleLikePost: (postId: string) => { success: boolean; message?: string };
@@ -98,8 +136,21 @@ interface AppContextType {
   getUserById: (id: string) => UserProfile | undefined;
   updateProfile: (updatedData: Partial<UserProfile>) => void;
   repostToInstitution: (postId: string) => { success: boolean; message: string };
+  repostPost: (postId: string) => { success: boolean; message: string };
   reportFalseInfoPost: (postId: string, reason: string) => { success: boolean; message: string };
+  reportPost: (postId: string, reason: string, category?: string) => { success: boolean; message: string };
   deletePost: (postId: string) => { success: boolean; message: string };
+  deleteComment: (postId: string, commentId: string) => { success: boolean; message: string };
+  deleteUser: (userId: string) => { success: boolean; message: string };
+  unbanUser: (userId: string) => { success: boolean; message: string };
+  joinServer: (serverId: string) => { success: boolean; message: string };
+  leaveServer: (serverId: string) => { success: boolean; message: string };
+  joinGroup: (serverId: string, groupId: string) => { success: boolean; message: string };
+  leaveGroup: (serverId: string, groupId: string) => { success: boolean; message: string };
+  requestFacultyCommunity: (name: string, description: string, collegeId: string) => { success: boolean; message: string; server?: DiscordServer };
+  approveFacultyCommunity: (serverId: string) => { success: boolean; message: string };
+  rejectFacultyCommunity: (serverId: string) => { success: boolean; message: string };
+  checkAlumniPostEligibility: (user?: UserProfile | null) => { eligible: boolean; followerCount: number; requiredFollowers: number; weeklyCount: number; maxWeekly: number; message?: string };
   sendServerMessage: (channelId: string, content: string) => { success: boolean; message?: string };
   createDiscordServer: (
     name: string,
@@ -127,6 +178,51 @@ interface AppContextType {
   applyUnreadLivePosts: () => void;
   triggerLiveActivity: () => void;
   resetAllUserData: () => void;
+  // --- Advanced Role Features ---
+  studyRooms: StudyRoom[];
+  courseQuestions: CourseQuestion[];
+  addCourseQuestion: (q: Omit<CourseQuestion, 'id' | 'createdAt' | 'upvotes' | 'answers'>) => { success: boolean; message: string };
+  upvoteCourseQuestion: (questionId: string) => void;
+  addCourseAnswer: (questionId: string, content: string) => { success: boolean; message: string };
+  marketplaceItems: MarketplaceItem[];
+  addMarketplaceItem: (item: Omit<MarketplaceItem, 'id' | 'createdAt' | 'isReserved'>) => { success: boolean; message: string };
+  reserveMarketplaceItem: (itemId: string) => { success: boolean; message: string };
+  assignmentTasks: AssignmentTask[];
+  addAssignmentTask: (task: Omit<AssignmentTask, 'id' | 'isCompleted'>) => { success: boolean; message: string };
+  toggleAssignmentTask: (taskId: string) => void;
+  deleteAssignmentTask: (taskId: string) => void;
+  examMilestones: ExamMilestone[];
+  mentorshipSlots: MentorshipSlot[];
+  bookMentorshipSlot: (slotId: string, notes?: string) => { success: boolean; message: string };
+  cancelMentorshipBooking: (slotId: string) => { success: boolean; message: string };
+  alumniJobReferrals: AlumniJobReferral[];
+  addAlumniJobReferral: (ref: Omit<AlumniJobReferral, 'id' | 'createdAt' | 'referralRequestsCount'>) => { success: boolean; message: string };
+  referralRequests: ReferralRequest[];
+  requestJobReferral: (referralId: string, studentGpa: number, resumeLink: string, note: string) => { success: boolean; message: string };
+  industryAmaEvents: IndustryAMAEvent[];
+  upvoteAmaQuestion: (eventId: string, questionId: string) => void;
+  submitAmaQuestion: (eventId: string, questionText: string) => { success: boolean; message: string };
+  officeHourQueue: OfficeHourQueueItem[];
+  joinOfficeHourQueue: (courseCode: string, topic: string) => { success: boolean; message: string };
+  admitNextOfficeHourStudent: () => { success: boolean; message: string };
+  resolveOfficeHourStudent: (queueId: string) => { success: boolean; message: string };
+  researchOpenings: ResearchOpening[];
+  addResearchOpening: (opening: Omit<ResearchOpening, 'id' | 'status' | 'applicants'>) => { success: boolean; message: string };
+  applyToResearchOpening: (openingId: string, statement: string, studentGpa: number) => { success: boolean; message: string };
+  reviewResearchApplication: (openingId: string, applicationId: string, decision: 'accepted' | 'declined') => { success: boolean; message: string };
+  lectureMaterials: LectureMaterialVersion[];
+  addLectureMaterialVersion: (mat: Omit<LectureMaterialVersion, 'id' | 'uploadedAt' | 'downloadCount'>) => { success: boolean; message: string };
+  emergencyBroadcast: EmergencyBroadcast | null;
+  triggerEmergencyBroadcast: (title: string, message: string, severity: 'critical' | 'warning' | 'notice') => { success: boolean; message: string };
+  dismissEmergencyBroadcast: () => { success: boolean; message: string };
+  auditLogs: AuditLogEntry[];
+  logAdminAction: (actionType: string, targetEntity: string, details: string, severity?: 'info' | 'warning' | 'critical') => void;
+  runAIToxicityCheck: (text: string) => { toxicityScore: number; sentiment: 'positive' | 'neutral' | 'toxic' | 'ragebait'; flagReason?: string };
+  sensitiveContentShieldActive: boolean;
+  toggleSensitiveContentShield: () => void;
+  aiModelSettings: AIModelSettings;
+  updateAIModelSettings: (settings: Partial<AIModelSettings>) => void;
+  runOpenSourceAIModeration: (content: string, imageUrl?: string) => UnifiedAIModerationResult;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -217,6 +313,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>(INITIAL_DIRECT_MESSAGES);
   const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
   const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>([]);
+  const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
+
+  // Advanced Role Features State
+  const [studyRooms, setStudyRooms] = useState<StudyRoom[]>(INITIAL_STUDY_ROOMS);
+  const [courseQuestions, setCourseQuestions] = useState<CourseQuestion[]>(INITIAL_COURSE_QUESTIONS);
+  const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>(INITIAL_MARKETPLACE_ITEMS);
+  const [assignmentTasks, setAssignmentTasks] = useState<AssignmentTask[]>(INITIAL_ASSIGNMENTS);
+  const [examMilestones, setExamMilestones] = useState<ExamMilestone[]>(INITIAL_EXAMS);
+  const [mentorshipSlots, setMentorshipSlots] = useState<MentorshipSlot[]>(INITIAL_MENTORSHIP_SLOTS);
+  const [alumniJobReferrals, setAlumniJobReferrals] = useState<AlumniJobReferral[]>(INITIAL_ALUMNI_REFERRALS);
+  const [referralRequests, setReferralRequests] = useState<ReferralRequest[]>(INITIAL_REFERRAL_REQUESTS);
+  const [industryAmaEvents, setIndustryAmaEvents] = useState<IndustryAMAEvent[]>(INITIAL_AMA_EVENTS);
+  const [officeHourQueue, setOfficeHourQueue] = useState<OfficeHourQueueItem[]>(INITIAL_OFFICE_HOUR_QUEUE);
+  const [researchOpenings, setResearchOpenings] = useState<ResearchOpening[]>(INITIAL_RESEARCH_OPENINGS);
+  const [lectureMaterials, setLectureMaterials] = useState<LectureMaterialVersion[]>(INITIAL_LECTURE_MATERIALS);
+  const [emergencyBroadcast, setEmergencyBroadcast] = useState<EmergencyBroadcast | null>(INITIAL_EMERGENCY_BROADCAST);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
+
+  // Automated Open-Source AI Moderation & Sensitivity Shield State
+  const [sensitiveContentShieldActive, setSensitiveContentShieldActive] = useState<boolean>(true);
+  const [aiModelSettings, setAiModelSettings] = useState<AIModelSettings>(DEFAULT_AI_MODEL_SETTINGS);
+
+  const toggleSensitiveContentShield = () => {
+    setSensitiveContentShieldActive(prev => !prev);
+  };
+
+  const updateAIModelSettings = (settings: Partial<AIModelSettings>) => {
+    setAiModelSettings(prev => ({ ...prev, ...settings }));
+  };
+
+  const runOpenSourceAIModeration = (content: string, imageUrl?: string) => {
+    return runUnifiedAIModeration(content, imageUrl, aiModelSettings);
+  };
 
   // Dynamic Live Feed & Real-Time Engine State
   const [hasHydrated, setHasHydrated] = useState<boolean>(false);
@@ -226,36 +355,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 1. Hydrate and Clean Legacy Storage on Initial Client Mount
   useEffect(() => {
     try {
-      // Clean legacy mock user traces if present
-      if (!localStorage.getItem('CL_FRESH_DB_V5_PURGED')) {
-        localStorage.removeItem('campus_lenz_user');
-        localStorage.removeItem('campus_lenz_auth');
-        localStorage.removeItem('campus_lenz_saved');
-        localStorage.removeItem('campuslenz_v4_purged');
-        localStorage.removeItem('CL_DYNAMIC_DB_V3');
-        localStorage.removeItem('CL_DYNAMIC_DB_V4');
-        localStorage.setItem('CL_FRESH_DB_V5_PURGED', 'true');
-      }
-
-      const rawDb = localStorage.getItem('CL_FRESH_DB_V5');
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V6') || localStorage.getItem('CL_FRESH_DB_V5');
       if (rawDb) {
         const parsed = JSON.parse(rawDb);
-        if (parsed.allUsers && Array.isArray(parsed.allUsers)) setAllUsers(parsed.allUsers);
+
+        // Ensure baseline personas are always merged with locally created accounts
+        if (parsed.allUsers && Array.isArray(parsed.allUsers) && parsed.allUsers.length > 0) {
+          const merged = [...parsed.allUsers];
+          INITIAL_USERS.forEach(initU => {
+            if (!merged.some(u => u.id === initU.id || u.username.toLowerCase() === initU.username.toLowerCase())) {
+              merged.push(initU);
+            }
+          });
+          setAllUsers(merged);
+        } else {
+          setAllUsers(INITIAL_USERS);
+        }
+
         if (parsed.currentUser) {
           setCurrentUser(parsed.currentUser);
           setIsAuthenticated(true);
         }
-        if (parsed.posts && Array.isArray(parsed.posts)) setPosts(parsed.posts);
-        if (parsed.reviews && Array.isArray(parsed.reviews)) setReviews(parsed.reviews);
-        if (parsed.communities && Array.isArray(parsed.communities)) setCommunities(parsed.communities);
-        if (parsed.servers && Array.isArray(parsed.servers)) setServers(parsed.servers);
-        if (parsed.serverMessages && Array.isArray(parsed.serverMessages)) setServerMessages(parsed.serverMessages);
-        if (parsed.directMessages && Array.isArray(parsed.directMessages)) setDirectMessages(parsed.directMessages);
-        if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports)) setGrievanceReports(parsed.grievanceReports);
-        if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) setSavedCollegeIds(parsed.savedCollegeIds);
+        if (parsed.posts && Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+          setPosts(parsed.posts);
+        } else {
+          setPosts(INITIAL_POSTS);
+        }
+        if (parsed.reviews && Array.isArray(parsed.reviews) && parsed.reviews.length > 0) {
+          setReviews(parsed.reviews);
+        } else {
+          setReviews(INITIAL_REVIEWS);
+        }
+        if (parsed.communities && Array.isArray(parsed.communities) && parsed.communities.length > 0) {
+          setCommunities(parsed.communities);
+        } else {
+          setCommunities(INITIAL_COMMUNITIES);
+        }
+        if (parsed.servers && Array.isArray(parsed.servers) && parsed.servers.length > 0) {
+          setServers(parsed.servers);
+        } else {
+          setServers(INITIAL_DISCORD_SERVERS);
+        }
+        if (parsed.serverMessages && Array.isArray(parsed.serverMessages) && parsed.serverMessages.length > 0) {
+          setServerMessages(parsed.serverMessages);
+        } else {
+          setServerMessages(INITIAL_SERVER_MESSAGES);
+        }
+        if (parsed.directMessages && Array.isArray(parsed.directMessages) && parsed.directMessages.length > 0) {
+          setDirectMessages(parsed.directMessages);
+        } else {
+          setDirectMessages(INITIAL_DIRECT_MESSAGES);
+        }
+        if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports) && parsed.grievanceReports.length > 0) {
+          setGrievanceReports(parsed.grievanceReports);
+        } else {
+          setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
+        }
+        if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) {
+          setSavedCollegeIds(parsed.savedCollegeIds);
+        }
+        if (parsed.studyRooms && Array.isArray(parsed.studyRooms)) setStudyRooms(parsed.studyRooms);
+        if (parsed.courseQuestions && Array.isArray(parsed.courseQuestions)) setCourseQuestions(parsed.courseQuestions);
+        if (parsed.marketplaceItems && Array.isArray(parsed.marketplaceItems)) setMarketplaceItems(parsed.marketplaceItems);
+        if (parsed.assignmentTasks && Array.isArray(parsed.assignmentTasks)) setAssignmentTasks(parsed.assignmentTasks);
+        if (parsed.examMilestones && Array.isArray(parsed.examMilestones)) setExamMilestones(parsed.examMilestones);
+        if (parsed.mentorshipSlots && Array.isArray(parsed.mentorshipSlots)) setMentorshipSlots(parsed.mentorshipSlots);
+        if (parsed.alumniJobReferrals && Array.isArray(parsed.alumniJobReferrals)) setAlumniJobReferrals(parsed.alumniJobReferrals);
+        if (parsed.referralRequests && Array.isArray(parsed.referralRequests)) setReferralRequests(parsed.referralRequests);
+        if (parsed.industryAmaEvents && Array.isArray(parsed.industryAmaEvents)) setIndustryAmaEvents(parsed.industryAmaEvents);
+        if (parsed.officeHourQueue && Array.isArray(parsed.officeHourQueue)) setOfficeHourQueue(parsed.officeHourQueue);
+        if (parsed.researchOpenings && Array.isArray(parsed.researchOpenings)) setResearchOpenings(parsed.researchOpenings);
+        if (parsed.lectureMaterials && Array.isArray(parsed.lectureMaterials)) setLectureMaterials(parsed.lectureMaterials);
+        if (parsed.emergencyBroadcast !== undefined) setEmergencyBroadcast(parsed.emergencyBroadcast);
+        if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) setAuditLogs(parsed.auditLogs);
+      } else {
+        setAllUsers(INITIAL_USERS);
+        setPosts(INITIAL_POSTS);
+        setReviews(INITIAL_REVIEWS);
+        setCommunities(INITIAL_COMMUNITIES);
+        setServers(INITIAL_DISCORD_SERVERS);
+        setServerMessages(INITIAL_SERVER_MESSAGES);
+        setDirectMessages(INITIAL_DIRECT_MESSAGES);
+        setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
+        setStudyRooms(INITIAL_STUDY_ROOMS);
+        setCourseQuestions(INITIAL_COURSE_QUESTIONS);
+        setMarketplaceItems(INITIAL_MARKETPLACE_ITEMS);
+        setAssignmentTasks(INITIAL_ASSIGNMENTS);
+        setExamMilestones(INITIAL_EXAMS);
+        setMentorshipSlots(INITIAL_MENTORSHIP_SLOTS);
+        setAlumniJobReferrals(INITIAL_ALUMNI_REFERRALS);
+        setReferralRequests(INITIAL_REFERRAL_REQUESTS);
+        setIndustryAmaEvents(INITIAL_AMA_EVENTS);
+        setOfficeHourQueue(INITIAL_OFFICE_HOUR_QUEUE);
+        setResearchOpenings(INITIAL_RESEARCH_OPENINGS);
+        setLectureMaterials(INITIAL_LECTURE_MATERIALS);
+        setEmergencyBroadcast(INITIAL_EMERGENCY_BROADCAST);
+        setAuditLogs(INITIAL_AUDIT_LOGS);
       }
     } catch (e) {
       console.error('Storage hydration error:', e);
+      setAllUsers(INITIAL_USERS);
+      setServers(INITIAL_DISCORD_SERVERS);
+      setPosts(INITIAL_POSTS);
     } finally {
       setHasHydrated(true);
     }
@@ -275,9 +476,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         serverMessages,
         directMessages,
         grievanceReports,
-        savedCollegeIds
+        savedCollegeIds,
+        studyRooms,
+        courseQuestions,
+        marketplaceItems,
+        assignmentTasks,
+        examMilestones,
+        mentorshipSlots,
+        alumniJobReferrals,
+        referralRequests,
+        industryAmaEvents,
+        officeHourQueue,
+        researchOpenings,
+        lectureMaterials,
+        emergencyBroadcast,
+        auditLogs
       };
-      localStorage.setItem('CL_FRESH_DB_V5', JSON.stringify(dataToSave));
+      localStorage.setItem('CL_FRESH_DB_V6', JSON.stringify(dataToSave));
       if (currentUser) {
         localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
         localStorage.setItem('campus_lenz_auth', 'true');
@@ -298,7 +513,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     serverMessages,
     directMessages,
     grievanceReports,
-    savedCollegeIds
+    savedCollegeIds,
+    studyRooms,
+    courseQuestions,
+    marketplaceItems,
+    assignmentTasks,
+    examMilestones,
+    mentorshipSlots,
+    alumniJobReferrals,
+    referralRequests,
+    industryAmaEvents,
+    officeHourQueue,
+    researchOpenings,
+    lectureMaterials,
+    emergencyBroadcast,
+    auditLogs
   ]);
 
   // 3. Automated Dynamic Live Activity Ticker (Runs in Background)
@@ -352,9 +581,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Complete Data Wipe & Reset Engine
+  // Complete Data Wipe & Reset Engine - restores rich baseline data
   const resetAllUserData = () => {
     try {
+      localStorage.removeItem('CL_FRESH_DB_V6');
       localStorage.removeItem('CL_FRESH_DB_V5');
       localStorage.removeItem('CL_DYNAMIC_DB_V4');
       localStorage.removeItem('campus_lenz_user');
@@ -362,19 +592,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('campus_lenz_saved');
     } catch {}
 
-    setAllUsers([]);
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    setPosts([]);
-    setReviews([]);
-    setCommunities([]);
-    setServers([]);
-    setServerMessages([]);
-    setDirectMessages([]);
-    setGrievanceReports([]);
+    setAllUsers(INITIAL_USERS);
+    setCurrentUser(INITIAL_USERS[0]);
+    setIsAuthenticated(true);
+    setPosts(INITIAL_POSTS);
+    setReviews(INITIAL_REVIEWS);
+    setCommunities(INITIAL_COMMUNITIES);
+    setServers(INITIAL_DISCORD_SERVERS);
+    setServerMessages(INITIAL_SERVER_MESSAGES);
+    setDirectMessages(INITIAL_DIRECT_MESSAGES);
+    setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
     setSavedCollegeIds([]);
     setStagedLivePosts([]);
     setIsLiveFeedActive(false);
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(INITIAL_USERS[0]));
+      localStorage.setItem('campus_lenz_auth', 'true');
+    } catch {}
   };
 
   // Initialize a fresh test persona on demand for seamless instant role testing
@@ -452,6 +687,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Professional Login Method: verifies identifier against database & computes proper destination
+  // Supports instant authentication for existing personas AND dynamic auto-provisioning for any username
   const loginUser = (
     identifier: string,
     password?: string,
@@ -471,17 +707,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       u => u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId
     );
 
-    // 2. If not matched by exact text, check if identifier matches portalRole
-    if (!matched && portalRole) {
+    // 2. If not matched by exact text, check if identifier is a demo keyword for portalRole
+    if (!matched && portalRole && (cleanId.includes(portalRole) || cleanId === 'demo' || cleanId === 'test')) {
       matched = allUsers.find(u => u.role === portalRole);
     }
 
+    // 3. Dynamic Local System Auto-Provisioning:
+    // If not found in database, dynamically provision and add the persona so anyone can sign in anywhere!
     if (!matched) {
-      return {
-        success: false,
-        redirectUrl: '/login',
-        message: `Account "${identifier}" not found in database. Please register your account or click "Quick Initialize Test Account".`
+      const assignedRole: UserRole = portalRole || 'student';
+      const cleanUsername = cleanId.replace(/[^a-zA-Z0-9_.-]/g, '_').toLowerCase();
+      const displayName = identifier.includes('@')
+        ? identifier.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        : identifier.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      matched = {
+        id: `user-local-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        username: cleanUsername || `user_${Date.now()}`,
+        email: identifier.includes('@') ? identifier : `${cleanUsername}@campuslenz.edu`,
+        role: assignedRole,
+        fullName: displayName,
+        headline:
+          assignedRole === 'student'
+            ? 'Campus Scholar | Active Learner'
+            : assignedRole === 'alumni'
+            ? 'Alumni Industry Mentor | Tech Professional'
+            : assignedRole === 'institution'
+            ? 'Official Institutional Representative'
+            : assignedRole === 'faculty'
+            ? 'Faculty Mentor & Academic Guide'
+            : 'Campus Administrator & Moderator',
+        bio: `Member on Campus Lenz local system base.`,
+        collegeId: 'col-psg',
+        collegeName: 'PSG College of Technology',
+        department: 'Computer Science & Engineering',
+        course: assignedRole === 'student' ? 'B.Tech CSE' : undefined,
+        graduationBatch: assignedRole === 'student' ? '2026' : assignedRole === 'alumni' ? '2023' : undefined,
+        isVerified: true,
+        followersCount: 12,
+        followingCount: 15,
+        followers: ['user-junith-1', 'user-arun-2'],
+        following: ['user-karthika-3', 'user-student-demo'],
+        createdAt: new Date().toISOString()
       };
+
+      setAllUsers(prev => [matched!, ...prev]);
     }
 
     setCurrentUser(matched);
@@ -603,11 +873,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem('campus_lenz_user');
       localStorage.setItem('campus_lenz_auth', 'false');
-      const rawDb = localStorage.getItem('CL_FRESH_DB_V5');
+      const rawDb = localStorage.getItem('CL_FRESH_DB_V6');
       if (rawDb) {
         const parsed = JSON.parse(rawDb);
         parsed.currentUser = null;
-        localStorage.setItem('CL_FRESH_DB_V5', JSON.stringify(parsed));
+        localStorage.setItem('CL_FRESH_DB_V6', JSON.stringify(parsed));
       }
     } catch {}
   };
@@ -624,6 +894,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const toggleSavePost = (postId: string): { success: boolean; message: string } => {
+    let isSavedNow = false;
+    setSavedPostIds(prev => {
+      if (prev.includes(postId)) {
+        isSavedNow = false;
+        return prev.filter(id => id !== postId);
+      } else {
+        isSavedNow = true;
+        return [...prev, postId];
+      }
+    });
+    return {
+      success: true,
+      message: isSavedNow ? '🔖 Post saved to your bookmarks!' : 'Post removed from bookmarks.'
+    };
+  };
+
   const addReview = (newRev: Omit<CollegeReview, 'id' | 'createdAt'>) => {
     const fullReview: CollegeReview = {
       ...newRev,
@@ -633,7 +920,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setReviews(prev => [fullReview, ...prev]);
   };
 
-  // Student Posting Capability Check
+  // Alumni Creator Requirement & Quota Check
+  const checkAlumniPostEligibility = (user?: UserProfile | null) => {
+    const target = user || currentUser;
+    if (!target) {
+      return {
+        eligible: false,
+        followerCount: 0,
+        requiredFollowers: 5,
+        weeklyCount: 0,
+        maxWeekly: 5,
+        message: 'Sign in to verify posting eligibility.'
+      };
+    }
+
+    if (target.role !== 'alumni') {
+      return {
+        eligible: true,
+        followerCount: target.followers?.length || target.followersCount || 0,
+        requiredFollowers: 0,
+        weeklyCount: 0,
+        maxWeekly: 999
+      };
+    }
+
+    const followerCount = target.followers?.length || target.followersCount || 0;
+    const requiredFollowers = 5;
+    const maxWeekly = 5;
+
+    // Rolling 7 days count
+    const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
+    const weeklyCount = posts.filter(
+      p => p.authorId === target.id && new Date(p.createdAt).getTime() >= sevenDaysAgo
+    ).length;
+
+    if (target.isBanned) {
+      const isStillBanned = target.bannedUntil ? new Date(target.bannedUntil).getTime() > Date.now() : true;
+      if (isStillBanned) {
+        return {
+          eligible: false,
+          followerCount,
+          requiredFollowers,
+          weeklyCount,
+          maxWeekly,
+          message: `🚨 Account Cooldown Active: ${target.bannedReason || 'Temporary restriction due to vulgarity or ragebait policy violation.'}`
+        };
+      }
+    }
+
+    if (followerCount < requiredFollowers) {
+      return {
+        eligible: false,
+        followerCount,
+        requiredFollowers,
+        weeklyCount,
+        maxWeekly,
+        message: `🔒 Creator Requirement: 5+ followers needed to post publicly (Current: ${followerCount}/5). Connect and mentor students in DMs to unlock!`
+      };
+    }
+
+    if (weeklyCount >= maxWeekly) {
+      return {
+        eligible: false,
+        followerCount,
+        requiredFollowers,
+        weeklyCount,
+        maxWeekly,
+        message: `⏱️ Weekly Quota Exceeded: Alumni accounts are limited to 5 posts per rolling week (${weeklyCount}/${maxWeekly} used).`
+      };
+    }
+
+    return {
+      eligible: true,
+      followerCount,
+      requiredFollowers,
+      weeklyCount,
+      maxWeekly
+    };
+  };
+
+  // Comprehensive Role-Based Post Creation Engine
   const addPost = (newPost: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => {
     if (!currentUser) {
       return {
@@ -641,29 +1007,115 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         message: 'Please sign in or register to publish a post.'
       };
     }
-    if (currentUser.role === 'institution') {
+
+    // Check account ban / cooldown status
+    if (currentUser.isBanned) {
+      const isStillBanned = currentUser.bannedUntil ? new Date(currentUser.bannedUntil).getTime() > Date.now() : true;
+      if (isStillBanned) {
+        return {
+          success: false,
+          message: `🚨 Account Restricted: Cooldown active until ${currentUser.bannedUntil ? new Date(currentUser.bannedUntil).toLocaleString() : 'further notice'}. Reason: ${currentUser.bannedReason || 'Policy violation'}.`
+        };
+      }
+    }
+
+    // Role Limitation: ALUMNI (Follower threshold, 5/week quota)
+    if (currentUser.role === 'alumni') {
+      const eligibility = checkAlumniPostEligibility(currentUser);
+      if (!eligibility.eligible) {
+        return {
+          success: false,
+          message: eligibility.message || 'Alumni account does not meet posting eligibility requirements.'
+        };
+      }
+    }
+
+    // AUTOMATED OPEN-SOURCE AI MODERATION SCAN (toxic-bert + distilbert + nsfwjs)
+    const aiResult = runUnifiedAIModeration(newPost.content, newPost.imageUrl, aiModelSettings);
+
+    // 1. Critical Toxicity / Severe Hate Speech / Threat -> AUTOMATED TOXICITY BAN
+    if (aiModelSettings.autoBanEnabled && (aiResult.actionRecommended === 'auto_ban' || aiResult.toxicity.score >= aiModelSettings.autoBanThreshold)) {
+      const nextStrikes = (currentUser.strikesCount || 0) + 1;
+      const bannedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        isBanned: true,
+        bannedUntil,
+        bannedReason: `Automated AI Ban: ${aiResult.actionReason || 'Severe toxicity violation'} (toxic-bert score: ${aiResult.toxicity.score}%)`,
+        strikesCount: nextStrikes,
+        lastStrikeTimestamp: new Date().toISOString()
+      };
+
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+      try {
+        localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+      } catch {}
+
+      logAdminAction(
+        'AUTOMATED_TOXICITY_BAN',
+        `@${currentUser.username}`,
+        `AI Model unitary/toxic-bert auto-banned user for 48h (Strike #${nextStrikes}). Violation: "${aiResult.actionReason}". Offending snippet: "${newPost.content.slice(0, 60)}..."`,
+        'critical'
+      );
+
       return {
         success: false,
-        message: 'Institutions can only repost verified student posts to their profile, not create standalone student posts.'
+        message: `🚨 Automated AI Action: Post rejected and account restricted for 48 hours due to severe toxicity violation (Score: ${aiResult.toxicity.score}%). Recorded in administrative audit log.`
       };
     }
+
+    // Quarantine Flagging
+    const isQuarantined = aiResult.actionRecommended === 'quarantine';
+    if (isQuarantined) {
+      logAdminAction(
+        'AI_AUTOMATED_QUARANTINE',
+        'Campus Stream',
+        `Open-source AI quarantined post by @${currentUser.username} (${aiResult.actionReason})`,
+        'warning'
+      );
+    }
+
+    // Role Limitation: FACULTY (Only knowledge-based content)
+    let isKnowledgeBased = false;
+    let finalTopic = newPost.topic;
     if (currentUser.role === 'faculty') {
-      return {
-        success: false,
-        message: 'Faculty members have preview and commenting rights on student posts. Student post authoring is reserved for Students and Alumni.'
-      };
+      isKnowledgeBased = true;
+      const academicTopics = ['Research & Tech', 'Academic Guidance', 'Career & Internships', 'Campus Notice', 'Lecture Notes', 'Knowledge Base'];
+      if (!newPost.topic || !academicTopics.includes(newPost.topic)) {
+        finalTopic = 'Academic Guidance';
+      }
     }
+
+    // Role Limitation: INSTITUTION (Official Announcements)
+    if (currentUser.role === 'institution') {
+      finalTopic = finalTopic || 'Official Announcement';
+    }
+
+    // Role Limitation: STUDENT (Full social capabilities + anonymous toggle)
+    const isAnonymous = currentUser.role === 'student' ? Boolean(newPost.isAnonymous) : false;
 
     const post: Post = {
       ...newPost,
       id: `post-${Date.now()}`,
+      topic: finalTopic,
+      isAnonymous,
+      isKnowledgeBased,
       likes: [],
       likesCount: 0,
       comments: [],
       commentsCount: 0,
       sharesCount: 0,
       createdAt: new Date().toISOString(),
-      moderationStatus: 'normal'
+      moderationStatus: aiResult.isHarmful ? 'harmful' : aiResult.isSensitive ? 'sensitive' : 'normal',
+      sentiment: aiResult.sentiment.label,
+      sentimentScore: aiResult.sentiment.polarity,
+      toxicityScore: aiResult.toxicity.score,
+      isSensitive: aiResult.isSensitive,
+      sensitiveReason: aiResult.actionReason,
+      imageSafety: aiResult.imageSafety,
+      aiModelMetadata: `${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
+      isQuarantined
     };
     setPosts(prev => [post, ...prev]);
 
@@ -798,6 +1250,331 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setPosts(prev => prev.filter(p => p.id !== postId));
     return { success: true, message: 'Post deleted permanently.' };
+  };
+
+  const deleteComment = (postId: string, commentId: string) => {
+    const isAdmin = currentUser?.role === 'admin';
+    if (!isAdmin) {
+      return { success: false, message: 'Super Admin clearance required to delete comments.' };
+    }
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id !== postId) return p;
+        const newComments = p.comments.filter(c => c.id !== commentId);
+        return {
+          ...p,
+          comments: newComments,
+          commentsCount: newComments.length
+        };
+      })
+    );
+    return { success: true, message: 'Comment deleted successfully.' };
+  };
+
+  // Full User Deletion Engine (Super Admin Exclusive)
+  const deleteUser = (userId: string): { success: boolean; message: string } => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, message: 'Unauthorized. Super Admin clearance required to delete accounts.' };
+    }
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (!targetUser) {
+      return { success: false, message: 'User account not found in database.' };
+    }
+    if (targetUser.id === currentUser.id) {
+      return { success: false, message: 'Safety check: Cannot delete your own active root administrator session.' };
+    }
+
+    setAllUsers(prev => prev.filter(u => u.id !== userId));
+    setPosts(prev => prev.filter(p => p.authorId !== userId));
+    return { success: true, message: `Account @${targetUser.username} (${targetUser.fullName}) and their posts have been deleted permanently.` };
+  };
+
+  // Unban restricted user (Super Admin)
+  const unbanUser = (userId: string): { success: boolean; message: string } => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, message: 'Only administrators can unban accounts.' };
+    }
+    setAllUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        return { ...u, isBanned: false, bannedUntil: undefined, bannedReason: undefined };
+      }
+      return u;
+    }));
+    return { success: true, message: 'Account restrictions and cooldown lifted successfully.' };
+  };
+
+  // Dynamic Role-Aware Repost Method
+  const repostPost = (postId: string): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Please sign in to repost.' };
+
+    if (currentUser.role === 'alumni') {
+      return { success: false, message: 'Alumni mentorship accounts cannot repost feed items.' };
+    }
+
+    const targetPost = posts.find(p => p.id === postId);
+    if (!targetPost) return { success: false, message: 'Post not found.' };
+
+    // Faculty limitation: can ONLY repost official Institution posts
+    if (currentUser.role === 'faculty') {
+      if (targetPost.authorRole !== 'institution') {
+        return {
+          success: false,
+          message: 'Policy Limitation: Faculty members can only repost official Institution announcements, not student posts.'
+        };
+      }
+    }
+
+    // Institution limitation: reposts student achievement posts
+    if (currentUser.role === 'institution') {
+      if (targetPost.authorRole !== 'student') {
+        return {
+          success: false,
+          message: 'Policy Limitation: Institutions can only repost verified student achievements to the official university showcase.'
+        };
+      }
+    }
+
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id === postId) {
+          const updated: Post = {
+            ...p,
+            sharesCount: p.sharesCount + 1
+          };
+          if (currentUser.role === 'institution') {
+            updated.repostedByInstitution = {
+              institutionId: currentUser.id,
+              institutionName: currentUser.fullName,
+              repostedAt: new Date().toISOString()
+            };
+          } else if (currentUser.role === 'faculty') {
+            updated.repostedByFaculty = {
+              facultyId: currentUser.id,
+              facultyName: currentUser.fullName,
+              repostedAt: new Date().toISOString()
+            };
+          } else if (currentUser.role === 'student') {
+            updated.repostedByStudent = {
+              studentId: currentUser.id,
+              studentName: currentUser.fullName,
+              repostedAt: new Date().toISOString()
+            };
+          }
+          return updated;
+        }
+        return p;
+      })
+    );
+
+    return {
+      success: true,
+      message: `Reposted successfully to your ${currentUser.role} feed!`
+    };
+  };
+
+  // Content Reporting (Faculty, Institution & Admin)
+  const reportPost = (
+    postId: string,
+    reason: string,
+    category: string = 'Spreading Rumors / Misinformation'
+  ): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Please sign in to report posts.' };
+
+    if (currentUser.role === 'alumni') {
+      return { success: false, message: 'Alumni accounts cannot report content. Please contact campus administration.' };
+    }
+
+    const targetPost = posts.find(p => p.id === postId);
+    if (!targetPost) return { success: false, message: 'Post not found.' };
+
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id === postId) {
+          const existingReports = p.reportedBy || [];
+          const newReport = {
+            reporterId: currentUser.id,
+            reporterRole: currentUser.role,
+            reporterName: currentUser.fullName,
+            reason: `${category}: ${reason.trim() || 'Contains misleading claims or violates collegiate guidelines.'}`,
+            reportedAt: new Date().toISOString()
+          };
+          const updated: Post = {
+            ...p,
+            reportedBy: [...existingReports, newReport],
+            moderationStatus: 'sensitive'
+          };
+          if (currentUser.role === 'institution') {
+            updated.reportedByInstitution = {
+              institutionName: currentUser.fullName,
+              reason: `${category}: ${reason.trim() || 'Official Institution Dispute / False Claim notice.'}`,
+              reportedAt: new Date().toISOString()
+            };
+          }
+          return updated;
+        }
+        return p;
+      })
+    );
+
+    return {
+      success: true,
+      message: `Post reported to Institution governance desk (#${postId.slice(-6)}).`
+    };
+  };
+
+  // Join & Exit Server Communities (Students & Peers)
+  const joinServer = (serverId: string): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Sign in required to join this server.' };
+    const joined = currentUser.joinedServerIds || [];
+    if (joined.includes(serverId)) return { success: true, message: 'Already a member of this community.' };
+
+    const nextJoined = [...joined, serverId];
+    const updatedUser: UserProfile = { ...currentUser, joinedServerIds: nextJoined };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    setServers(prev => prev.map(s => {
+      if (s.id === serverId) {
+        const memberIds = s.memberIds || [];
+        return {
+          ...s,
+          memberCount: s.memberCount + 1,
+          memberIds: memberIds.includes(currentUser.id) ? memberIds : [...memberIds, currentUser.id]
+        };
+      }
+      return s;
+    }));
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+    } catch {}
+
+    return { success: true, message: 'Joined server community successfully!' };
+  };
+
+  const leaveServer = (serverId: string): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Sign in required.' };
+    const joined = currentUser.joinedServerIds || [];
+    const nextJoined = joined.filter(id => id !== serverId);
+    const updatedUser: UserProfile = { ...currentUser, joinedServerIds: nextJoined };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    setServers(prev => prev.map(s => {
+      if (s.id === serverId) {
+        const memberIds = (s.memberIds || []).filter(id => id !== currentUser.id);
+        return {
+          ...s,
+          memberCount: Math.max(1, s.memberCount - 1),
+          memberIds
+        };
+      }
+      return s;
+    }));
+
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+    } catch {}
+
+    return { success: true, message: 'Exited server community.' };
+  };
+
+  // Join & Exit Community Sub-Groups
+  const joinGroup = (serverId: string, groupId: string): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Sign in required.' };
+    const joined = currentUser.joinedGroupIds || [];
+    if (joined.includes(groupId)) return { success: true, message: 'Already a member of this group.' };
+    const nextJoined = [...joined, groupId];
+    const updatedUser: UserProfile = { ...currentUser, joinedGroupIds: nextJoined };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    return { success: true, message: 'Joined group discussion!' };
+  };
+
+  const leaveGroup = (serverId: string, groupId: string): { success: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Sign in required.' };
+    const joined = currentUser.joinedGroupIds || [];
+    const nextJoined = joined.filter(id => id !== groupId);
+    const updatedUser: UserProfile = { ...currentUser, joinedGroupIds: nextJoined };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    return { success: true, message: 'Left group discussion.' };
+  };
+
+  // Faculty Community Proposal Engine
+  const requestFacultyCommunity = (
+    name: string,
+    description: string,
+    collegeId: string
+  ): { success: boolean; message: string; server?: DiscordServer } => {
+    if (!currentUser || currentUser.role !== 'faculty') {
+      return { success: false, message: 'Only faculty members can request department community pages.' };
+    }
+    const matchedCol = colleges.find(c => c.id === collegeId) || colleges[0];
+    const newServer: DiscordServer = {
+      id: `server-fac-${Date.now()}`,
+      name: name.trim(),
+      description: description.trim() || 'Department academic community page.',
+      collegeId: matchedCol.id,
+      collegeName: matchedCol.name,
+      institutionOwnerId: matchedCol.id,
+      memberCount: 1,
+      channels: [
+        {
+          id: `ch-ann-${Date.now()}`,
+          name: 'faculty-notices',
+          description: 'Official department notices and lecture broadcasts.',
+          type: 'announcements',
+          isAnnouncementOnly: true,
+          isRagebaitProtected: true,
+          memberCount: 1
+        },
+        {
+          id: `ch-acad-${Date.now()}`,
+          name: 'academic-discussions',
+          description: 'Faculty-guided curriculum and research question desk.',
+          type: 'general',
+          isRagebaitProtected: false,
+          memberCount: 1
+        }
+      ],
+      antiRagebaitRules: [
+        'Strict collegiate decorum and mutual respect required.',
+        'Zero ragebait or slander tolerated.',
+        'Official institution governance applies.'
+      ],
+      pendingApproval: true,
+      isApprovedByInstitution: false,
+      requestedByFacultyId: currentUser.id,
+      requestedByFacultyName: currentUser.fullName,
+      memberIds: [currentUser.id]
+    };
+
+    setServers(prev => [newServer, ...prev]);
+    return {
+      success: true,
+      message: `Community proposal for "${name}" submitted! Awaiting review and authorization from ${matchedCol.name} Administration.`,
+      server: newServer
+    };
+  };
+
+  const approveFacultyCommunity = (serverId: string): { success: boolean; message: string } => {
+    if (!currentUser || (currentUser.role !== 'institution' && currentUser.role !== 'admin')) {
+      return { success: false, message: 'Only institutions or admins can authorize community proposals.' };
+    }
+    setServers(prev => prev.map(s => {
+      if (s.id === serverId) {
+        return { ...s, pendingApproval: false, isApprovedByInstitution: true };
+      }
+      return s;
+    }));
+    return { success: true, message: 'Faculty community page approved and deployed officially!' };
+  };
+
+  const rejectFacultyCommunity = (serverId: string): { success: boolean; message: string } => {
+    if (!currentUser || (currentUser.role !== 'institution' && currentUser.role !== 'admin')) {
+      return { success: false, message: 'Only institutions or admins can decline community proposals.' };
+    }
+    setServers(prev => prev.filter(s => s.id !== serverId));
+    return { success: true, message: 'Community request rejected and cleared.' };
   };
 
   const toggleFollowUser = (targetUserId: string) => {
@@ -1077,6 +1854,8 @@ Available Commands:
   sysinfo / status  - Display runtime diagnostics, engine status & memory metrics
   whoami            - Display active session identity, role, and authorization clearance
   users             - Show all registered users across the 5 role portals
+  delete-user <usr> - Permanently delete a user account and their content
+  unban <usr>       - Lift toxicity restriction / cooldown on a user
   colleges          - Print verified college database directory count and index
   posts             - Inspect post volume, engagement analytics & flagged entries
   reports           - List institutional false-info reports and private student grievances
@@ -1115,6 +1894,24 @@ Grievance Tunnel: E2E Institution-Only Routed (Student PII protected)`;
         });
         const summary = Object.entries(roleCounts).map(([r, c]) => `  ${r.padEnd(12)}: ${c} active`).join('\n');
         return `REGISTERED USER DIRECTORY (${allUsers.length} total personas):\n${summary}\n\nTop Profiles:\n${allUsers.slice(0, 6).map(u => `  * ${u.username.padEnd(20)} [${u.role.padEnd(11)}] - ${u.fullName}`).join('\n')}`;
+
+      case 'delete-user': {
+        const targetUsername = parts[1];
+        if (!targetUsername) return "Usage: delete-user <username>";
+        const target = allUsers.find(u => u.username.toLowerCase() === targetUsername.toLowerCase());
+        if (!target) return `User '@${targetUsername}' not found in database.`;
+        deleteUser(target.id);
+        return `[SUCCESS] User '@${target.username}' (${target.fullName}) has been permanently deleted from database.`;
+      }
+
+      case 'unban': {
+        const targetUsername = parts[1];
+        if (!targetUsername) return "Usage: unban <username>";
+        const target = allUsers.find(u => u.username.toLowerCase() === targetUsername.toLowerCase());
+        if (!target) return `User '@${targetUsername}' not found in database.`;
+        const res = unbanUser(target.id);
+        return res.message;
+      }
 
       case 'colleges':
         return `COLLEGE DIRECTORY (${colleges.length} Institutions Indexed):
@@ -1180,6 +1977,315 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
     }
   };
 
+  // --- Advanced Role Feature Actions ---
+  const addCourseQuestion = (q: Omit<CourseQuestion, 'id' | 'createdAt' | 'upvotes' | 'answers'>) => {
+    const newQuestion: CourseQuestion = {
+      ...q,
+      id: `q-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      upvotes: 0,
+      answers: []
+    };
+    setCourseQuestions(prev => [newQuestion, ...prev]);
+    return { success: true, message: 'Question posted to Course Q&A forum!' };
+  };
+
+  const upvoteCourseQuestion = (questionId: string) => {
+    setCourseQuestions(prev =>
+      prev.map(q => q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q)
+    );
+  };
+
+  const addCourseAnswer = (questionId: string, content: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to answer.' };
+    const isFaculty = currentUser.role === 'faculty';
+    const newAnswer: CourseAnswer = {
+      id: `ans-${Date.now()}`,
+      questionId,
+      authorId: currentUser.id,
+      authorName: currentUser.fullName,
+      authorRole: currentUser.role,
+      content,
+      createdAt: new Date().toISOString(),
+      upvotes: 0,
+      isFacultyEndorsed: isFaculty,
+      endorsedByName: isFaculty ? currentUser.fullName : undefined
+    };
+    setCourseQuestions(prev =>
+      prev.map(q => q.id === questionId ? { ...q, answers: [...q.answers, newAnswer] } : q)
+    );
+    return { success: true, message: isFaculty ? 'Faculty endorsed answer published!' : 'Answer posted!' };
+  };
+
+  const addMarketplaceItem = (item: Omit<MarketplaceItem, 'id' | 'createdAt' | 'isReserved'>) => {
+    const newItem: MarketplaceItem = {
+      ...item,
+      id: `m-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      isReserved: false
+    };
+    setMarketplaceItems(prev => [newItem, ...prev]);
+    return { success: true, message: 'Item listed on campus marketplace!' };
+  };
+
+  const reserveMarketplaceItem = (itemId: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to reserve items.' };
+    setMarketplaceItems(prev =>
+      prev.map(m => m.id === itemId ? { ...m, isReserved: true, reservedByStudentName: currentUser.fullName } : m)
+    );
+    return { success: true, message: 'Item reserved! Check pickup location.' };
+  };
+
+  const addAssignmentTask = (task: Omit<AssignmentTask, 'id' | 'isCompleted'>) => {
+    const newTask: AssignmentTask = {
+      ...task,
+      id: `task-${Date.now()}`,
+      isCompleted: false
+    };
+    setAssignmentTasks(prev => [newTask, ...prev]);
+    return { success: true, message: 'Assignment added to checklist!' };
+  };
+
+  const toggleAssignmentTask = (taskId: string) => {
+    setAssignmentTasks(prev =>
+      prev.map(t => t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t)
+    );
+  };
+
+  const deleteAssignmentTask = (taskId: string) => {
+    setAssignmentTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const bookMentorshipSlot = (slotId: string, notes?: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to book mentorship.' };
+    setMentorshipSlots(prev =>
+      prev.map(s => s.id === slotId ? {
+        ...s,
+        isBooked: true,
+        bookedByStudentId: currentUser.id,
+        bookedByStudentName: currentUser.fullName,
+        notes: notes || s.notes
+      } : s)
+    );
+    return { success: true, message: '1-on-1 Mentorship session confirmed!' };
+  };
+
+  const cancelMentorshipBooking = (slotId: string) => {
+    setMentorshipSlots(prev =>
+      prev.map(s => s.id === slotId ? {
+        ...s,
+        isBooked: false,
+        bookedByStudentId: undefined,
+        bookedByStudentName: undefined
+      } : s)
+    );
+    return { success: true, message: 'Booking canceled. Slot is now open.' };
+  };
+
+  const addAlumniJobReferral = (ref: Omit<AlumniJobReferral, 'id' | 'createdAt' | 'referralRequestsCount'>) => {
+    const newRef: AlumniJobReferral = {
+      ...ref,
+      id: `ref-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      referralRequestsCount: 0
+    };
+    setAlumniJobReferrals(prev => [newRef, ...prev]);
+    return { success: true, message: 'Job opening posted to Alumni Referral Board!' };
+  };
+
+  const requestJobReferral = (referralId: string, studentGpa: number, resumeLink: string, note: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to request referral.' };
+    const newReq: ReferralRequest = {
+      id: `req-${Date.now()}`,
+      referralId,
+      studentId: currentUser.id,
+      studentName: currentUser.fullName,
+      studentGpa,
+      resumeLink,
+      note,
+      status: 'pending',
+      submittedAt: new Date().toISOString()
+    };
+    setReferralRequests(prev => [newReq, ...prev]);
+    setAlumniJobReferrals(prev =>
+      prev.map(r => r.id === referralId ? { ...r, referralRequestsCount: r.referralRequestsCount + 1 } : r)
+    );
+    return { success: true, message: 'Referral request submitted to Alumni!' };
+  };
+
+  const upvoteAmaQuestion = (eventId: string, questionId: string) => {
+    setIndustryAmaEvents(prev =>
+      prev.map(evt => evt.id === eventId ? {
+        ...evt,
+        questions: evt.questions.map(q => q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q)
+      } : evt)
+    );
+  };
+
+  const submitAmaQuestion = (eventId: string, questionText: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to ask questions.' };
+    const newQ = {
+      id: `ama-q-${Date.now()}`,
+      authorName: currentUser.fullName,
+      question: questionText,
+      upvotes: 1
+    };
+    setIndustryAmaEvents(prev =>
+      prev.map(evt => evt.id === eventId ? {
+        ...evt,
+        questions: [...evt.questions, newQ]
+      } : evt)
+    );
+    return { success: true, message: 'Question added to AMA stage queue!' };
+  };
+
+  const joinOfficeHourQueue = (courseCode: string, topic: string) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to join office hours.' };
+    const newItem: OfficeHourQueueItem = {
+      id: `q-item-${Date.now()}`,
+      studentId: currentUser.id,
+      studentName: currentUser.fullName,
+      courseCode,
+      topic,
+      joinedAt: 'Just now',
+      status: 'waiting'
+    };
+    setOfficeHourQueue(prev => [...prev, newItem]);
+    return { success: true, message: 'Checked into Virtual Office Hours queue!' };
+  };
+
+  const admitNextOfficeHourStudent = () => {
+    const waiting = officeHourQueue.find(i => i.status === 'waiting');
+    if (!waiting) return { success: false, message: 'No students waiting in queue.' };
+    setOfficeHourQueue(prev =>
+      prev.map(i => i.id === waiting.id ? { ...i, status: 'in_session' } : i)
+    );
+    return { success: true, message: `Admitted ${waiting.studentName} into office hours session!` };
+  };
+
+  const resolveOfficeHourStudent = (queueId: string) => {
+    setOfficeHourQueue(prev => prev.filter(i => i.id !== queueId));
+    return { success: true, message: 'Student inquiry marked resolved!' };
+  };
+
+  const addResearchOpening = (opening: Omit<ResearchOpening, 'id' | 'status' | 'applicants'>) => {
+    const newOp: ResearchOpening = {
+      ...opening,
+      id: `res-${Date.now()}`,
+      status: 'open',
+      applicants: []
+    };
+    setResearchOpenings(prev => [newOp, ...prev]);
+    return { success: true, message: 'Research & TA opening published!' };
+  };
+
+  const applyToResearchOpening = (openingId: string, statement: string, studentGpa: number) => {
+    if (!currentUser) return { success: false, message: 'Please sign in to apply.' };
+    const newApp: ResearchApplication = {
+      id: `app-${Date.now()}`,
+      studentId: currentUser.id,
+      studentName: currentUser.fullName,
+      studentGpa,
+      statement,
+      status: 'pending',
+      appliedAt: 'Just now'
+    };
+    setResearchOpenings(prev =>
+      prev.map(op => op.id === openingId ? { ...op, applicants: [...op.applicants, newApp] } : op)
+    );
+    return { success: true, message: 'Application submitted to Professor!' };
+  };
+
+  const reviewResearchApplication = (openingId: string, applicationId: string, decision: 'accepted' | 'declined') => {
+    setResearchOpenings(prev =>
+      prev.map(op => op.id === openingId ? {
+        ...op,
+        applicants: op.applicants.map(app => app.id === applicationId ? { ...app, status: decision } : app)
+      } : op)
+    );
+    return { success: true, message: `Candidate application marked as ${decision}.` };
+  };
+
+  const addLectureMaterialVersion = (mat: Omit<LectureMaterialVersion, 'id' | 'uploadedAt' | 'downloadCount'>) => {
+    const newMat: LectureMaterialVersion = {
+      ...mat,
+      id: `lec-${Date.now()}`,
+      uploadedAt: 'Just now',
+      downloadCount: 1
+    };
+    setLectureMaterials(prev => [newMat, ...prev]);
+    return { success: true, message: 'New lecture material version published!' };
+  };
+
+  const logAdminAction = (actionType: string, targetEntity: string, details: string, severity: 'info' | 'warning' | 'critical' = 'info') => {
+    const newEntry: AuditLogEntry = {
+      id: `log-${Date.now()}`,
+      adminId: currentUser?.id || 'sys-admin',
+      adminName: currentUser?.fullName || 'System Administrator',
+      actionType,
+      targetEntity,
+      details,
+      timestamp: new Date().toISOString(),
+      severity
+    };
+    setAuditLogs(prev => [newEntry, ...prev]);
+  };
+
+  const triggerEmergencyBroadcast = (title: string, message: string, severity: 'critical' | 'warning' | 'notice') => {
+    const bc: EmergencyBroadcast = {
+      id: `bc-${Date.now()}`,
+      institutionId: currentUser?.id || 'inst-admin',
+      institutionName: currentUser?.fullName || 'Campus Administration',
+      severity,
+      title,
+      message,
+      issuedAt: 'Just now',
+      active: true,
+      targetAudiences: ['Students', 'Faculty', 'Staff']
+    };
+    setEmergencyBroadcast(bc);
+    logAdminAction('EMERGENCY_BROADCAST_TRIGGERED', 'Site-Wide Alert', `Institution deployed ${severity.toUpperCase()} broadcast: "${title}"`, severity === 'critical' ? 'critical' : 'warning');
+    return { success: true, message: 'Emergency broadcast published across campus network!' };
+  };
+
+  const dismissEmergencyBroadcast = () => {
+    setEmergencyBroadcast(null);
+    logAdminAction('EMERGENCY_BROADCAST_DISMISSED', 'Site-Wide Alert', 'Emergency broadcast dismissed by administrator', 'info');
+    return { success: true, message: 'Emergency broadcast deactivated.' };
+  };
+
+  const runAIToxicityCheck = (text: string) => {
+    const lower = text.toLowerCase();
+    const toxicKeywords = ['idiot', 'scam', 'fraud', 'hate', 'kill', 'threat', 'stupid', 'harass', 'abusive'];
+    const ragebaitKeywords = ['worst college', 'don’t join', 'complete waste', 'disaster', 'scammed'];
+
+    let toxicityScore = 6;
+    let sentiment: 'positive' | 'neutral' | 'toxic' | 'ragebait' = 'positive';
+    let flagReason: string | undefined = undefined;
+
+    for (const kw of toxicKeywords) {
+      if (lower.includes(kw)) {
+        toxicityScore = Math.max(toxicityScore, 86);
+        sentiment = 'toxic';
+        flagReason = `Identified toxic language pattern ("${kw}")`;
+        break;
+      }
+    }
+    for (const rw of ragebaitKeywords) {
+      if (lower.includes(rw)) {
+        toxicityScore = Math.max(toxicityScore, 74);
+        sentiment = 'ragebait';
+        flagReason = `Flagged sensationalist ragebait phrase ("${rw}")`;
+        break;
+      }
+    }
+    if (toxicityScore < 30) {
+      sentiment = lower.includes('great') || lower.includes('excellent') || lower.includes('congrats') || lower.includes('helpful') ? 'positive' : 'neutral';
+    }
+
+    return { toxicityScore, sentiment, flagReason };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1205,6 +2311,8 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         grievanceReports,
         savedCollegeIds,
         toggleSaveCollege,
+        savedPostIds,
+        toggleSavePost,
         addReview,
         addPost,
         toggleLikePost,
@@ -1215,8 +2323,21 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         getUserById,
         updateProfile,
         repostToInstitution,
+        repostPost,
         reportFalseInfoPost,
+        reportPost,
         deletePost,
+        deleteComment,
+        deleteUser,
+        unbanUser,
+        joinServer,
+        leaveServer,
+        joinGroup,
+        leaveGroup,
+        requestFacultyCommunity,
+        approveFacultyCommunity,
+        rejectFacultyCommunity,
+        checkAlumniPostEligibility,
         sendServerMessage,
         createDiscordServer,
         addChannelToCommunity,
@@ -1228,7 +2349,51 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         unreadLivePostsCount: stagedLivePosts.length,
         applyUnreadLivePosts,
         triggerLiveActivity,
-        resetAllUserData
+        resetAllUserData,
+        studyRooms,
+        courseQuestions,
+        addCourseQuestion,
+        upvoteCourseQuestion,
+        addCourseAnswer,
+        marketplaceItems,
+        addMarketplaceItem,
+        reserveMarketplaceItem,
+        assignmentTasks,
+        addAssignmentTask,
+        toggleAssignmentTask,
+        deleteAssignmentTask,
+        examMilestones,
+        mentorshipSlots,
+        bookMentorshipSlot,
+        cancelMentorshipBooking,
+        alumniJobReferrals,
+        addAlumniJobReferral,
+        referralRequests,
+        requestJobReferral,
+        industryAmaEvents,
+        upvoteAmaQuestion,
+        submitAmaQuestion,
+        officeHourQueue,
+        joinOfficeHourQueue,
+        admitNextOfficeHourStudent,
+        resolveOfficeHourStudent,
+        researchOpenings,
+        addResearchOpening,
+        applyToResearchOpening,
+        reviewResearchApplication,
+        lectureMaterials,
+        addLectureMaterialVersion,
+        emergencyBroadcast,
+        triggerEmergencyBroadcast,
+        dismissEmergencyBroadcast,
+        auditLogs,
+        logAdminAction,
+        runAIToxicityCheck,
+        sensitiveContentShieldActive,
+        toggleSensitiveContentShield,
+        aiModelSettings,
+        updateAIModelSettings,
+        runOpenSourceAIModeration
       }}
     >
       {children}

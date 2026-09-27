@@ -617,7 +617,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                           <span className="font-semibold text-[#0F172A]">
                             Latest reply by {post.comments[0].authorName} ({post.comments[0].authorRole}):
                           </span>
-                          <span className="text-[10px] text-[#94A3B8]">
+                          <span suppressHydrationWarning className="text-[10px] text-[#94A3B8]">
                             {new Date(post.comments[0].createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>

@@ -41,6 +41,17 @@ export interface UserProfile {
   followers: string[];
   following: string[];
   createdAt: string;
+  certifiedLicenseNumber?: string;
+  accreditationGrade?: string;
+  joinedServerIds?: string[];
+  joinedGroupIds?: string[];
+  isBanned?: boolean;
+  bannedUntil?: string;
+  bannedReason?: string;
+  weeklyPostCount?: number;
+  lastPostTimestamp?: string;
+  strikesCount?: number;
+  lastStrikeTimestamp?: string;
 }
 
 export interface PlacementDetails {
@@ -197,11 +208,89 @@ export interface Post {
     institutionName: string;
     repostedAt: string;
   };
+  repostedByFaculty?: {
+    facultyId: string;
+    facultyName: string;
+    repostedAt: string;
+  };
+  repostedByStudent?: {
+    studentId: string;
+    studentName: string;
+    repostedAt: string;
+  };
+  isKnowledgeBased?: boolean;
   reportedByInstitution?: {
     reportedAt: string;
     reason: string;
     institutionName: string;
   };
+  reportedBy?: {
+    reporterId: string;
+    reporterRole: UserRole;
+    reporterName: string;
+    reason: string;
+    reportedAt: string;
+  }[];
+  sentiment?: 'positive' | 'neutral' | 'negative' | 'toxic' | 'ragebait';
+  sentimentScore?: number;
+  toxicityScore?: number;
+  isSensitive?: boolean;
+  sensitiveReason?: string;
+  imageSafety?: {
+    status: 'safe' | 'suggestive' | 'graphic' | 'sensitive';
+    confidence: number;
+    model: string;
+    detectedLabels?: string[];
+  };
+  aiModelMetadata?: string;
+  isQuarantined?: boolean;
+}
+
+export interface TextSentimentAnalysis {
+  label: 'positive' | 'neutral' | 'negative' | 'ragebait' | 'toxic';
+  score: number;
+  polarity: number;
+  model: string;
+}
+
+export interface TextToxicityAnalysis {
+  score: number;
+  isToxic: boolean;
+  severity: 'clean' | 'mild' | 'moderate' | 'severe';
+  flaggedKeywords: string[];
+  categories: {
+    toxicity: number;
+    insult: number;
+    threat: number;
+    identityHate: number;
+    ragebait: number;
+  };
+  model: string;
+}
+
+export interface ImageSafetyClassification {
+  status: 'safe' | 'suggestive' | 'graphic' | 'sensitive';
+  confidence: number;
+  detectedLabels: string[];
+  model: string;
+}
+
+export interface UnifiedAIModerationResult {
+  sentiment: TextSentimentAnalysis;
+  toxicity: TextToxicityAnalysis;
+  imageSafety?: ImageSafetyClassification;
+  isSensitive: boolean;
+  isHarmful: boolean;
+  actionRecommended: 'allow' | 'blur_sensitive' | 'quarantine' | 'auto_ban';
+  actionReason?: string;
+}
+
+export interface AIModelSettings {
+  autoBanThreshold: number;
+  blurThreshold: number;
+  autoBanEnabled: boolean;
+  activeTextModel: string;
+  activeVisionModel: string;
 }
 
 export interface Community {
@@ -289,6 +378,11 @@ export interface DiscordServer {
   memberCount: number;
   channels: ServerChannel[];
   antiRagebaitRules: string[];
+  isApprovedByInstitution?: boolean;
+  pendingApproval?: boolean;
+  requestedByFacultyId?: string;
+  requestedByFacultyName?: string;
+  memberIds?: string[];
 }
 
 // ------------------------------------------------------------------------
@@ -309,3 +403,212 @@ export interface PrivateGrievanceReport {
   status: 'under_investigation' | 'resolved' | 'action_taken';
   institutionRemarks?: string;
 }
+
+// ------------------------------------------------------------------------
+// NEW ROLE-BASED ADVANCED FEATURE MODELS
+// ------------------------------------------------------------------------
+
+export interface StudyRoom {
+  id: string;
+  title: string;
+  subject: string;
+  activePeerCount: number;
+  maxParticipants: number;
+  hostName: string;
+  roomTag: 'LeetCode' | 'GATE' | 'Deep Dive' | 'Exam Prep';
+}
+
+export interface CourseAnswer {
+  id: string;
+  questionId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorAvatar?: string;
+  content: string;
+  createdAt: string;
+  upvotes: number;
+  isFacultyEndorsed?: boolean;
+  endorsedByName?: string;
+}
+
+export interface CourseQuestion {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  title: string;
+  content: string;
+  codeSnippet?: string;
+  isAnonymous: boolean;
+  authorId: string;
+  authorName: string;
+  upvotes: number;
+  createdAt: string;
+  answers: CourseAnswer[];
+}
+
+export interface MarketplaceItem {
+  id: string;
+  title: string;
+  category: 'textbook' | 'equipment' | 'electronics' | 'notes';
+  price: number;
+  isFreeOrSwap: boolean;
+  condition: 'like_new' | 'good' | 'fair';
+  sellerId: string;
+  sellerName: string;
+  sellerRole: UserRole;
+  sellerContact?: string;
+  imageUrl?: string;
+  isReserved: boolean;
+  reservedByStudentName?: string;
+  createdAt: string;
+}
+
+export interface AssignmentTask {
+  id: string;
+  title: string;
+  courseCode: string;
+  dueDate: string;
+  urgency: 'urgent' | 'medium' | 'low';
+  isCompleted: boolean;
+  points?: number;
+}
+
+export interface ExamMilestone {
+  id: string;
+  courseCode: string;
+  examName: string;
+  examDate: string;
+  venue: string;
+  remainingDays: number;
+}
+
+export interface MentorshipSlot {
+  id: string;
+  alumniId: string;
+  alumniName: string;
+  alumniCompany: string;
+  topic: 'resume_review' | 'mock_interview' | 'system_design' | 'career_roadmap';
+  dateString: string;
+  timeString: string;
+  isBooked: boolean;
+  bookedByStudentId?: string;
+  bookedByStudentName?: string;
+  notes?: string;
+}
+
+export interface AlumniJobReferral {
+  id: string;
+  alumniId: string;
+  alumniName: string;
+  company: string;
+  roleTitle: string;
+  jobType: 'Full-Time' | 'Internship';
+  location: string;
+  minGpa?: number;
+  batchEligible?: string;
+  description: string;
+  referralRequestsCount: number;
+  createdAt: string;
+}
+
+export interface ReferralRequest {
+  id: string;
+  referralId: string;
+  studentId: string;
+  studentName: string;
+  studentGpa: number;
+  resumeLink: string;
+  note: string;
+  status: 'pending' | 'referred' | 'declined';
+  submittedAt: string;
+}
+
+export interface IndustryAMAEvent {
+  id: string;
+  hostId: string;
+  hostName: string;
+  hostTitle: string;
+  hostCompany: string;
+  topic: string;
+  scheduledFor: string;
+  isLive: boolean;
+  attendeeCount: number;
+  questions: {
+    id: string;
+    authorName: string;
+    question: string;
+    upvotes: number;
+  }[];
+}
+
+export interface OfficeHourQueueItem {
+  id: string;
+  studentId: string;
+  studentName: string;
+  courseCode: string;
+  topic: string;
+  joinedAt: string;
+  status: 'waiting' | 'in_session' | 'resolved';
+}
+
+export interface ResearchApplication {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentGpa: number;
+  statement: string;
+  status: 'pending' | 'accepted' | 'declined';
+  appliedAt: string;
+}
+
+export interface ResearchOpening {
+  id: string;
+  professorId: string;
+  professorName: string;
+  department: string;
+  title: string;
+  description: string;
+  prerequisites: string;
+  stipendOrCredits: string;
+  minGpa: number;
+  status: 'open' | 'filled';
+  applicants: ResearchApplication[];
+}
+
+export interface LectureMaterialVersion {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  professorName: string;
+  title: string;
+  version: string;
+  changelog: string;
+  fileUrl: string;
+  uploadedAt: string;
+  downloadCount: number;
+}
+
+export interface EmergencyBroadcast {
+  id: string;
+  institutionId: string;
+  institutionName: string;
+  severity: 'critical' | 'warning' | 'notice';
+  title: string;
+  message: string;
+  issuedAt: string;
+  active: boolean;
+  targetAudiences: string[];
+}
+
+export interface AuditLogEntry {
+  id: string;
+  adminId: string;
+  adminName: string;
+  actionType: string;
+  targetEntity: string;
+  details: string;
+  timestamp: string;
+  severity: 'info' | 'warning' | 'critical';
+}
+

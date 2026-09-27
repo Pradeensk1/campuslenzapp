@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
-import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X } from 'lucide-react';
+import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle } from 'lucide-react';
 
 export default function CreateContentPage() {
   const router = useRouter();
-  const { colleges, currentUser, addPost, addReview } = useApp();
+  const { colleges, currentUser, addPost, addReview, runOpenSourceAIModeration } = useApp();
 
   const [activeTab, setActiveTab] = useState<'post' | 'review'>('post');
+  const [postError, setPostError] = useState<string | null>(null);
 
   // Post form state
   const [postCollegeId, setPostCollegeId] = useState(colleges[0]?.id || '');
@@ -66,9 +67,10 @@ export default function CreateContentPage() {
     e.preventDefault();
     if (!postContent.trim()) return;
 
+    setPostError(null);
     const chosenCollege = colleges.find(c => c.id === postCollegeId);
 
-    addPost({
+    const res = addPost({
       authorId: currentUser?.id || 'guest',
       authorUsername: currentUser?.username || 'student_guest',
       authorName: currentUser?.fullName || 'Student',
@@ -82,6 +84,11 @@ export default function CreateContentPage() {
       topic: postTopic,
       imageUrl: postImageUrl || undefined
     });
+
+    if (!res.success) {
+      setPostError(res.message || 'Submission rejected by moderation policy.');
+      return;
+    }
 
     router.push('/');
   };
@@ -254,6 +261,92 @@ export default function CreateContentPage() {
               Post as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
             </label>
           </div>
+
+          {/* Post Submission Error Alert */}
+          {postError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-rose-800">
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+                Submission Blocked by Moderation Policy
+              </div>
+              <p className="text-rose-700 leading-relaxed">{postError}</p>
+            </div>
+          )}
+
+          {/* Open-Source AI Safety Pre-Flight Scanner Box */}
+          {postContent.trim().length > 3 && (() => {
+            const ai = runOpenSourceAIModeration(postContent, postImageUrl);
+            const isSevere = ai.toxicity.score >= 80;
+            const isSens = ai.isSensitive;
+            return (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-900">
+                      Open-Source AI Pre-Flight Telemetry
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    distilbert-sst2 • toxic-bert • nsfwjs
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  {/* Sentiment */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                      Sentiment Analysis
+                    </span>
+                    <div className="font-bold text-slate-800 capitalize flex items-center gap-1">
+                      <span>{ai.sentiment.label}</span>
+                      <span className="text-[10px] text-slate-400">({Math.round(ai.sentiment.score * 100)}%)</span>
+                    </div>
+                  </div>
+
+                  {/* Toxicity */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                      Toxicity Rating
+                    </span>
+                    <div className={`font-bold flex items-center gap-1 ${
+                      isSevere ? 'text-rose-600' : isSens ? 'text-amber-600' : 'text-emerald-600'
+                    }`}>
+                      <span>{ai.toxicity.score}%</span>
+                      <span className="text-[10px] font-normal text-slate-400 capitalize">({ai.toxicity.severity})</span>
+                    </div>
+                  </div>
+
+                  {/* Image Safety */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                      Visual Classifier
+                    </span>
+                    <div className="font-bold text-slate-800 capitalize">
+                      {postImageUrl ? (ai.imageSafety?.status || 'safe') : 'No Media Attached'}
+                    </div>
+                  </div>
+                </div>
+
+                {isSevere ? (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>⚠️ Policy Alert: Severe toxicity will trigger an automatic 48h account suspension and audit log.</span>
+                  </div>
+                ) : isSens ? (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>⚠️ Sensitivity Notice: Post will be masked behind the frosted AI content shield on the feed.</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>✨ Content Approved: Verified clean for campus-wide distribution.</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <button
             type="submit"

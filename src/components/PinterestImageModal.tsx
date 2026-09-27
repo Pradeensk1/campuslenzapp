@@ -173,7 +173,7 @@ export default function PinterestImageModal({
                           <Link href={`/user/${c.authorUsername}`} onClick={onClose} className="font-bold text-[#0F172A] hover:text-[#2563EB]">
                             {c.authorName}
                           </Link>
-                          <span className="text-[10px] text-[#94A3B8]">
+                          <span suppressHydrationWarning className="text-[10px] text-[#94A3B8]">
                             {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
