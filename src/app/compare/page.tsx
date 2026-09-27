@@ -1,7 +1,15 @@
-'use client';
-
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 import ExploreCompareHub from '@/components/ExploreCompareHub';
 
-export default function ComparePage() {
+export default async function Page() {
+  const cookieStore = await cookies();
+  const supabase = await createClient(cookieStore);
+
+  const { data: colleges } = await supabase
+    .from('colleges')
+    .select('*')
+    .order('rating_average', { ascending: false });
+
   return <ExploreCompareHub initialTab="compare" />;
 }
