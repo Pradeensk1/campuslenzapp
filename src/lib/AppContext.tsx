@@ -602,7 +602,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (postRes.status === 'fulfilled' && postRes.value.ok) {
           const postData = await postRes.value.json();
           if (postData.success && Array.isArray(postData.posts)) {
-            setPosts(postData.posts);
+            setPosts(prev => {
+              const cloudMap = new Map(postData.posts.map((cp: Post) => [cp.id, cp]));
+              const merged = postData.posts.map((cp: Post) => {
+                const localMatch = prev.find(p => p.id === cp.id || p.content === cp.content);
+                // Keep local high-res image/video if cloud imageUrl is null
+                return {
+                  ...cp,
+                  imageUrl: cp.imageUrl || localMatch?.imageUrl || null
+                };
+              });
+              // Keep any purely local posts that haven't synced yet
+              prev.forEach(localP => {
+                if (!cloudMap.has(localP.id) && !merged.some((m: Post) => m.content === localP.content)) {
+                  merged.push(localP);
+                }
+              });
+              return merged;
+            });
           }
         }
 
@@ -1474,7 +1491,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setPosts(prev =>
             prev.map(p =>
               p.id === generatedPostId || p.id === data.post.id
-                ? { ...p, ...data.post, comments: p.comments }
+                ? {
+                    ...p,
+                    ...data.post,
+                    imageUrl: data.post.imageUrl || p.imageUrl,
+                    comments: p.comments
+                  }
                 : p
             )
           );
