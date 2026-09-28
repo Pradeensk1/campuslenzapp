@@ -1,6 +1,6 @@
 export type UserRole = 'student' | 'alumni' | 'institution' | 'faculty' | 'staff' | 'admin';
 
-export type ReviewerType = 'student' | 'alumni';
+export type ReviewerType = 'student' | 'alumni' | 'faculty';
 
 export type VerificationStatus = 'pending' | 'admin_review' | 'approved' | 'rejected';
 

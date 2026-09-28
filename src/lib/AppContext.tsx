@@ -146,7 +146,7 @@ interface AppContextType {
   toggleSaveCollege: (collegeId: string) => void;
   savedPostIds: string[];
   toggleSavePost: (postId: string) => { success: boolean; message: string };
-  addReview: (review: Omit<CollegeReview, 'id' | 'createdAt'>) => void;
+  addReview: (review: Omit<CollegeReview, 'id' | 'createdAt'>, options?: { skipFeedPost?: boolean }) => void;
   addPost: (post: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => { success: boolean; message?: string };
   toggleLikePost: (postId: string) => { success: boolean; message?: string };
   addComment: (postId: string, content: string) => { success: boolean; message?: string };
@@ -510,8 +510,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           setPosts(INITIAL_POSTS);
         }
-        if (parsed.reviews && Array.isArray(parsed.reviews)) {
+        if (parsed.reviews && Array.isArray(parsed.reviews) && parsed.reviews.length > 0) {
           setReviews(parsed.reviews);
+        } else {
+          setReviews(INITIAL_REVIEWS);
         }
         if (parsed.communities && Array.isArray(parsed.communities)) {
           setCommunities(parsed.communities);
@@ -555,7 +557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         setAllUsers([]);
         setPosts(INITIAL_POSTS);
-        setReviews([]);
+        setReviews(INITIAL_REVIEWS);
         setCommunities([]);
         setServers(INITIAL_DISCORD_SERVERS);
         setServerMessages([]);
@@ -641,8 +643,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (revRes.status === 'fulfilled' && revRes.value.ok) {
           const revData = await revRes.value.json();
-          if (revData.success && Array.isArray(revData.reviews)) {
-            setReviews(revData.reviews);
+          if (revData.success && Array.isArray(revData.reviews) && revData.reviews.length > 0) {
+            setReviews(prev => {
+              const cloudMap = new Map(revData.reviews.map((r: CollegeReview) => [r.id, r]));
+              const merged = [...revData.reviews];
+              prev.forEach(r => {
+                if (!cloudMap.has(r.id)) {
+                  merged.push(r);
+                }
+              });
+              return merged;
+            });
           }
         }
 
@@ -1288,7 +1299,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const addReview = (newRev: Omit<CollegeReview, 'id' | 'createdAt'>) => {
+  const addReview = (newRev: Omit<CollegeReview, 'id' | 'createdAt'>, options?: { skipFeedPost?: boolean }) => {
     const generatedRevId = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
       : 'rev-' + Math.random().toString(36).substring(2, 15);
@@ -1318,24 +1329,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
     }
 
-    // Automatically publish review to live feed stream
-    const prosText = newRev.pros && newRev.pros.length > 0 ? `\n✅ Pros: ${newRev.pros.join(', ')}` : '';
-    const consText = newRev.cons && newRev.cons.length > 0 ? `\n⚠️ Cons: ${newRev.cons.join(', ')}` : '';
-    const adviceText = newRev.advice ? `\n💡 Advice: ${newRev.advice}` : '';
+    // Automatically publish review to live feed stream unless caller is already publishing a custom feed post
+    if (!options?.skipFeedPost) {
+      const prosText = newRev.pros && newRev.pros.length > 0 ? `\n✅ Pros: ${newRev.pros.join(', ')}` : '';
+      const consText = newRev.cons && newRev.cons.length > 0 ? `\n⚠️ Cons: ${newRev.cons.join(', ')}` : '';
+      const adviceText = newRev.advice ? `\n💡 Advice: ${newRev.advice}` : '';
 
-    addPost({
-      authorId: newRev.userId,
-      authorUsername: newRev.isAnonymous ? 'anonymous_reviewer' : (currentUser?.username || 'verified_student'),
-      authorName: newRev.isAnonymous ? 'Anonymous Student' : (newRev.authorName || currentUser?.fullName || 'Student Reviewer'),
-      authorRole: newRev.reviewerType || 'student',
-      authorHeadline: `${newRev.overallRating}★ Verified Review for ${targetCollege?.name || 'Institution'}`,
-      isVerifiedAuthor: !newRev.isAnonymous,
-      isAnonymous: newRev.isAnonymous,
-      collegeId: newRev.collegeId,
-      collegeName: targetCollege?.name,
-      topic: 'Review & Ratings',
-      content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`
-    });
+      addPost({
+        authorId: newRev.userId,
+        authorUsername: newRev.isAnonymous ? 'anonymous_reviewer' : (currentUser?.username || 'verified_student'),
+        authorName: newRev.isAnonymous ? 'Anonymous Student' : (newRev.authorName || currentUser?.fullName || 'Student Reviewer'),
+        authorRole: newRev.reviewerType || 'student',
+        authorHeadline: `${newRev.overallRating}★ Verified Review for ${targetCollege?.name || 'Institution'}`,
+        isVerifiedAuthor: !newRev.isAnonymous,
+        isAnonymous: newRev.isAnonymous,
+        collegeId: newRev.collegeId,
+        collegeName: targetCollege?.name,
+        topic: 'Review & Ratings',
+        content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`,
+        isInstitutionReviewOnly: true,
+        institutionRating: newRev.overallRating
+      });
+    }
 
     fetch('/api/reviews', {
       method: 'POST',

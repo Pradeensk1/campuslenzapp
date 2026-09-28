@@ -35,7 +35,7 @@ export default function CreateClient({
   const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
-  const [isInstitutionReviewOnly, setIsInstitutionReviewOnly] = useState(false);
+  const [studentPostType, setStudentPostType] = useState<'stream' | 'review'>('stream');
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
   const [postImageUrl, setPostImageUrl] = useState<string>('');
   const [mediaFileName, setMediaFileName] = useState<string>('');
@@ -148,7 +148,8 @@ export default function CreateClient({
     setPostError(null);
     const chosenCollege = activeColleges.find(c => c.id === postCollegeId);
 
-    if (isInstitutionReviewOnly && postCollegeId) {
+    const isReview = studentPostType === 'review';
+    if (isReview && postCollegeId) {
       addReview({
         collegeId: postCollegeId,
         userId: currentUser?.id || 'guest',
@@ -175,24 +176,26 @@ export default function CreateClient({
         course: currentUser?.course || 'Student',
         department: currentUser?.department || 'Academics',
         batch: currentUser?.graduationBatch || '2026'
-      });
+      }, { skipFeedPost: true });
     }
 
     const res = addPost({
       authorId: currentUser?.id || 'guest',
       authorUsername: currentUser?.username || 'student_guest',
-      authorName: currentUser?.fullName || (currentUser as any)?.name || 'Student',
+      authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || (currentUser as any)?.name || 'Student'),
       authorRole: currentUser?.role || 'student',
-      authorHeadline: currentUser?.headline || 'Student Contributor',
+      authorHeadline: isReview
+        ? `${institutionReviewRating}★ Student Review • ${chosenCollege?.name || 'Institution'}`
+        : (currentUser?.headline || 'Student Contributor'),
       isVerifiedAuthor: Boolean(currentUser?.isVerified),
       isAnonymous: postAnonymous,
       collegeId: postCollegeId,
       collegeName: chosenCollege?.name,
       content: postContent,
-      topic: isInstitutionReviewOnly ? 'Review & Ratings' : postTopic,
+      topic: isReview ? 'Review & Ratings' : postTopic,
       imageUrl: postImageUrl || undefined,
-      isInstitutionReviewOnly: isInstitutionReviewOnly,
-      institutionRating: isInstitutionReviewOnly ? institutionReviewRating : undefined
+      isInstitutionReviewOnly: isReview,
+      institutionRating: isReview ? institutionReviewRating : undefined
     });
 
     setIsSubmitting(false);
@@ -202,7 +205,7 @@ export default function CreateClient({
       return;
     }
 
-    if (isInstitutionReviewOnly) {
+    if (isReview) {
       router.push(`/colleges/${chosenCollege?.slug || 'explore'}#reviews`);
     } else {
       router.push('/');
@@ -493,97 +496,100 @@ export default function CreateClient({
             );
           })()}
 
-          {/* Student Posting Options: Anonymous Toggle & Review for Institution Only Option */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={postAnonymous}
-                  onChange={(e) => setPostAnonymous(e.target.checked)}
-                  className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                />
-                <span>Post Anonymously (Hide Name & Profile)</span>
+          {/* Student Posting Destination Dropdown */}
+          <div className="space-y-3 p-4 rounded-2xl border border-[#CFEAFF] bg-[#F8FAFC]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-bold text-[#075080] flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-[#1687D4]" />
+                <span>Select Post Destination:</span>
               </label>
-              <span className="text-[10px] text-slate-400">Protects student privacy</span>
+              <select
+                value={studentPostType}
+                onChange={(e) => setStudentPostType(e.target.value as 'stream' | 'review')}
+                className="rounded-xl border border-[#72B7EB] bg-white px-3 py-2 text-xs font-bold text-[#075080] focus:ring-2 focus:ring-[#1687D4] focus:outline-none shadow-2xs"
+              >
+                <option value="stream">🌐 Option 1: Publish in Public Campus Social Stream</option>
+                <option value="review">⭐ Option 2: Institution Review &amp; Rating (Feed + Institution Page)</option>
+              </select>
             </div>
 
-            {/* New Option: Put a Review for the Institution Only */}
-            <div className={`p-3.5 rounded-2xl border transition-all ${
-              isInstitutionReviewOnly
-                ? 'bg-[#E8F5FF] border-[#72B7EB] shadow-xs'
-                : 'bg-white border-slate-200 hover:border-[#CFEAFF]'
-            }`}>
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-[#075080]">
+            {studentPostType === 'stream' ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E2E8F0] text-xs">
+                <label className="flex items-center gap-2 cursor-pointer font-semibold text-[#075080]">
                   <input
                     type="checkbox"
-                    checked={isInstitutionReviewOnly}
-                    onChange={(e) => setIsInstitutionReviewOnly(e.target.checked)}
+                    checked={postAnonymous}
+                    onChange={(e) => setPostAnonymous(e.target.checked)}
                     className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
                   />
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-[#1687D4]" />
-                    <span>Put a Review for the Institution Only</span>
-                  </span>
+                  <span>Post Anonymously (Hide Name &amp; Profile)</span>
                 </label>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  isInstitutionReviewOnly
-                    ? 'bg-[#1687D4] text-white border-[#1687D4]'
-                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}>
-                  {isInstitutionReviewOnly ? 'Direct Scorecard' : 'Institution Option'}
-                </span>
+                <span className="text-[10px] text-slate-400">Public campus social stream</span>
               </div>
+            ) : (
+              <div className="space-y-3 pt-2 border-t border-[#CFEAFF]">
+                <div className="p-3 rounded-xl bg-[#E8F5FF] text-[11px] text-[#075080] leading-relaxed flex items-start gap-2 border border-[#CFEAFF]">
+                  <Sparkles className="w-4 h-4 text-[#1687D4] shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Dual Stream &amp; Ledger Publish:</strong> This review will be published in the <strong>Campus Social Stream public feed</strong> AND automatically added to the <strong>Reviews &amp; Ratings section</strong> of the selected institution ({activeColleges.find(c => c.id === postCollegeId)?.name || 'Selected Institution'}).
+                  </span>
+                </div>
 
-              {isInstitutionReviewOnly && (
-                <div className="mt-3 pt-3 border-t border-[#CFEAFF] space-y-3">
-                  <p className="text-[11px] text-[#075080] leading-relaxed">
-                    ⭐ This evaluation directly updates the official ratings and review scorecard for <strong>{activeColleges.find(c => c.id === postCollegeId)?.name || 'Selected Institution'}</strong>.
-                  </p>
-
-                  {/* Star Rating Selector */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
-                        Overall Rating
-                      </label>
-                      <span className="text-xs font-bold text-[#1687D4]">
-                        {institutionReviewRating} / 5 Stars
-                        <span className="ml-1 text-[11px] text-slate-500 font-normal">
-                          ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
-                        </span>
+                {/* Rating Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
+                      Overall Institution Rating
+                    </label>
+                    <span className="text-xs font-bold text-[#1687D4]">
+                      {institutionReviewRating} / 5 Stars
+                      <span className="ml-1 text-[11px] text-slate-500 font-normal">
+                        ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
                       </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-[#CFEAFF]">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setInstitutionReviewRating(star)}
-                          className="p-1 hover:scale-110 transition-transform focus:outline-none"
-                        >
-                          <Star
-                            className={`w-5 h-5 ${
-                              star <= institutionReviewRating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-slate-200 hover:text-amber-200'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-[#CFEAFF]">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setInstitutionReviewRating(star)}
+                        className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            star <= institutionReviewRating
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200 hover:text-amber-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Anonymous Toggle for review */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#CFEAFF] text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer font-semibold text-[#075080]">
+                    <input
+                      type="checkbox"
+                      checked={postAnonymous}
+                      onChange={(e) => setPostAnonymous(e.target.checked)}
+                      className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
+                    />
+                    <span>Post Review Anonymously</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">Protects student identity</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
             className="apple-button-primary w-full text-xs font-bold py-3"
           >
-            {isInstitutionReviewOnly ? 'Publish Review for Institution Only' : 'Publish to Campus Feed'}
+            {studentPostType === 'review' ? 'Publish Review to Feed & Institution Page' : 'Publish to Campus Social Stream'}
           </button>
         </form>
       ) : (
