@@ -1,0 +1,227 @@
+[
+  {
+    "image": "360_F_145135200_EmaxnHzWCTrcSnw4pwpntqEu60FEAaHE.jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "A large red brick building with multiple windows and a central arched entrance, surrounded by green grass, trees, and a paved walkway.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "360_F_498144940_DkzvRAkgBv1ILU6DiDeMZr6vUufPOra4.jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "Students walking on a grassy campus with a large domed building in the background.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "3dc0a3744f47e4a013d6fb41858751ad.jpg",
+    "status": "success",
+    "category": "person",
+    "description": "A smiling young woman with long hair and glasses, wearing a backpack and holding a book, suggesting a student.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "9e7ddcba03b4c0e61be271608cbc0221.jpg",
+    "status": "success",
+    "category": "college",
+    "description": "Students seated at desks in a classroom setting, taking notes and smiling.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "ae5c59af4a9185373474c62686551bfb.jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "Group of five smiling students holding books and raising fists in front of a college building.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "download (1).jpg",
+    "status": "success",
+    "category": "college",
+    "description": "A classroom with students seated at wooden desks, wearing uniform jackets, with laptops and notebooks on their desks. The room has a high ceiling with lighting fixtures and air conditioning units.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "download.jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "An aerial view of a college campus featuring modern buildings, green lawns, pathways, and a white religious structure in the foreground.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "fff5c0581b3a3e26b1da619265388ecc.jpg",
+    "status": "success",
+    "category": "person",
+    "description": "A smiling young woman with long brown hair in a ponytail, wearing a white tank top, beige cardigan, and blue jeans, holding notebooks and carrying a backpack in a school hallway with blurred background figures.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (1).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "Group of students in white outfits performing on a stage with colorful lights and smoke effects, with a banner reading 'College Events' above them.",
+    "ocr_text": "College Events",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (10).jpg",
+    "status": "success",
+    "category": "food",
+    "description": "A metal cafeteria tray with four compartments: flatbread, white rice, a yellow curry, and a brown lentil dish. A spoon and a plastic stick are in the tray.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (11).jpg",
+    "status": "success",
+    "category": "food",
+    "description": "A steel plate with rice, four small bowls containing curries, dal, a soft item, and a yellow sauce, along with green chilies and lime slices.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "possibly_relevant"
+  },
+  {
+    "image": "images (12).jpg",
+    "status": "success",
+    "category": "food",
+    "description": "Two students are seated at a dining table in a cafeteria, eating and smiling. The table is filled with various food items including plates of food, a tray of pastries, and drinks. The background shows a large, open dining area with serving counters and windows.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (13).jpg",
+    "status": "success",
+    "category": "college",
+    "description": "Advertisement for Fauget University with admission open and programs listed.",
+    "ocr_text": "FAUGET UNIVERSITY\nwww.reallygreatsite.co\nUNIVERSITY\nADMISSION\nNOW OPEN\nSTART\n25\nOKT\nPROGRAMS STUDY\n• Design Communication\n• Digital Business\n• Public Relations\n• Interior Design\nABOUT US\nLorem ipsum dolor sit amet,\nconsectetur adipiscing elit, sed\ndo eiusmod tempor incididunt.\nContact Us\n+123-456-7890\nhello@reallygreatsite.com\nREGISTER\n30%\nNOW OFF",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (14).jpg",
+    "status": "success",
+    "category": "other",
+    "description": "A close-up of a golden retriever dog with long fur, open mouth, and tongue out, looking at the camera.",
+    "ocr_text": "",
+    "college_related": false,
+    "relevance": "not_relevant"
+  },
+  {
+    "image": "images (2).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "A band performing on a stage with red and blue lighting, under a large banner reading 'BANGLA'.",
+    "ocr_text": "BANGLA",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (3).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "Group of dancers performing on stage at a campus event with a large banner reading 'GROUP DANCE' and logos of sponsors like 'STAR POKER IN' and 'Sylpulse'.",
+    "ocr_text": "STAR POKER IN PRESENTS\nGROUP DANCE\nSylpulse 2016",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (4).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "A performer on a stage in front of a large crowd at night, with confetti on the floor and lights illuminating the scene.",
+    "ocr_text": "LOVEGEN",
+    "college_related": true,
+    "relevance": "possibly_relevant"
+  },
+  {
+    "image": "images (5).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "A large outdoor festival with a stage, colorful smoke effects, and a crowd of people wearing light-colored shirts.",
+    "ocr_text": "CAMPUS WORLD CHASE",
+    "college_related": true,
+    "relevance": "possibly_relevant"
+  },
+  {
+    "image": "images (6).jpg",
+    "status": "success",
+    "category": "event",
+    "description": "Students playing football on a green field with spectators in the background.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (7).jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "Students in uniform are standing in a field with flags, in front of a white building under a partly cloudy sky.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (8).jpg",
+    "status": "success",
+    "category": "document",
+    "description": "A notice from Ananda Mohan College regarding the University of Calcutta 1st Semester Registration Form Fill up for 2022, listing required documents and submission dates.",
+    "ocr_text": "Ananda Mohan College\nA NAAC Re-accredited College at B+ Level\n102/1, Raja Rammohan Sarani, Kolkata - 700009\n(033)2350-5767 (Principal)\n2352-7327 (Office)\nE-Mail ID : anandamohancollegecalcutta@gmail.com\nWeb Site : www.anandamohancollege.ac.in\n\nNOTICE\nDATE : 26.09.2022\nUniversity of Calcutta 1st Semester Registration Form Fill up – 2022\nStudents of B.A. / B.Sc. / B.Com. (Hons. & Gen.)\n1st Semester, 2022 are directed to conduct College Office with\nall documents, Marks sheets and Certificates as per following\nscheduled (Documents carrying original with photocopy) : \n\nStream\tDate\tTime\nB.A. / B.Sc. / B.Com.\n(Hons.) & (Gen.)\n3rd November to\n17th November, 2022\n(Weekly Monday to Friday)\t5:30 p.m. to 7:30 p.m.\n\n➤ Documents to be submitted (Students of 1st Semester - 2022) :\n1. Photograph Image (Passport size color 2 pcs.).\n2. Age Proof Document Image (Admit Card / Birth Certificate & others).\n3. Marks sheet Document Image (H.S.) (Downloaded copy not allowed).\n4. Cast Certificate Document Image (SC/ST/OBC).\n5. Persons with Disabilities (PWD) Certificate Document Image.\n6. BPL Certificate Document Image.\n7. Migration Certificate Document Image.\n8. Equivalence Certificate Document Image.\n9. Registration Certificate (for already registered candidates).\n\nPrincipal\nAnanda Mohan College\nCalcutta-700 009\n\nPrincipal\nAnanda Mohan College\n102/1, R. M. Sarani,\nCalcutta-700 009",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images (9).jpg",
+    "status": "success",
+    "category": "document",
+    "description": "A document listing necessary documents for PG admission at Deogiri College, Aurangabad, for the 2022-23 academic year.",
+    "ocr_text": "M.S.P. Mandal's\nDeogiri College, Aurangabad\n(Affiliated to Dr. Babasahab Ambedkar Marathwada University, Aurangabad)\nNECESSARY DOCUMENT FOR PG ADMISSION 2022-23\n(M.Se. / M.Com. / M.A. First Year / D.B.M.)\nDate: 10.08.2022\nOriginal Copies for verification along with following Self Attested Photo Copies (Xerox).\n1) S.S.C. Mark Memo (1 Photo Copy)\n2) H.S.C. Mark Memo (1 Photo Copy)\n3) Graduate Mark Memo I to V Sem. (1 Photo Copy), VI Sem. (3 Photo Copy), VI Sem. (Original + 3 photo copy for other University)\n4) Aadhar Card (1 Photo Copy)\n5) Caste Certificate 1 Photo Copy (For reserve Category)\n6) Non-Creamy Layer Certificate (1 photo copy for OBC)\n7) TC Original + 3 Photo Copy (Original MKCL TC other than Deogiri college)\n8) Domicile Certificate (1 Photo Copy)\n9) Handicap Certificate (if applicable) (1 Photo Copy)\n10) Ex-serviceman Certificate (if applicable) (1 Photo Copy)\n11) Eligibility Form (other university student)\n12) Migration Certificate (Other University Student) (original + 3 photo copies)\n13) Undertaking form (Availble on college website)\n14) Gap Certificate (if necessary)\n15) Passport Photo 2\n16) EBC Form with Income Certificate (if applicable)\n17) SelfBank Account Number Details (Pass book photo copy)\nNote: For details visit College website www.deogiricolege.org\nPrincipal\nDeogiri College,",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images.jpg",
+    "status": "success",
+    "category": "campus",
+    "description": "Students walking on a tree-lined path leading to a building with an archway.",
+    "ocr_text": "BROWN & WERBICK BUILDING",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "images.png",
+    "status": "success",
+    "category": "document",
+    "description": "A list of documents required for undergraduate and postgraduate programs at Career College (Autonomous).",
+    "ocr_text": "A+ Grade By NAAC CAREER COLLEGE (Autonomous) 55 YEARS OF ACADEMIC EXCELLENCE Opp. BHEL Dussehra Maidan, Govindpura, Bhopal - 462023 LIST OF DOCUMENTS Undergraduate Programs > A photocopy of the original marksheet of Class X and Class XII > Sports quota candidates should have played at the State or National levels, and their documents must be countersigned by the Director, MP Sports & Youth Welfare Department. > Domicile Certificate > A photocopy of Aadhaar Card > A photocopy of Samagra ID > A photocopy of Caste Certificate (only for reserved categories) > A photocopy of Income Certificates of Parents > Scanned copies of applicant's photograph, mother's and father's photographs, applicant's local guardian's photograph (for outstation students). > Transfer Certificate and Character Certificate Postgraduate Programs > A photocopy of the original marksheet of Class X and Class XII and Graduation (All Semesters) > Domicile Certificate > A photocopy of Aadhaar Card > A photocopy of Samagra ID > A photocopy of Caste Certificate (only for reserved categories) > A photocopy of Income Certificates of Parents > Scanned copies of applicant's photograph, mother's and father's photographs, applicant's local guardian's photograph (for outstation students). > Transfer Certificate and Character Certificate > Migration Certificate Helpline No. : 7089484848",
+    "college_related": true,
+    "relevance": "relevant"
+  },
+  {
+    "image": "istockphoto-1429679289-612x612.webp",
+    "status": "success",
+    "category": "college",
+    "description": "A classroom scene with a teacher and students raising hands, seated at desks with a whiteboard in the background.",
+    "ocr_text": "",
+    "college_related": true,
+    "relevance": "relevant"
+  }
+]
