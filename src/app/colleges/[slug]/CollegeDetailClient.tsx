@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -26,9 +26,11 @@ import {
   User,
   Heart,
   Send,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
+import { ReviewSummaryResult } from '@/types';
 
 export default function CollegeDetailClient({
   slug,
@@ -46,8 +48,12 @@ export default function CollegeDetailClient({
     toggleSaveCollege,
     currentUser,
     addInstitutionReply,
-    addReview
+    addReview,
+    summarizeReviewsWithAI
   } = useApp();
+
+  const [aiSummary, setAiSummary] = useState<ReviewSummaryResult | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const college = colleges.find((c) => c.slug === slug) || initialCollege;
 
@@ -95,6 +101,27 @@ export default function CollegeDetailClient({
       faculty: collegeReviews.filter((r) => r.reviewerType === 'faculty').length,
     };
   }, [collegeReviews]);
+
+  useEffect(() => {
+    if (collegeReviews.length > 0 && !aiSummary && college?.id) {
+      const texts = collegeReviews.map(r => `${r.title}. ${r.experience}. ${Array.isArray(r.pros) ? r.pros.join('. ') : ''}`);
+      summarizeReviewsWithAI(college.id, texts).then(res => setAiSummary(res)).catch(() => {});
+    }
+  }, [collegeReviews, college?.id, summarizeReviewsWithAI]);
+
+  const handleRefreshSummary = async () => {
+    if (!college?.id) return;
+    setIsGeneratingSummary(true);
+    try {
+      const texts = collegeReviews.map(r => `${r.title}. ${r.experience}. ${Array.isArray(r.pros) ? r.pros.join('. ') : ''}`);
+      const res = await summarizeReviewsWithAI(college.id, texts);
+      setAiSummary(res);
+    } catch {
+      // safe fallback
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
 
   // Helpful reaction local state
   const [helpfulSet, setHelpfulSet] = useState<Set<string>>(new Set());
@@ -439,6 +466,91 @@ export default function CollegeDetailClient({
               <span>Faculty Perspectives ({counts.faculty})</span>
             </button>
           </div>
+
+          {/* AI Review Summary & Insights Card */}
+          {collegeReviews.length > 0 && (
+            <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-sky-50/70 via-white to-blue-50/50 p-4 sm:p-5 space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-xl bg-sky-100 text-[#1687D4]">
+                    <Sparkles className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#075080]">
+                      ⚡ AI Review Synthesis &amp; Takeaways
+                    </h3>
+                    <p className="text-[10px] text-slate-500">
+                      Multi-aspect sentiment extraction powered by campus-lenz-ai
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRefreshSummary}
+                  disabled={isGeneratingSummary}
+                  className="px-2.5 py-1 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-sky-700 text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isGeneratingSummary ? 'animate-spin' : ''}`} />
+                  <span>{isGeneratingSummary ? 'Synthesizing...' : 'Regenerate Summary'}</span>
+                </button>
+              </div>
+
+              {aiSummary ? (
+                <div className="space-y-3 text-xs">
+                  <p className="text-slate-800 leading-relaxed bg-white/80 p-3 rounded-xl border border-sky-100/80 text-[12px]">
+                    {aiSummary.summary}
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 space-y-1.5">
+                      <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        Top Highlights
+                      </span>
+                      <ul className="text-[11px] text-slate-600 space-y-1">
+                        {aiSummary.positive_points.slice(0, 3).map((pt, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <span className="text-emerald-500 font-bold shrink-0">•</span>
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-white/90 p-3 rounded-xl border border-amber-100 space-y-1.5">
+                      <span className="text-[11px] font-bold text-amber-800 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Considerations
+                      </span>
+                      <ul className="text-[11px] text-slate-600 space-y-1">
+                        {aiSummary.negative_points.slice(0, 3).map((pt, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <span className="text-amber-500 font-bold shrink-0">•</span>
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {aiSummary.aspect_summary && Object.keys(aiSummary.aspect_summary).length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[10px]">
+                      {Object.entries(aiSummary.aspect_summary).filter(([, desc]) => Boolean(desc)).map(([aspect, desc]) => (
+                        <span key={aspect} className="px-2 py-0.5 rounded-lg bg-sky-100/70 text-[#075080] border border-sky-200/60 font-semibold" title={desc || ''}>
+                          ✓ {aspect}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-3 text-center text-xs text-slate-400 italic">
+                  Analyzing student reviews with campus-lenz-ai...
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reviews List */}
           <div className="space-y-4">

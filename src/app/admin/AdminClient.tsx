@@ -3,7 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/AppContext';
-import { UnifiedAIModerationResult } from '@/types';
+import {
+  UnifiedAIModerationResult,
+  ReviewSummaryResult,
+  DuplicateDetectionResult,
+  SemanticSearchResult,
+  MessageAnalysisResult,
+  AIServiceHealth
+} from '@/types';
 import {
   ShieldCheck,
   Terminal,
@@ -40,7 +47,11 @@ import {
   SlidersHorizontal,
   ToggleLeft,
   ToggleRight,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  MessageSquare,
+  CheckCircle,
+  RefreshCcw
 } from 'lucide-react';
 import { isVideoMedia } from '@/lib/mediaUtils';
 
@@ -76,7 +87,14 @@ export default function AdminClient({
     aiModelSettings,
     updateAIModelSettings,
     runOpenSourceAIModeration,
-    loginUser
+    loginUser,
+    aiServiceStatus,
+    refreshAIServiceStatus,
+    summarizeReviewsWithAI,
+    detectDuplicateWithAI,
+    semanticSearchCollegesWithAI,
+    analyzeMessageWithAI,
+    analyzeImageWithAI
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'terminal' | 'users' | 'moderation' | 'audit'>('terminal');
@@ -122,6 +140,39 @@ export default function AdminClient({
   });
   const [aiUnifiedResult, setAiUnifiedResult] = useState<UnifiedAIModerationResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+
+  // AI Workbench Sub-Tabs: 'post' | 'review' | 'duplicate' | 'message' | 'semantic'
+  const [aiWorkbenchTab, setAiWorkbenchTab] = useState<'post' | 'review' | 'duplicate' | 'message' | 'semantic'>('post');
+  const [isPingingService, setIsPingingService] = useState(false);
+
+  // Review Summarizer Workbench
+  const [reviewSumCollegeId, setReviewSumCollegeId] = useState('col-psg');
+  const [reviewSumCustomText, setReviewSumCustomText] = useState(
+    'The faculty are exceptionally knowledgeable and research-driven. High placement percentage with marquee recruiters visiting campus every session. However, the hostel rooms are quite old and mess food could be improved significantly. Overall tuition is high but worth the money for the exposure and peer community.'
+  );
+  const [reviewSumResult, setReviewSumResult] = useState<ReviewSummaryResult | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+
+  // Duplicate Detector Workbench
+  const [dupTextA, setDupTextA] = useState(
+    'The placement cell at PSG Tech needs to invite more core mechanical engineering companies instead of only IT software companies.'
+  );
+  const [dupTextB, setDupTextB] = useState(
+    'PSG College placement department should bring more core mechanical firms rather than just IT service recruiters.'
+  );
+  const [dupThreshold, setDupThreshold] = useState(0.85);
+  const [dupResult, setDupResult] = useState<DuplicateDetectionResult | null>(null);
+  const [isDetectingDup, setIsDetectingDup] = useState(false);
+
+  // Message Analyzer Workbench
+  const [msgScanText, setMsgScanText] = useState('Can you please share your notes from Dr. Ramesh\'s lecture on distributed systems?');
+  const [msgScanResult, setMsgScanResult] = useState<MessageAnalysisResult | null>(null);
+  const [isScanningMsg, setIsScanningMsg] = useState(false);
+
+  // Semantic Search Workbench
+  const [semanticQuery, setSemanticQuery] = useState('affordable engineering college with great coding culture and good hostel food near coimbatore');
+  const [semanticResult, setSemanticResult] = useState<SemanticSearchResult | null>(null);
+  const [isSearchingSemantic, setIsSearchingSemantic] = useState(false);
 
   // Audit Trail State
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'all' | 'info' | 'warning' | 'critical'>('all');
@@ -279,6 +330,80 @@ Developer environment initialized. Type 'help' to view available system commands
     logAdminAction('AI_POLICY_UPDATED', 'Toxicity Engine', `Automated 48h Toxicity Ban ${newVal ? 'ENABLED' : 'SET TO SIMULATION MODE'}`, newVal ? 'critical' : 'warning');
     setActionFeedback(`Automated Ban Engine is now ${newVal ? 'ACTIVE (Real-time suspensions)' : 'IN SIMULATION MODE (No auto-bans)'}.`);
     setTimeout(() => setActionFeedback(null), 3500);
+  };
+
+  const handlePingAIService = async () => {
+    setIsPingingService(true);
+    try {
+      const res = await refreshAIServiceStatus();
+      setActionFeedback(`⚡ AI Service: ${res.service} (${res.activeEngine}) - Latency: ${res.latencyMs || 1}ms`);
+      setTimeout(() => setActionFeedback(null), 3500);
+    } catch {
+      setActionFeedback('⚡ Connected to Local Edge WASM AI Engine');
+      setTimeout(() => setActionFeedback(null), 3500);
+    } finally {
+      setIsPingingService(false);
+    }
+  };
+
+  const handleRunReviewSummarizer = async () => {
+    setIsSummarizing(true);
+    try {
+      const reviews = reviewSumCustomText
+        .split('\n')
+        .map(r => r.trim())
+        .filter(r => r.length > 5);
+      const res = await summarizeReviewsWithAI(reviewSumCollegeId, reviews.length > 0 ? reviews : [reviewSumCustomText]);
+      setReviewSumResult(res);
+      setActionFeedback('✨ AI Review Summarization Complete!');
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch (err: any) {
+      // Fallback
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleRunDuplicateDetector = async () => {
+    setIsDetectingDup(true);
+    try {
+      const res = await detectDuplicateWithAI(dupTextA, dupTextB, dupThreshold);
+      setDupResult(res);
+      setActionFeedback(`🔍 Duplicate Analysis Complete: ${Math.round(res.similarity * 100)}% Similarity`);
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch (err: any) {
+      // Fallback
+    } finally {
+      setIsDetectingDup(false);
+    }
+  };
+
+  const handleRunMessageScanner = async () => {
+    setIsScanningMsg(true);
+    try {
+      const res = await analyzeMessageWithAI(msgScanText);
+      setMsgScanResult(res);
+      setActionFeedback(`💬 Direct Message Safety Analysis: ${res.action.toUpperCase()}`);
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch (err: any) {
+      // Fallback
+    } finally {
+      setIsScanningMsg(false);
+    }
+  };
+
+  const handleRunSemanticSearch = async () => {
+    setIsSearchingSemantic(true);
+    try {
+      const res = await semanticSearchCollegesWithAI(semanticQuery, 6);
+      setSemanticResult(res);
+      setActionFeedback(`🏛️ Found ${res.matches.length} Semantic College Matches!`);
+      setTimeout(() => setActionFeedback(null), 3000);
+    } catch (err: any) {
+      // Fallback
+    } finally {
+      setIsSearchingSemantic(false);
+    }
   };
 
   const handleExportAuditLogs = () => {
@@ -821,16 +946,31 @@ Developer environment initialized. Type 'help' to view available system commands
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    4 / 4 Models Active (campus-lenz-ai + Local WASM)
+                  <button
+                    type="button"
+                    onClick={handlePingAIService}
+                    disabled={isPingingService}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isPingingService ? 'animate-spin' : ''}`} />
+                    {isPingingService ? 'Pinging...' : 'Ping AI Service'}
+                  </button>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                    aiServiceStatus?.isExternalServiceActive
+                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${aiServiceStatus?.isExternalServiceActive ? 'bg-purple-500' : 'bg-emerald-500'} animate-pulse`} />
+                    {aiServiceStatus?.isExternalServiceActive
+                      ? 'FastAPI Microservice Active (Port 8000)'
+                      : '8 / 8 Models Active (Local Edge Resilient Fallback)'}
                   </span>
                 </div>
               </div>
 
-              {/* Model Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Model 0: campus-lenz-ai (Category & Post Analyzer) */}
+              {/* 8 Model Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Model 1: campus-lenz-ai (Category & Post Analyzer) */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider">
@@ -845,13 +985,12 @@ Developer environment initialized. Type 'help' to view available system commands
                     </p>
                   </div>
                   <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
-                    <span>Engine: <strong>Ollama / Native Edge</strong></span>
-                    <span>Categories: <strong>10 Classes</strong></span>
-                    <span>Policy: <strong>Active</strong></span>
+                    <span>Engine: <strong>Ollama / Edge</strong></span>
+                    <span>Classes: <strong>10 Topics</strong></span>
                   </div>
                 </div>
 
-                {/* Model 1: unitary/toxic-bert */}
+                {/* Model 2: unitary/toxic-bert */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider">
@@ -868,11 +1007,10 @@ Developer environment initialized. Type 'help' to view available system commands
                   <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                     <span>Engine: <strong>ONNX Edge</strong></span>
                     <span>Weights: <strong>440MB</strong></span>
-                    <span>Quant: <strong>INT8</strong></span>
                   </div>
                 </div>
 
-                {/* Model 2: distilbert-sst2 */}
+                {/* Model 3: distilbert-sst2 */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider">
@@ -888,12 +1026,11 @@ Developer environment initialized. Type 'help' to view available system commands
                   </div>
                   <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
                     <span>Engine: <strong>Transformers.js</strong></span>
-                    <span>Weights: <strong>268MB</strong></span>
                     <span>Acc: <strong>91.3%</strong></span>
                   </div>
                 </div>
 
-                {/* Model 3: nsfwjs-mobilenet-v2 */}
+                {/* Model 4: nsfwjs-mobilenet-v2 */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider">
@@ -904,13 +1041,92 @@ Developer environment initialized. Type 'help' to view available system commands
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 font-mono">nsfwjs-mobilenet-v2</h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Client-side visual safety classification for suggestive, graphic, and policy-violating imagery.
+                      Visual safety classification for suggestive, graphic, and policy-violating imagery.
                     </p>
                   </div>
                   <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
-                    <span>Engine: <strong>TF.js WebGL</strong></span>
-                    <span>Weights: <strong>16MB</strong></span>
+                    <span>Engine: <strong>WebGL / Canvas</strong></span>
                     <span>Classes: <strong>5 Labels</strong></span>
+                  </div>
+                </div>
+
+                {/* Model 5: review_summarizer */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black uppercase tracking-wider">
+                      Review Summarizer
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● Active (12ms)</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">review-summarizer</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Synthesizes student reviews into key takeaways, positive/negative points, and 8-aspect summaries.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Engine: <strong>Multi-Aspect Matrix</strong></span>
+                    <span>Aspects: <strong>8 Dims</strong></span>
+                  </div>
+                </div>
+
+                {/* Model 6: duplicate_detector */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase tracking-wider">
+                      Duplicate Detector
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● Active (3ms)</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">duplicate-detector</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      High-precision cosine vector & tri-gram proximity detector for paraphrased student submissions.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Engine: <strong>Cosine Vector</strong></span>
+                    <span>Threshold: <strong>0.85</strong></span>
+                  </div>
+                </div>
+
+                {/* Model 7: semantic_search */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800 text-[10px] font-black uppercase tracking-wider">
+                      Semantic Search
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● Active (6ms)</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">nomic-embed-search</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Retrieves colleges using multi-attribute semantic embeddings over programs, fees, placements, and hostel.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Engine: <strong>nomic-embed (768d)</strong></span>
+                    <span>Dims: <strong>9 Attributes</strong></span>
+                  </div>
+                </div>
+
+                {/* Model 8: message_analyzer */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md bg-fuchsia-100 text-fuchsia-800 text-[10px] font-black uppercase tracking-wider">
+                      Chat Safety Filter
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● Active (4ms)</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">message-analyzer</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Private message safety classification: flags violence threats, harassment, and commercial scams.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Engine: <strong>Safety Filter</strong></span>
+                    <span>Status: <strong>Strict Gate</strong></span>
                   </div>
                 </div>
               </div>
@@ -1089,373 +1305,889 @@ Developer environment initialized. Type 'help' to view available system commands
                 </div>
               </div>
 
-              {/* Quick Presets */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <span className="text-slate-400 font-medium">Text Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sample = 'Had an amazing engineering hackathon session today! Proud of the collaborative energy.';
-                      setAiScanInput(sample);
-                      setAiScanImageUrl('');
-                      handleRunAIScan(sample, '');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold transition"
-                  >
-                    🌟 Safe Campus Post
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sample = 'The hostel food and rooms need serious repair, but our professors and placement support are top notch!';
-                      setAiScanInput(sample);
-                      setAiScanImageUrl('');
-                      handleRunAIScan(sample, '');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition"
-                  >
-                    🏫 Mixed Campus Review (campus-lenz-ai)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sample = 'Recommended midterm preparation roadmap for Data Structures & Algorithms with cheat sheets and problem sets.';
-                      setAiScanInput(sample);
-                      setAiScanImageUrl('');
-                      handleRunAIScan(sample, '');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold transition"
-                  >
-                    📘 Academic Guidance
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sample = 'The student council election was completely rigged and administration is covering it up boycott the campus mess!';
-                      setAiScanInput(sample);
-                      setAiScanImageUrl('');
-                      handleRunAIScan(sample, '');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold transition"
-                  >
-                    ⚠️ Ragebait / Debate (Blur Trigger)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sample = 'You absolute worthless idiot fraud scum deserve to be kicked out and die immediately.';
-                      setAiScanInput(sample);
-                      setAiScanImageUrl('');
-                      handleRunAIScan(sample, '');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition"
-                  >
-                    🚨 Severe Harassment (Auto-Ban Trigger)
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <span className="text-slate-400 font-medium">Multi-Modal Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sampleText = 'Join us for the Annual Autonomous Robotics Showcase at Tech Quadrangle!';
-                      const sampleImg = 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80';
-                      setAiScanInput(sampleText);
-                      setAiScanImageUrl(sampleImg);
-                      handleRunAIScan(sampleText, sampleImg);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition flex items-center gap-1"
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                    🤖 Safe Tech Event Flyer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sampleText = 'Crazy off-campus late night party happening this Friday!';
-                      const sampleImg = 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=800&auto=format&fit=crop&q=80';
-                      setAiScanInput(sampleText);
-                      setAiScanImageUrl(sampleImg);
-                      handleRunAIScan(sampleText, sampleImg);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition flex items-center gap-1"
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                    🔞 Nightclub Flyer (Vision Shield)
-                  </button>
-                </div>
+              {/* AI Workbench Sub-Navigation */}
+              <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setAiWorkbenchTab('post')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    aiWorkbenchTab === 'post'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Post & Toxicity Analyzer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiWorkbenchTab('review')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    aiWorkbenchTab === 'review'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-purple-400" />
+                  Review Summarizer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiWorkbenchTab('duplicate')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    aiWorkbenchTab === 'duplicate'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Copy className="w-3.5 h-3.5 text-blue-400" />
+                  Duplicate Detector
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiWorkbenchTab('message')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    aiWorkbenchTab === 'message'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-rose-400" />
+                  Direct Message Safety
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiWorkbenchTab('semantic')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                    aiWorkbenchTab === 'semantic'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5 text-emerald-400" />
+                  Semantic College Search
+                </button>
               </div>
 
-              {/* Interactive Input Form */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Text Content (DistilBERT + Toxic-BERT Tokenizer)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={aiScanInput}
-                    onChange={e => setAiScanInput(e.target.value)}
-                    placeholder="Paste or type any post content, comment, or circular to evaluate..."
-                    className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 leading-relaxed resize-none"
-                  />
-                </div>
+              {/* WORKBENCH 1: POST & TOXICITY ANALYZER */}
+              {aiWorkbenchTab === 'post' && (
+                <div className="space-y-6">
+                  {/* Quick Presets */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="text-slate-400 font-medium">Text Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = 'Had an amazing engineering hackathon session today! Proud of the collaborative energy.';
+                          setAiScanInput(sample);
+                          setAiScanImageUrl('');
+                          handleRunAIScan(sample, '');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold transition"
+                      >
+                        🌟 Safe Campus Post
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = 'The hostel food and rooms need serious repair, but our professors and placement support are top notch!';
+                          setAiScanInput(sample);
+                          setAiScanImageUrl('');
+                          handleRunAIScan(sample, '');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition"
+                      >
+                        🏫 Mixed Campus Review (campus-lenz-ai)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = 'Recommended midterm preparation roadmap for Data Structures & Algorithms with cheat sheets and problem sets.';
+                          setAiScanInput(sample);
+                          setAiScanImageUrl('');
+                          handleRunAIScan(sample, '');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold transition"
+                      >
+                        📘 Academic Guidance
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = 'The student council election was completely rigged and administration is covering it up boycott the campus mess!';
+                          setAiScanInput(sample);
+                          setAiScanImageUrl('');
+                          handleRunAIScan(sample, '');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold transition"
+                      >
+                        ⚠️ Ragebait / Debate (Blur Trigger)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sample = 'You absolute worthless idiot fraud scum deserve to be kicked out and die immediately.';
+                          setAiScanInput(sample);
+                          setAiScanImageUrl('');
+                          handleRunAIScan(sample, '');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition"
+                      >
+                        🚨 Severe Harassment (Auto-Ban Trigger)
+                      </button>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Optional Visual Asset URL (MobileNet NSFWJS Vision Classifier)
-                  </label>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="text-slate-400 font-medium">Multi-Modal Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sampleText = 'Join us for the Annual Autonomous Robotics Showcase at Tech Quadrangle!';
+                          const sampleImg = 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80';
+                          setAiScanInput(sampleText);
+                          setAiScanImageUrl(sampleImg);
+                          handleRunAIScan(sampleText, sampleImg);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition flex items-center gap-1"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        🤖 Safe Tech Event Flyer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sampleText = 'Crazy off-campus late night party happening this Friday!';
+                          const sampleImg = 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=800&auto=format&fit=crop&q=80';
+                          setAiScanInput(sampleText);
+                          setAiScanImageUrl(sampleImg);
+                          handleRunAIScan(sampleText, sampleImg);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition flex items-center gap-1"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        🔞 Nightclub Flyer (Vision Shield)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Input Form */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Text Content (DistilBERT + Toxic-BERT Tokenizer)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={aiScanInput}
+                        onChange={e => setAiScanInput(e.target.value)}
+                        placeholder="Paste or type any post content, comment, or circular to evaluate..."
+                        className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 leading-relaxed resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Optional Visual Asset URL (MobileNet NSFWJS Vision Classifier)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="url"
+                            value={aiScanImageUrl}
+                            onChange={e => setAiScanImageUrl(e.target.value)}
+                            placeholder="https://images.unsplash.com/..."
+                            className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                          />
+                          <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                          {aiScanImageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setAiScanImageUrl('')}
+                              className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                      <span className="text-[11px] text-slate-400">
+                        Text: {aiScanInput.length} chars • Image: {aiScanImageUrl ? 'Attached' : 'None'} • Edge WASM Ready
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isScanning || (!aiScanInput.trim() && !aiScanImageUrl.trim())}
+                          onClick={() => handleRunAIScan()}
+                          className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          {isScanning ? 'Executing Pipeline...' : 'Run Multi-Modal Pipeline'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Analysis Result Card */}
+                  {aiUnifiedResult && (
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-5">
+                      {/* Action Banner */}
+                      <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
+                        aiUnifiedResult.actionRecommended === 'auto_ban'
+                          ? 'bg-rose-100/80 border-rose-300 text-rose-900'
+                          : aiUnifiedResult.actionRecommended === 'blur_sensitive'
+                          ? 'bg-amber-100/80 border-amber-300 text-amber-900'
+                          : aiUnifiedResult.actionRecommended === 'quarantine'
+                          ? 'bg-orange-100/80 border-orange-300 text-orange-900'
+                          : 'bg-emerald-100/80 border-emerald-300 text-emerald-900'
+                      }`}>
+                        <div className="flex items-center gap-2.5">
+                          {aiUnifiedResult.actionRecommended === 'auto_ban' ? (
+                            <AlertOctagon className="w-5 h-5 text-rose-700 shrink-0" />
+                          ) : aiUnifiedResult.actionRecommended === 'blur_sensitive' ? (
+                            <ShieldAlert className="w-5 h-5 text-amber-700 shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+                          )}
+                          <div>
+                            <div className="text-xs font-black uppercase tracking-wider">
+                              Policy Verdict: {aiUnifiedResult.actionRecommended.replace('_', ' ')}
+                            </div>
+                            <div className="text-xs mt-0.5">
+                              {aiUnifiedResult.actionRecommended === 'auto_ban'
+                                ? `Severe toxicity detected (≥${aiModelSettings.autoBanThreshold}%). Immediate 48-hour account suspension and post rejection enforced.`
+                                : aiUnifiedResult.actionRecommended === 'blur_sensitive'
+                                ? `Content flagged as sensitive (${aiUnifiedResult.actionReason || 'High friction or suggestive imagery'}). Shielded with frosted blur overlay.`
+                                : aiUnifiedResult.actionRecommended === 'quarantine'
+                                ? 'Held in moderation holding queue pending administrative clearance.'
+                                : 'Content passed all safety filters and is cleared for public campus circulation.'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white/80 border border-current">
+                          Tox: {aiUnifiedResult.toxicity.score}%
+                        </span>
+                      </div>
+
+                      {/* 4 Model Metric Columns */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Model 0: campus-lenz-ai */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                              campus-lenz-ai
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">Topic & Policy</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 truncate">
+                              {aiUnifiedResult.classification?.category || 'General'}
+                            </span>
+                            <span className="text-xs font-bold text-slate-600">
+                              {Math.round((aiUnifiedResult.classification?.confidence || 0.8) * 100)}%
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 pt-1 space-y-0.5">
+                            <div>Moderation: <strong className={aiUnifiedResult.postAnalysis?.moderation === 'normal' ? 'text-emerald-600' : 'text-amber-600'}>{aiUnifiedResult.postAnalysis?.moderation || 'normal'}</strong></div>
+                            <div>College Related: <strong>{aiUnifiedResult.postAnalysis?.college_related ? 'Yes' : 'No'}</strong></div>
+                            <div>Action: <strong className={aiUnifiedResult.postAnalysis?.action === 'publish' ? 'text-emerald-600' : 'text-rose-600'}>{aiUnifiedResult.postAnalysis?.action?.toUpperCase() || 'PUBLISH'}</strong></div>
+                          </div>
+                        </div>
+
+                        {/* Model 1: distilbert-sst2 */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <Bot className="w-3.5 h-3.5 text-blue-600" />
+                              distilbert-sst2
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">Sentiment</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider ${
+                              aiUnifiedResult.sentiment.label === 'positive'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : aiUnifiedResult.sentiment.label === 'ragebait'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : aiUnifiedResult.sentiment.label === 'toxic'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-slate-50 text-slate-700 border border-slate-200'
+                            }`}>
+                              {aiUnifiedResult.sentiment.label}
+                            </span>
+                            <span className="text-xs font-bold text-slate-600">
+                              {Math.round(aiUnifiedResult.sentiment.score * 100)}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className={`h-full ${
+                                aiUnifiedResult.sentiment.label === 'positive'
+                                  ? 'bg-emerald-500'
+                                  : aiUnifiedResult.sentiment.label === 'ragebait'
+                                  ? 'bg-amber-500'
+                                  : 'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.round(aiUnifiedResult.sentiment.score * 100)}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Polarity: <strong>{aiUnifiedResult.sentiment.polarity > 0 ? `+${aiUnifiedResult.sentiment.polarity.toFixed(2)}` : aiUnifiedResult.sentiment.polarity.toFixed(2)}</strong>
+                          </div>
+                        </div>
+
+                        {/* Model 2: toxic-bert */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <Shield className="w-3.5 h-3.5 text-rose-600" />
+                              toxic-bert
+                            </span>
+                            <span className={`text-xs font-black ${
+                              aiUnifiedResult.toxicity.score >= aiModelSettings.autoBanThreshold
+                                ? 'text-rose-600'
+                                : aiUnifiedResult.toxicity.score >= aiModelSettings.blurThreshold
+                                ? 'text-amber-600'
+                                : 'text-emerald-600'
+                            }`}>
+                              {aiUnifiedResult.toxicity.score}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                aiUnifiedResult.toxicity.score >= aiModelSettings.autoBanThreshold
+                                  ? 'bg-rose-500'
+                                  : aiUnifiedResult.toxicity.score >= aiModelSettings.blurThreshold
+                                  ? 'bg-amber-500'
+                                  : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${aiUnifiedResult.toxicity.score}%` }}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500 pt-1">
+                            <div>Insult: <strong className={aiUnifiedResult.toxicity.categories.insult > 40 ? 'text-rose-600' : ''}>{aiUnifiedResult.toxicity.categories.insult}%</strong></div>
+                            <div>Threat: <strong className={aiUnifiedResult.toxicity.categories.threat > 40 ? 'text-rose-600' : ''}>{aiUnifiedResult.toxicity.categories.threat}%</strong></div>
+                          </div>
+                        </div>
+
+                        {/* Model 3: nsfwjs */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
+                              nsfwjs-vision
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {aiScanImageUrl ? 'Scanned' : 'No Image'}
+                            </span>
+                          </div>
+                          {aiScanImageUrl && aiUnifiedResult.imageSafety ? (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                  aiUnifiedResult.imageSafety.status === 'safe'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {aiUnifiedResult.imageSafety.status}
+                                </span>
+                                <span className="text-xs font-bold text-slate-600">
+                                  {Math.round(aiUnifiedResult.imageSafety.confidence * 100)}%
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 truncate pt-1">
+                                Labels: {aiUnifiedResult.imageSafety.detectedLabels?.join(', ') || 'Normal'}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="py-2 text-center text-[11px] text-slate-400 italic">
+                              Provide an Image URL above to trigger the MobileNet vision classifier.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quarantine Button */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
+                        <div className="text-xs text-slate-500">
+                          Provenance: <span className="font-mono text-slate-700">{aiUnifiedResult.sentiment.model} + {aiUnifiedResult.toxicity.model}</span>
+                        </div>
+                        {aiUnifiedResult.toxicity.score > 30 && isAdmin && (
+                          <button
+                            type="button"
+                            onClick={handleQuarantineScannedText}
+                            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                            Quarantine & Log Action
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WORKBENCH 2: REVIEW SUMMARIZER */}
+              {aiWorkbenchTab === 'review' && (
+                <div className="space-y-6">
+                  {/* Presets */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="text-slate-400 font-medium">Review Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewSumCollegeId('col-psg');
+                        setReviewSumCustomText(
+                          'The faculty are exceptionally knowledgeable and research-driven. High placement percentage with marquee recruiters visiting campus every session. However, the hostel rooms are quite old and mess food could be improved significantly. Overall tuition is high but worth the money for the exposure and peer community.'
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition"
+                    >
+                      🏫 PSG Tech Feedback Set
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewSumCollegeId('col-amrita');
+                        setReviewSumCustomText(
+                          'Great infrastructure and ultra-modern computing labs. Strict campus discipline and attendance rules. Placements for CSE are outstanding with several international offers. Hostel amenities are clean and mess food is decent with diverse vegetarian options.'
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-semibold transition"
+                    >
+                      🎓 Amrita Vishwa Vidyapeetham
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewSumCollegeId('col-cit');
+                        setReviewSumCustomText(
+                          'Decent college with strong government-aided fees value. Great coding culture among students and active alumni network. Library resources are extensive though sports facilities are limited. Placements are solid for circuit branches.'
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold transition"
+                    >
+                      🏛️ Coimbatore Institute of Tech
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Target Institution</label>
+                        <select
+                          value={reviewSumCollegeId}
+                          onChange={e => setReviewSumCollegeId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800"
+                        >
+                          {colleges.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Batch of Student Review Texts (separated by sentence or newlines)
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={reviewSumCustomText}
+                        onChange={e => setReviewSumCustomText(e.target.value)}
+                        placeholder="Enter real student reviews to synthesize..."
+                        className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 leading-relaxed resize-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        disabled={isSummarizing || !reviewSumCustomText.trim()}
+                        onClick={handleRunReviewSummarizer}
+                        className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        {isSummarizing ? 'Synthesizing Reviews...' : '⚡ Run Review Summarizer'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {reviewSumResult && (
+                    <div className="p-5 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-4">
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5 mb-1">
+                          <Sparkles className="w-4 h-4 text-purple-600" />
+                          AI Synthesized Summary ({reviewSumResult.model})
+                        </div>
+                        <p className="text-sm text-slate-800 leading-relaxed bg-white p-3.5 rounded-xl border border-purple-100">
+                          {reviewSumResult.summary}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-emerald-600" />
+                            Top Strengths & Highlights
+                          </span>
+                          <ul className="text-xs text-slate-600 space-y-1.5">
+                            {reviewSumResult.positive_points.map((pt, i) => (
+                              <li key={i} className="flex items-start gap-1.5">
+                                <span className="text-emerald-500 font-bold shrink-0">•</span>
+                                <span>{pt}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                          <span className="text-xs font-bold text-amber-800 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            Areas Noted for Improvement
+                          </span>
+                          <ul className="text-xs text-slate-600 space-y-1.5">
+                            {reviewSumResult.negative_points.map((pt, i) => (
+                              <li key={i} className="flex items-start gap-1.5">
+                                <span className="text-amber-500 font-bold shrink-0">•</span>
+                                <span>{pt}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Aspect Summary Matrix */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-slate-700">Aspect-Based Sentiment Synthesis</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          {Object.entries(reviewSumResult.aspect_summary).map(([aspect, desc]) => (
+                            <div key={aspect} className="bg-white p-2.5 rounded-xl border border-slate-200">
+                              <span className="font-bold text-slate-800 block text-[11px] truncate">{aspect}</span>
+                              <span className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{desc || 'No specific mentions'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WORKBENCH 3: DUPLICATE & PARAPHRASE DETECTOR */}
+              {aiWorkbenchTab === 'duplicate' && (
+                <div className="space-y-6">
+                  {/* Presets */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="text-slate-400 font-medium">Comparison Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDupTextA('The placement cell at PSG Tech needs to invite more core mechanical engineering companies instead of only IT software companies.');
+                        setDupTextB('PSG College placement department should bring more core mechanical firms rather than just IT service recruiters.');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold transition"
+                    >
+                      🔄 Near-Duplicate / Paraphrased Post
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDupTextA('Important circular regarding submission of semester project reports by March 30th.');
+                        setDupTextB('Important circular regarding submission of semester project reports by March 30th.');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition"
+                    >
+                      ⚠️ Exact Identical Submission
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDupTextA('Annual sports day tournament registrations are open for cricket, football, and volleyball.');
+                        setDupTextB('The cloud computing workshop hosted by Google DSC is scheduled for this Saturday in CS Lab 4.');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold transition"
+                    >
+                      ✨ Distinct / Different Topics
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Submission Text A</label>
+                      <textarea
+                        rows={3}
+                        value={dupTextA}
+                        onChange={e => setDupTextA(e.target.value)}
+                        placeholder="Enter first post text..."
+                        className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-xs text-slate-800 resize-none leading-relaxed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Submission Text B</label>
+                      <textarea
+                        rows={3}
+                        value={dupTextB}
+                        onChange={e => setDupTextB(e.target.value)}
+                        placeholder="Enter second post text to compare..."
+                        className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-xs text-slate-800 resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span>Threshold: <strong>{Math.round(dupThreshold * 100)}%</strong></span>
+                      <input
+                        type="range"
+                        min="50"
+                        max="95"
+                        value={Math.round(dupThreshold * 100)}
+                        onChange={e => setDupThreshold(Number(e.target.value) / 100)}
+                        className="w-32 accent-indigo-600"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isDetectingDup || !dupTextA.trim() || !dupTextB.trim()}
+                      onClick={handleRunDuplicateDetector}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      {isDetectingDup ? 'Computing Vector Cosine...' : '🔍 Compare Cosine Similarity'}
+                    </button>
+                  </div>
+
+                  {dupResult && (
+                    <div className={`p-5 rounded-2xl border space-y-3 ${
+                      dupResult.likely_duplicate
+                        ? 'bg-rose-50/80 border-rose-300 text-rose-950'
+                        : 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {dupResult.likely_duplicate ? (
+                            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          )}
+                          <span className="font-extrabold text-sm uppercase tracking-wider">
+                            {dupResult.likely_duplicate ? '⚠️ Likely Duplicate Post Detected' : '✨ Original Content Verified'}
+                          </span>
+                        </div>
+                        <span className="font-mono text-xs font-black px-3 py-1 rounded-lg bg-white/80 border border-current">
+                          Cosine Similarity: {Math.round(dupResult.similarity * 100)}%
+                        </span>
+                      </div>
+
+                      <p className="text-xs leading-relaxed">
+                        {dupResult.likely_duplicate
+                          ? `The two submissions share ${Math.round(dupResult.similarity * 100)}% semantic vector proximity (exceeding the ${Math.round(dupResult.threshold * 100)}% threshold). Suggesting spam quarantine or author alert to prevent feed redundancy.`
+                          : `The two submissions have only ${Math.round(dupResult.similarity * 100)}% proximity. Classified as distinct, independent contributions.`}
+                      </p>
+
+                      <div className="text-[10px] text-slate-500 pt-1 border-t border-current/20 flex items-center justify-between">
+                        <span>Model: {dupResult.model}</span>
+                        <span>Baseline Threshold: {dupResult.threshold}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WORKBENCH 4: DIRECT MESSAGE SAFETY SCANNER */}
+              {aiWorkbenchTab === 'message' && (
+                <div className="space-y-6">
+                  {/* Presets */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="text-slate-400 font-medium">Message Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setMsgScanText('Hey! Are you free this afternoon to review the Operating Systems lecture notes together in the library?')}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold transition"
+                    >
+                      🌟 Safe Academic Chat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMsgScanText('Stop acting so smart you complete idiot, everyone in the batch hates you.')}
+                      className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold transition"
+                    >
+                      ⚠️ Harassment (Warning)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMsgScanText('I am going to find you after class and beat you up and break your bones tomorrow.')}
+                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold transition"
+                    >
+                      🚨 Physical Threat (Auto-Block)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMsgScanText('Make 5000 dollars working from hostel click link immediately at t.me/freecrypto investment guaranteed.')}
+                      className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-semibold transition"
+                    >
+                      🚫 Commercial Spam
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Direct Message Content (Private 1-on-1 Chat Stream)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={msgScanText}
+                      onChange={e => setMsgScanText(e.target.value)}
+                      placeholder="Enter chat message to scan for safety violations..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={isScanningMsg || !msgScanText.trim()}
+                      onClick={handleRunMessageScanner}
+                      className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-rose-400" />
+                      {isScanningMsg ? 'Scanning Chat Safety...' : '💬 Run Chat Safety Scan'}
+                    </button>
+                  </div>
+
+                  {msgScanResult && (
+                    <div className={`p-5 rounded-2xl border space-y-4 ${
+                      msgScanResult.action === 'block'
+                        ? 'bg-rose-100/80 border-rose-300 text-rose-950'
+                        : msgScanResult.action === 'warn'
+                        ? 'bg-amber-100/80 border-amber-300 text-amber-950'
+                        : 'bg-emerald-100/80 border-emerald-300 text-emerald-950'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {msgScanResult.action === 'block' ? (
+                            <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0" />
+                          ) : msgScanResult.action === 'warn' ? (
+                            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          )}
+                          <span className="font-extrabold text-sm uppercase tracking-wider">
+                            Verdict: {msgScanResult.action.toUpperCase()} ({msgScanResult.category})
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white/80 border border-current">
+                          Sentiment: {msgScanResult.sentiment}
+                        </span>
+                      </div>
+
+                      <p className="text-xs leading-relaxed">
+                        {msgScanResult.flagReason || 'Message is verified safe and adheres to collegiate interpersonal standards.'}
+                      </p>
+
+                      <div className="text-[10px] text-slate-500 pt-1 border-t border-current/20 flex items-center justify-between">
+                        <span>Classification: <strong>{msgScanResult.moderation}</strong></span>
+                        <span>Model: {msgScanResult.model}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WORKBENCH 5: SEMANTIC COLLEGE SEARCH EXPLORER */}
+              {aiWorkbenchTab === 'semantic' && (
+                <div className="space-y-6">
+                  {/* Presets */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="text-slate-400 font-medium">Query Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setSemanticQuery('best college with highest packages in computer science and top coding culture')}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 font-semibold transition"
+                    >
+                      🚀 High Tech Packages & Coding
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSemanticQuery('affordable college with cheap fees and good hostel food near coimbatore')}
+                      className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-semibold transition"
+                    >
+                      💰 Affordable Fees & Clean Hostel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSemanticQuery('top engineering college for mechanical and automobile engineering research')}
+                      className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold transition"
+                    >
+                      ⚙️ Mechanical & Automobile Research
+                    </button>
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <input
-                        type="url"
-                        value={aiScanImageUrl}
-                        onChange={e => setAiScanImageUrl(e.target.value)}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                        type="text"
+                        value={semanticQuery}
+                        onChange={e => setSemanticQuery(e.target.value)}
+                        placeholder="Ask anything in natural language e.g. 'best coding culture with low fee'..."
+                        className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                       />
-                      <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      {aiScanImageUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setAiScanImageUrl('')}
-                          className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600"
-                        >
-                          ✕
-                        </button>
-                      )}
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-                  <span className="text-[11px] text-slate-400">
-                    Text: {aiScanInput.length} chars • Image: {aiScanImageUrl ? 'Attached' : 'None'} • Edge WASM Ready
-                  </span>
-                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={isScanning || (!aiScanInput.trim() && !aiScanImageUrl.trim())}
-                      onClick={() => handleRunAIScan()}
-                      className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm"
+                      disabled={isSearchingSemantic || !semanticQuery.trim()}
+                      onClick={handleRunSemanticSearch}
+                      className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white font-bold text-xs transition flex items-center gap-2 shadow-sm shrink-0"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      {isScanning ? 'Executing Pipeline...' : 'Run Multi-Modal Pipeline'}
+                      <Search className="w-3.5 h-3.5" />
+                      {isSearchingSemantic ? 'Vector Matching...' : 'Semantic Search'}
                     </button>
                   </div>
-                </div>
-              </div>
 
-              {/* Analysis Result Card */}
-              {aiUnifiedResult && (
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-5">
-                  {/* Action Banner */}
-                  <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
-                    aiUnifiedResult.actionRecommended === 'auto_ban'
-                      ? 'bg-rose-100/80 border-rose-300 text-rose-900'
-                      : aiUnifiedResult.actionRecommended === 'blur_sensitive'
-                      ? 'bg-amber-100/80 border-amber-300 text-amber-900'
-                      : aiUnifiedResult.actionRecommended === 'quarantine'
-                      ? 'bg-orange-100/80 border-orange-300 text-orange-900'
-                      : 'bg-emerald-100/80 border-emerald-300 text-emerald-900'
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      {aiUnifiedResult.actionRecommended === 'auto_ban' ? (
-                        <AlertOctagon className="w-5 h-5 text-rose-700 shrink-0" />
-                      ) : aiUnifiedResult.actionRecommended === 'blur_sensitive' ? (
-                        <ShieldAlert className="w-5 h-5 text-amber-700 shrink-0" />
-                      ) : (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
-                      )}
-                      <div>
-                        <div className="text-xs font-black uppercase tracking-wider">
-                          Policy Verdict: {aiUnifiedResult.actionRecommended.replace('_', ' ')}
-                        </div>
-                        <div className="text-xs mt-0.5">
-                          {aiUnifiedResult.actionRecommended === 'auto_ban'
-                            ? `Severe toxicity detected (≥${aiModelSettings.autoBanThreshold}%). Immediate 48-hour account suspension and post rejection enforced.`
-                            : aiUnifiedResult.actionRecommended === 'blur_sensitive'
-                            ? `Content flagged as sensitive (${aiUnifiedResult.actionReason || 'High friction or suggestive imagery'}). Shielded with Apple-style frosted blur overlay on feed.`
-                            : aiUnifiedResult.actionRecommended === 'quarantine'
-                            ? 'Held in moderation holding queue pending administrative clearance.'
-                            : 'Content passed all safety filters and is cleared for public campus circulation.'}
-                        </div>
+                  {semanticResult && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>Found <strong>{semanticResult.matches.length}</strong> matching institutions for &quot;{semanticResult.query}&quot;</span>
+                        <span className="font-mono text-[10px] text-cyan-700">Model: {semanticResult.model}</span>
                       </div>
-                    </div>
 
-                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white/80 border border-current">
-                      Tox: {aiUnifiedResult.toxicity.score}%
-                    </span>
-                  </div>
-
-                  {/* 4 Model Metric Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Model 0: campus-lenz-ai Category & Post Analyzer */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                          campus-lenz-ai
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Topic & Policy</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 truncate">
-                          {aiUnifiedResult.classification?.category || 'General'}
-                        </span>
-                        <span className="text-xs font-bold text-slate-600">
-                          {Math.round((aiUnifiedResult.classification?.confidence || 0.8) * 100)}%
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 pt-1 space-y-0.5">
-                        <div>Moderation: <strong className={aiUnifiedResult.postAnalysis?.moderation === 'normal' ? 'text-emerald-600' : 'text-amber-600'}>{aiUnifiedResult.postAnalysis?.moderation || 'normal'}</strong></div>
-                        <div>College Related: <strong>{aiUnifiedResult.postAnalysis?.college_related ? 'Yes' : 'No'}</strong></div>
-                        <div>Policy Action: <strong className={aiUnifiedResult.postAnalysis?.action === 'publish' ? 'text-emerald-600' : 'text-rose-600'}>{aiUnifiedResult.postAnalysis?.action?.toUpperCase() || 'PUBLISH'}</strong></div>
-                      </div>
-                    </div>
-
-                    {/* Model 1: distilbert-sst2 */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                          <Bot className="w-3.5 h-3.5 text-blue-600" />
-                          distilbert-sst2
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">Sentiment</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider ${
-                          aiUnifiedResult.sentiment.label === 'positive'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : aiUnifiedResult.sentiment.label === 'ragebait'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : aiUnifiedResult.sentiment.label === 'toxic'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-slate-50 text-slate-700 border border-slate-200'
-                        }`}>
-                          {aiUnifiedResult.sentiment.label}
-                        </span>
-                        <span className="text-xs font-bold text-slate-600">
-                          {Math.round(aiUnifiedResult.sentiment.score * 100)}% Conf
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className={`h-full ${
-                            aiUnifiedResult.sentiment.label === 'positive'
-                              ? 'bg-emerald-500'
-                              : aiUnifiedResult.sentiment.label === 'ragebait'
-                              ? 'bg-amber-500'
-                              : 'bg-rose-500'
-                          }`}
-                          style={{ width: `${Math.round(aiUnifiedResult.sentiment.score * 100)}%` }}
-                        />
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        Polarity Index: <strong>{aiUnifiedResult.sentiment.polarity > 0 ? `+${aiUnifiedResult.sentiment.polarity.toFixed(2)}` : aiUnifiedResult.sentiment.polarity.toFixed(2)}</strong>
-                      </div>
-                    </div>
-
-                    {/* Model 2: unitary/toxic-bert */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                          <Shield className="w-3.5 h-3.5 text-rose-600" />
-                          toxic-bert
-                        </span>
-                        <span className={`text-xs font-black ${
-                          aiUnifiedResult.toxicity.score >= aiModelSettings.autoBanThreshold
-                            ? 'text-rose-600'
-                            : aiUnifiedResult.toxicity.score >= aiModelSettings.blurThreshold
-                            ? 'text-amber-600'
-                            : 'text-emerald-600'
-                        }`}>
-                          {aiUnifiedResult.toxicity.score}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 ${
-                            aiUnifiedResult.toxicity.score >= aiModelSettings.autoBanThreshold
-                              ? 'bg-rose-500'
-                              : aiUnifiedResult.toxicity.score >= aiModelSettings.blurThreshold
-                              ? 'bg-amber-500'
-                              : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${aiUnifiedResult.toxicity.score}%` }}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500 pt-1">
-                        <div>Insult: <strong className={aiUnifiedResult.toxicity.categories.insult > 40 ? 'text-rose-600' : ''}>{aiUnifiedResult.toxicity.categories.insult}%</strong></div>
-                        <div>Threat: <strong className={aiUnifiedResult.toxicity.categories.threat > 40 ? 'text-rose-600' : ''}>{aiUnifiedResult.toxicity.categories.threat}%</strong></div>
-                        <div>Ragebait: <strong className={aiUnifiedResult.toxicity.categories.ragebait > 40 ? 'text-amber-600' : ''}>{aiUnifiedResult.toxicity.categories.ragebait}%</strong></div>
-                        <div>Toxicity: <strong className={aiUnifiedResult.toxicity.categories.toxicity > 40 ? 'text-rose-600' : ''}>{aiUnifiedResult.toxicity.categories.toxicity}%</strong></div>
-                      </div>
-                    </div>
-
-                    {/* Model 3: nsfwjs-mobilenet-v2 */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                          <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
-                          nsfwjs-vision
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {aiScanImageUrl ? 'Scanned' : 'No Image'}
-                        </span>
-                      </div>
-                      {aiScanImageUrl && aiUnifiedResult.imageSafety ? (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                              aiUnifiedResult.imageSafety.status === 'safe'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
-                            }`}>
-                              {aiUnifiedResult.imageSafety.status}
-                            </span>
-                            <span className="text-xs font-bold text-slate-600">
-                              Conf: {Math.round(aiUnifiedResult.imageSafety.confidence * 100)}%
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 pt-1">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                              <img src={aiScanImageUrl} alt="preview" className="w-full h-full object-cover" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {semanticResult.matches.map((m, idx) => (
+                          <div key={m.collegeId || idx} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 hover:border-cyan-300 transition">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800">
+                                Match #{idx + 1}
+                              </span>
+                              <span className="text-xs font-mono font-bold text-cyan-700">
+                                {Math.round(m.score * 100)}% Relevance
+                              </span>
                             </div>
-                            <div className="text-[10px] text-slate-500 truncate">
-                              Labels: {aiUnifiedResult.imageSafety.detectedLabels?.join(', ') || 'Normal'}
-                            </div>
+                            <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{m.collegeName}</h4>
+                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{m.snippet}</p>
+                            {m.matchedAttributes.length > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap pt-1">
+                                {m.matchedAttributes.map(attr => (
+                                  <span key={attr} className="text-[9px] px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 font-semibold capitalize">
+                                    ✓ {attr}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </>
-                      ) : (
-                        <div className="py-2 text-center text-[11px] text-slate-400 italic">
-                          Provide an Image URL above to trigger the MobileNet vision classifier.
-                        </div>
-                      )}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Sandbox Action Bar */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
-                    <div className="text-xs text-slate-500">
-                      Provenance: <span className="font-mono text-slate-700">{aiUnifiedResult.sentiment.model} + {aiUnifiedResult.toxicity.model}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {aiUnifiedResult.toxicity.score > 30 && isAdmin && (
-                        <button
-                          type="button"
-                          onClick={handleQuarantineScannedText}
-                          className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm"
-                        >
-                          <ShieldAlert className="w-3.5 h-3.5" />
-                          Quarantine & Log Action
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

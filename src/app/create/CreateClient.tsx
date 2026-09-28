@@ -16,7 +16,7 @@ export default function CreateClient({
   const queryTab = searchParams.get('tab');
   const queryCollegeId = searchParams.get('collegeId');
 
-  const { colleges, currentUser, addPost, addReview, runOpenSourceAIModeration } = useApp();
+  const { colleges, posts, currentUser, addPost, addReview, runOpenSourceAIModeration, detectDuplicateWithAI, analyzeImageWithAI } = useApp();
 
   const [activeTab, setActiveTab] = useState<'post' | 'review'>(
     queryTab === 'review' ? 'review' : 'post'
@@ -45,6 +45,71 @@ export default function CreateClient({
   const [mediaFileName, setMediaFileName] = useState<string>('');
   const [mediaFileSize, setMediaFileSize] = useState<number>(0);
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
+
+  // AI Duplicate & Image Analysis state
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    similarity: number;
+    matchedPostContent: string;
+    matchedAuthor: string;
+  } | null>(null);
+  const [imageAIResult, setImageAIResult] = useState<any | null>(null);
+
+  // Real-time duplicate detection across campus stream
+  useEffect(() => {
+    if (deferredPostContent.trim().length < 15 || !posts || posts.length === 0) {
+      setDuplicateWarning(null);
+      return;
+    }
+
+    let isMounted = true;
+    const runCheck = async () => {
+      try {
+        const candidates = posts.slice(0, 15);
+        for (const p of candidates) {
+          if (!p.content || p.content === deferredPostContent) continue;
+          const res = await detectDuplicateWithAI(deferredPostContent, p.content, 0.78);
+          if (res.likely_duplicate && isMounted) {
+            setDuplicateWarning({
+              similarity: res.similarity,
+              matchedPostContent: p.content,
+              matchedAuthor: p.authorUsername || p.authorName || 'Campus Student',
+            });
+            return;
+          }
+        }
+        if (isMounted) setDuplicateWarning(null);
+      } catch {
+        // safe fallback
+      }
+    };
+
+    const timer = setTimeout(runCheck, 350);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [deferredPostContent, posts, detectDuplicateWithAI]);
+
+  // Real-time AI image analysis
+  useEffect(() => {
+    if (!postImageUrl) {
+      setImageAIResult(null);
+      return;
+    }
+    let isMounted = true;
+    const analyze = async () => {
+      try {
+        const res = await analyzeImageWithAI(postImageUrl, mediaFileName);
+        if (isMounted) setImageAIResult(res);
+      } catch {
+        // safe
+      }
+    };
+    analyze();
+    return () => {
+      isMounted = false;
+    };
+  }, [postImageUrl, mediaFileName, analyzeImageWithAI]);
 
   // Handle optimized image or video selection
   const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -492,6 +557,40 @@ export default function CreateClient({
                   <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>✨ Content Approved: Verified clean for campus-wide distribution in {ai.classification?.category || 'General'}.</span>
+                  </div>
+                )}
+
+                {/* AI Duplicate Detection Alert */}
+                {duplicateWarning ? (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-semibold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">⚠️ High Similarity Alert ({Math.round(duplicateWarning.similarity * 100)}% Match)</span>
+                      <p className="font-normal text-amber-800 text-[10px] mt-0.5">
+                        Very similar to a recent campus post by @{duplicateWarning.matchedAuthor}: &ldquo;{duplicateWarning.matchedPostContent.slice(0, 85)}...&rdquo;. Please ensure your post provides original questions or perspectives.
+                      </p>
+                    </div>
+                  </div>
+                ) : deferredPostContent.trim().length > 30 ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium px-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Original Discussion Verified (Cosine similarity &lt; 78% against campus feed)</span>
+                  </div>
+                ) : null}
+
+                {/* AI Image Recognition Telemetry */}
+                {imageAIResult && (
+                  <div className="p-2 rounded-xl bg-blue-50/80 border border-blue-200/80 flex items-center justify-between text-[11px] text-blue-900">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                      <span>AI Visual Recognition: <strong className="capitalize">{imageAIResult.category?.replace(/_/g, ' ')}</strong></span>
+                      {imageAIResult.college_related && (
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[9px]">
+                          Campus Relevant
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-mono text-blue-600/80">{imageAIResult.model}</span>
                   </div>
                 )}
               </div>

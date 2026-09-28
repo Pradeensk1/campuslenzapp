@@ -47,7 +47,8 @@ import {
   EyeOff,
   CheckCircle2,
   ShieldCheck,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 
 interface CampusConnectHubProps {
@@ -88,7 +89,8 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     leaveGroup,
     requestFacultyCommunity,
     approveFacultyCommunity,
-    rejectFacultyCommunity
+    rejectFacultyCommunity,
+    analyzeMessageWithAI
   } = useApp();
 
   const isAlumni = currentUser?.role === 'alumni';
@@ -220,9 +222,10 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     );
   }, [discussionSubGroups, groupSearch]);
 
-  const handleSendCommunityMessage = (e: React.FormEvent) => {
+  const handleSendCommunityMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!communityMessageInput.trim() || !activeGroup) return;
+    const text = communityMessageInput.trim();
+    if (!text || !activeGroup) return;
 
     if (!canPostInCommunityGroup) {
       setSlowmodeNotice('🔒 Only Community Admins can send messages to this announcement group.');
@@ -230,10 +233,24 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
       return;
     }
 
+    // AI Safety Guardian verification (FastAPI message_analyzer with local fallback)
+    try {
+      const analysis = await analyzeMessageWithAI(text, currentUser?.id, activeGroup.id);
+      if (analysis.action === 'block' || analysis.status === 'block') {
+        setSlowmodeNotice(
+          `🚨 AI Safety Shield: Message blocked. Reason: ${analysis.flagReason || analysis.flag_reason || 'Collegiate safety policy violation'}.`
+        );
+        setTimeout(() => setSlowmodeNotice(null), 5000);
+        return;
+      }
+    } catch {
+      // safe fallback
+    }
+
     if (activeGroup.isRagebaitProtected) {
       const toxicKeywords = ['rage', 'scam', 'hate', 'fraud', 'cheat', 'attack', 'idiot'];
-      const text = communityMessageInput.toLowerCase();
-      if (toxicKeywords.some((w) => text.includes(w))) {
+      const textLower = text.toLowerCase();
+      if (toxicKeywords.some((w) => textLower.includes(w))) {
         setSlowmodeNotice(
           '⚠️ Ragebait Shield triggered: inflammatory phrases detected. Please keep discussions collegiate and constructive.'
         );
@@ -242,7 +259,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
       }
     }
 
-    const res = sendServerMessage(activeGroup.id, communityMessageInput.trim());
+    const res = sendServerMessage(activeGroup.id, text);
     if (res?.message) {
       setSlowmodeNotice(res.message);
       setTimeout(() => setSlowmodeNotice(null), 4000);
@@ -395,6 +412,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
   const [conversationsSearch, setConversationsSearch] = useState('');
   const [directMessageInput, setDirectMessageInput] = useState('');
+  const [directMessageNotice, setDirectMessageNotice] = useState<string | null>(null);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -485,12 +503,28 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     );
   }, [allUsers, currentUser?.id, userSearchQuery]);
 
-  const handleSendDirectMessage = (e: React.FormEvent) => {
+  const handleSendDirectMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!directMessageInput.trim() || !activePartner) return;
+    const text = directMessageInput.trim();
+    if (!text || !activePartner) return;
 
-    sendDirectMessage(activePartner.id, directMessageInput.trim());
+    // Run AI Message Safety Guardian (FastAPI message_analyzer with local edge fallback)
+    try {
+      const analysis = await analyzeMessageWithAI(text, currentUser?.id, activePartner.id);
+      if (analysis.action === 'block' || analysis.status === 'block') {
+        setDirectMessageNotice(
+          `🚨 AI Message Safety: Message blocked. Reason: ${analysis.flagReason || analysis.flag_reason || 'Severe harassment or threat detected'}.`
+        );
+        setTimeout(() => setDirectMessageNotice(null), 5000);
+        return;
+      }
+    } catch {
+      // safe fallback
+    }
+
+    sendDirectMessage(activePartner.id, text);
     setDirectMessageInput('');
+    setDirectMessageNotice(null);
   };
 
   const handleSendHeart = () => {
@@ -1451,6 +1485,19 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
                     {/* DM Input Bar */}
                     <div className="p-3 sm:p-4 border-t border-[#E2E8F0] bg-white">
+                      {directMessageNotice && (
+                        <div className="p-2.5 mb-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>{directMessageNotice}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between px-1 mb-1.5 text-[10px] text-slate-400">
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <Sparkles className="w-3 h-3 text-blue-500" />
+                          <span>Protected by AI Safety Guardian</span>
+                        </span>
+                        <span className="font-mono text-[9px] text-slate-400">message_analyzer • zero-threat-policy</span>
+                      </div>
                       <form onSubmit={handleSendDirectMessage} className="flex items-center gap-2">
                         <div className="flex-1 relative flex items-center">
                           <input

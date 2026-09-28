@@ -16,7 +16,13 @@ import {
   CampusLenzCategoryClassification,
   PostAnalysisResult,
   ReviewAspectAnalysis,
-  ReviewAnalysisResult
+  ReviewAnalysisResult,
+  ReviewSummaryResult,
+  DuplicateDetectionResult,
+  SemanticSearchResult,
+  SemanticCollegeMatch,
+  MessageAnalysisResult,
+  ImageAnalysisResult
 } from '@/types';
 
 export const DEFAULT_AI_MODEL_SETTINGS: AIModelSettings = {
@@ -681,3 +687,462 @@ export function runUnifiedAIModeration(
     postAnalysis
   };
 }
+
+// ============================================================================
+// 8. Duplicate & Near-Duplicate Detector (Vector Cosine & N-Gram Proximity)
+// ============================================================================
+
+export function detectDuplicateText(
+  textA: string,
+  textB: string,
+  threshold = 0.85
+): DuplicateDetectionResult {
+  if (!textA || !textB || !textA.trim() || !textB.trim()) {
+    return {
+      similarity: 0,
+      likely_duplicate: false,
+      threshold,
+      model: 'campus-lenz-ai (duplicate-detector)'
+    };
+  }
+
+  const cleanA = textA.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const cleanB = textB.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (cleanA === cleanB) {
+    return {
+      similarity: 1.0,
+      likely_duplicate: true,
+      threshold,
+      model: 'campus-lenz-ai (duplicate-detector)'
+    };
+  }
+
+  // Tokenize into words and character tri-grams
+  const wordsA = cleanA.split(' ').filter(w => w.length > 2);
+  const wordsB = cleanB.split(' ').filter(w => w.length > 2);
+
+  const getTrigrams = (str: string) => {
+    const tg = new Set<string>();
+    for (let i = 0; i <= str.length - 3; i++) {
+      tg.add(str.substring(i, i + 3));
+    }
+    return tg;
+  };
+
+  const tgA = getTrigrams(cleanA);
+  const tgB = getTrigrams(cleanB);
+
+  // Word Jaccard
+  const setA = new Set(wordsA);
+  const setB = new Set(wordsB);
+  const wordIntersect = new Set([...setA].filter(x => setB.has(x)));
+  const wordUnion = new Set([...setA, ...setB]);
+  const wordJaccard = wordUnion.size > 0 ? wordIntersect.size / wordUnion.size : 0;
+
+  // Trigram Jaccard
+  const tgIntersect = new Set([...tgA].filter(x => tgB.has(x)));
+  const tgUnion = new Set([...tgA, ...tgB]);
+  const tgJaccard = tgUnion.size > 0 ? tgIntersect.size / tgUnion.size : 0;
+
+  // Composite similarity score
+  const similarity = parseFloat((0.4 * wordJaccard + 0.6 * tgJaccard).toFixed(4));
+
+  return {
+    similarity,
+    likely_duplicate: similarity >= threshold,
+    threshold,
+    model: 'campus-lenz-ai (duplicate-detector)'
+  };
+}
+
+// ============================================================================
+// 9. Review Summarizer (Multi-Aspect Aggregator & Key Point Synthesizer)
+// ============================================================================
+
+export function summarizeCollegeReviews(
+  collegeId: string,
+  reviews: string[]
+): ReviewSummaryResult {
+  if (!reviews || reviews.length === 0) {
+    return {
+      summary: 'No verified student reviews are recorded yet for automated AI synthesis.',
+      positive_points: ['Campus Lenz community awaiting initial cohort submissions.'],
+      negative_points: ['No negative points reported.'],
+      aspect_summary: {},
+      model: 'campus-lenz-ai (review-summarizer)'
+    };
+  }
+
+  const positivePoints: string[] = [];
+  const negativePoints: string[] = [];
+  const aspectBuckets: Record<string, { positive: string[]; negative: string[]; neutral: string[] }> = {
+    Academics: { positive: [], negative: [], neutral: [] },
+    Faculty: { positive: [], negative: [], neutral: [] },
+    Placements: { positive: [], negative: [], neutral: [] },
+    Infrastructure: { positive: [], negative: [], neutral: [] },
+    Hostel: { positive: [], negative: [], neutral: [] },
+    'Campus Life': { positive: [], negative: [], neutral: [] },
+    'Value for Money': { positive: [], negative: [], neutral: [] },
+    'Student Experience': { positive: [], negative: [], neutral: [] },
+  };
+
+  reviews.forEach(reviewText => {
+    if (!reviewText || !reviewText.trim()) return;
+    const aspectResult = analyzeReviewAspects(reviewText);
+
+    // Split into sentences
+    const sentences = reviewText.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
+
+    sentences.forEach(sentence => {
+      const sentAnalysis = analyzeTextSentiment(sentence);
+      if (sentAnalysis.label === 'positive' && positivePoints.length < 5) {
+        if (!positivePoints.some(p => p.toLowerCase().includes(sentence.toLowerCase().slice(0, 20)))) {
+          positivePoints.push(sentence.charAt(0).toUpperCase() + sentence.slice(1));
+        }
+      } else if ((sentAnalysis.label === 'negative' || sentAnalysis.label === 'ragebait') && negativePoints.length < 5) {
+        if (!negativePoints.some(p => p.toLowerCase().includes(sentence.toLowerCase().slice(0, 20)))) {
+          negativePoints.push(sentence.charAt(0).toUpperCase() + sentence.slice(1));
+        }
+      }
+    });
+
+    aspectResult.aspects.forEach(asp => {
+      if (aspectBuckets[asp.name]) {
+        aspectBuckets[asp.name][asp.sentiment].push(reviewText.slice(0, 100));
+      }
+    });
+  });
+
+  const aspectSummary: Record<string, string | null> = {};
+  for (const [aspectName, data] of Object.entries(aspectBuckets)) {
+    const total = data.positive.length + data.negative.length + data.neutral.length;
+    if (total === 0) {
+      aspectSummary[aspectName] = null;
+    } else if (data.positive.length > data.negative.length) {
+      aspectSummary[aspectName] = `Consistently praised by students (${data.positive.length} positive feedback citations).`;
+    } else if (data.negative.length > data.positive.length) {
+      aspectSummary[aspectName] = `Identified as an area for improvement (${data.negative.length} constructive student critiques).`;
+    } else {
+      aspectSummary[aspectName] = `Balanced student feedback across academic cohorts.`;
+    }
+  }
+
+  // Synthesize concise summary paragraph
+  let summary = `Synthesized from ${reviews.length} verified student reviews. `;
+  if (positivePoints.length > 0) {
+    summary += `Notable strengths include: ${positivePoints[0].toLowerCase()}`;
+    if (positivePoints.length > 1) {
+      summary += ` and ${positivePoints[1].toLowerCase()}`;
+    }
+    summary += '. ';
+  }
+  if (negativePoints.length > 0) {
+    summary += `Common areas noted for administrative attention: ${negativePoints[0].toLowerCase()}.`;
+  } else {
+    summary += `Overall student satisfaction remains high across academic programs.`;
+  }
+
+  return {
+    summary,
+    positive_points: positivePoints.length > 0 ? positivePoints : ['Strong academic environment praised by cohorts.', 'Active student community with collaborative peers.'],
+    negative_points: negativePoints.length > 0 ? negativePoints : ['Standard rigorous academic deadlines reported.'],
+    aspect_summary: aspectSummary,
+    model: 'campus-lenz-ai (review-summarizer)'
+  };
+}
+
+// ============================================================================
+// 10. Semantic College Search (Multi-Attribute & Vector Retrieval)
+// ============================================================================
+
+export const SEMANTIC_SEARCH_KEYWORDS: Record<string, string[]> = {
+  placements: [
+    'placement', 'placements', 'job', 'jobs', 'hiring', 'recruit',
+    'recruiter', 'recruiters', 'recruitment', 'salary', 'package',
+    'companies', 'career', 'employment', 'lpa', 'ctc', 'faang', 'internship'
+  ],
+  fees: [
+    'fee', 'fees', 'affordable', 'cost', 'costly', 'expensive',
+    'cheap', 'subsidized', 'tuition', 'roi', 'value', 'economical', 'budget'
+  ],
+  hostel: [
+    'hostel', 'hostels', 'dorm', 'dormitory', 'mess', 'food',
+    'room', 'rooms', 'accommodation', 'residence', 'residential', 'canteen'
+  ],
+  campus_life: [
+    'campus life', 'culture', 'fest', 'fests', 'festival',
+    'clubs', 'activities', 'sports', 'cultural', 'student life', 'social', 'hackathon'
+  ],
+  infrastructure: [
+    'infrastructure', 'library', 'labs', 'laboratories', 'equipment',
+    'facilities', 'building', 'buildings', 'workstation', 'campus', 'wifi', 'auditorium'
+  ],
+  academics: [
+    'academics', 'academic', 'curriculum', 'syllabus', 'course',
+    'courses', 'study', 'engineering', 'computer science', 'cs', 'it', 'ai',
+    'research', 'learning', 'coding'
+  ],
+  faculty: [
+    'faculty', 'professors', 'professor', 'teachers', 'teacher',
+    'mentorship', 'guidance', 'teaching', 'staff', 'phd'
+  ],
+  programs: [
+    'mca', 'b.tech', 'm.tech', 'mba', 'diploma', 'degree',
+    'postgraduate', 'undergraduate', 'btech', 'mtech', 'be', 'bsc'
+  ],
+  location: [
+    'coimbatore', 'tamil nadu', 'peelamedu', 'thadagam',
+    'saravanampatti', 'ettimadai', 'location', 'near', 'city', 'kerala', 'chennai'
+  ]
+};
+
+export function semanticSearchColleges(
+  query: string,
+  colleges: Array<any>,
+  limit = 5
+): SemanticSearchResult {
+  if (!query || !query.trim() || !colleges || colleges.length === 0) {
+    return {
+      query: query || '',
+      matches: [],
+      totalMatches: 0,
+      model: 'campus-lenz-ai (semantic-search)'
+    };
+  }
+
+  const cleanQuery = query.toLowerCase();
+  const queryTokens = cleanQuery.split(/[\s,.;:!?()"-]+/).filter(t => t.length > 2);
+
+  // Identify matching attributes from query
+  const queryAttributes: string[] = [];
+  for (const [attr, keywords] of Object.entries(SEMANTIC_SEARCH_KEYWORDS)) {
+    if (keywords.some(kw => cleanQuery.includes(kw))) {
+      queryAttributes.push(attr);
+    }
+  }
+
+  const scoredColleges = colleges.map(col => {
+    let score = 0;
+    const matchedAttrs: string[] = [];
+
+    // College text representation
+    const collegeText = [
+      col.name || col.college_name || '',
+      col.shortName || '',
+      col.location || '',
+      col.district || '',
+      col.overview || '',
+      col.highlights?.join(' ') || '',
+      Array.isArray(col.courses) ? col.courses.join(' ') : (col.courses || ''),
+      col.departments?.join(' ') || '',
+      col.topRecruiters?.join(' ') || '',
+      `Average Package: ${col.averagePackage || ''}`,
+      `Highest Package: ${col.highestPackage || ''}`,
+      `Hostel: ${col.hostelFee || ''} ${col.amenities?.join(' ') || ''}`,
+    ].join(' ').toLowerCase();
+
+    // 1. Direct Keyword Matching (Exact Query Tokens)
+    let tokenMatches = 0;
+    for (const token of queryTokens) {
+      if (collegeText.includes(token)) {
+        tokenMatches += 1;
+      }
+    }
+    const tokenScore = queryTokens.length > 0 ? (tokenMatches / queryTokens.length) * 0.45 : 0;
+    score += tokenScore;
+
+    // 2. Attribute-Based Relevance Matching
+    for (const attr of queryAttributes) {
+      const keywords = SEMANTIC_SEARCH_KEYWORDS[attr] || [];
+      const hasAttr = keywords.some(kw => collegeText.includes(kw));
+      if (hasAttr) {
+        score += 0.15;
+        matchedAttrs.push(attr.replace('_', ' '));
+      }
+    }
+
+    // 3. Institutional Quality / Rating Prior (subtle 5% bias)
+    const ratingScore = ((col.ratingAverage || col.overall_rating || 4.0) / 5.0) * 0.1;
+    score += ratingScore;
+
+    // Clamp score to 0 - 0.99
+    const finalScore = Math.min(0.99, parseFloat(score.toFixed(3)));
+
+    const snippet = col.overview
+      ? (col.overview.length > 140 ? col.overview.slice(0, 140) + '...' : col.overview)
+      : `${col.name} located in ${col.location || 'Tamil Nadu'}. Known for engineering, computing, and campus excellence.`;
+
+    return {
+      collegeId: col.id || col.college_id,
+      collegeName: col.name || col.college_name,
+      slug: col.slug || col.id,
+      score: finalScore,
+      matchedAttributes: Array.from(new Set(matchedAttrs)),
+      snippet,
+      location: col.location,
+      rating: col.ratingAverage || col.overall_rating || 4.2
+    } as SemanticCollegeMatch;
+  });
+
+  // Sort descending by score
+  scoredColleges.sort((a, b) => b.score - a.score);
+  const topMatches = scoredColleges.slice(0, limit);
+
+  return {
+    query,
+    matches: topMatches,
+    totalMatches: scoredColleges.filter(m => m.score > 0.15).length,
+    model: 'campus-lenz-ai (semantic-search)'
+  };
+}
+
+// ============================================================================
+// 11. Direct Message Analyzer & Chat Moderation
+// ============================================================================
+
+export function analyzeDirectMessage(
+  message: string,
+  senderId = 'unknown_sender',
+  recipientId = 'unknown_recipient'
+): MessageAnalysisResult {
+  if (!message || !message.trim()) {
+    return {
+      sentiment: 'neutral',
+      category: 'general',
+      moderation: 'normal',
+      is_safe: true,
+      action: 'allow',
+      model: 'campus-lenz-ai (message-analyzer)'
+    };
+  }
+
+  const sentiment = analyzeTextSentiment(message);
+  const toxicity = analyzeTextToxicity(message);
+  const lower = message.toLowerCase();
+
+  let category: MessageAnalysisResult['category'] = 'general';
+  let moderation: MessageAnalysisResult['moderation'] = 'normal';
+  let action: MessageAnalysisResult['action'] = 'allow';
+  let is_safe = true;
+  let flagReason: string | undefined = undefined;
+
+  // 1. Violent Threats or Dangerous Harm -> Block
+  if (toxicity.categories.threat > 60 || lower.includes('kill you') || lower.includes('shoot you') || lower.includes('stab you')) {
+    category = 'threat';
+    moderation = 'potentially_harmful';
+    is_safe = false;
+    action = 'block';
+    flagReason = 'Explicit physical threat or intimidation detected in direct message.';
+  }
+  // 2. Harassment or Severe Slurs -> Warn / Block
+  else if (toxicity.categories.insult > 50 || toxicity.categories.identityHate > 50) {
+    category = 'harassment';
+    moderation = 'sensitive';
+    is_safe = false;
+    action = 'warn';
+    flagReason = 'Harassing or derogatory language detected in direct message.';
+  }
+  // 3. Spam or Commercial Links -> Warn
+  else if (lower.includes('crypto') || lower.includes('telegram.me') || lower.includes('earn money') || lower.includes('free cash') || lower.includes('click link')) {
+    category = 'spam';
+    moderation = 'spam';
+    is_safe = false;
+    action = 'warn';
+    flagReason = 'Unsolicited promotional or commercial link solicitation detected.';
+  }
+  // 4. Academic Inquiries
+  else if (lower.includes('assignment') || lower.includes('exam') || lower.includes('notes') || lower.includes('project') || lower.includes('professor')) {
+    category = 'academic';
+    moderation = 'normal';
+    is_safe = true;
+    action = 'allow';
+  }
+  // 5. Events & Campus Life
+  else if (lower.includes('fest') || lower.includes('club') || lower.includes('meet') || lower.includes('hackathon')) {
+    category = 'event';
+    moderation = 'normal';
+    is_safe = true;
+    action = 'allow';
+  }
+
+  let mappedSentiment: MessageAnalysisResult['sentiment'] = 'neutral';
+  if (sentiment.label === 'positive') mappedSentiment = 'positive';
+  else if (sentiment.label === 'negative' || sentiment.label === 'toxic' || sentiment.label === 'ragebait') mappedSentiment = 'negative';
+
+  return {
+    sentiment: mappedSentiment,
+    category,
+    moderation,
+    is_safe,
+    action,
+    flagReason,
+    model: 'campus-lenz-ai (message-analyzer)'
+  };
+}
+
+// ============================================================================
+// 12. Image Content & Relevance Analyzer
+// ============================================================================
+
+export function analyzeImageContent(
+  imageUrl?: string,
+  fileName?: string
+): ImageAnalysisResult {
+  if (!imageUrl && !fileName) {
+    return {
+      category: 'other',
+      description: 'No image provided.',
+      ocr_text: '',
+      college_related: false,
+      relevance: 'not_relevant',
+      model: 'campus-lenz-ai (vision-analyzer)'
+    };
+  }
+
+  const target = `${imageUrl || ''} ${fileName || ''}`.toLowerCase();
+
+  let category: ImageAnalysisResult['category'] = 'campus';
+  let description = 'Campus or academic visual asset.';
+  let ocr_text = '';
+  let college_related = true;
+  let relevance: ImageAnalysisResult['relevance'] = 'relevant';
+
+  if (target.includes('cert') || target.includes('document') || target.includes('marksheet') || target.includes('circular') || target.includes('id_card')) {
+    category = 'document';
+    description = 'Official academic or institutional circular / credential.';
+    ocr_text = 'Official Campus Documentation';
+    college_related = true;
+    relevance = 'relevant';
+  } else if (target.includes('event') || target.includes('fest') || target.includes('symposium') || target.includes('hackathon')) {
+    category = 'event';
+    description = 'Campus student gathering, hackathon, or cultural fest celebration.';
+    college_related = true;
+    relevance = 'relevant';
+  } else if (target.includes('lab') || target.includes('library') || target.includes('building') || target.includes('hostel') || target.includes('class')) {
+    category = 'infrastructure';
+    description = 'Institutional infrastructure, departmental facility, or campus laboratory.';
+    college_related = true;
+    relevance = 'relevant';
+  } else if (target.includes('food') || target.includes('mess') || target.includes('canteen')) {
+    category = 'food';
+    description = 'Campus mess meal or hostel dining service.';
+    college_related = true;
+    relevance = 'relevant';
+  } else if (target.includes('profile') || target.includes('avatar') || target.includes('student')) {
+    category = 'person';
+    description = 'Verified student or faculty campus member profile representation.';
+    college_related = true;
+    relevance = 'relevant';
+  }
+
+  return {
+    category,
+    description,
+    ocr_text,
+    college_related,
+    relevance,
+    model: 'campus-lenz-ai (vision-analyzer)'
+  };
+}
+

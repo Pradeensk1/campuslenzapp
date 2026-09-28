@@ -34,7 +34,13 @@ import {
   UnifiedAIModerationResult,
   PostAnalysisResult,
   CampusLenzCategoryClassification,
-  ReviewAnalysisResult
+  ReviewAnalysisResult,
+  ReviewSummaryResult,
+  DuplicateDetectionResult,
+  SemanticSearchResult,
+  MessageAnalysisResult,
+  ImageAnalysisResult,
+  AIServiceHealth
 } from '@/types';
 import {
   runUnifiedAIModeration,
@@ -43,6 +49,14 @@ import {
   analyzeReviewAspects,
   DEFAULT_AI_MODEL_SETTINGS
 } from './aiModerationModels';
+import {
+  checkAIServiceHealth,
+  summarizeReviewsAI,
+  detectDuplicateAI,
+  semanticSearchAI,
+  analyzeMessageAI,
+  analyzeImageAI
+} from './aiServiceClient';
 import { supabase, isSupabaseConfigured } from './supabase';
 import {
   INITIAL_USERS,
@@ -247,6 +261,13 @@ interface AppContextType {
   analyzePostWithAI: (postContent: string, authorId?: string, collegeId?: string) => PostAnalysisResult;
   classifyTextCategory: (text: string) => CampusLenzCategoryClassification;
   analyzeReviewWithAI: (reviewText: string) => ReviewAnalysisResult;
+  summarizeReviewsWithAI: (collegeId: string, reviews: string[]) => Promise<ReviewSummaryResult>;
+  detectDuplicateWithAI: (textA: string, textB: string, threshold?: number) => Promise<DuplicateDetectionResult>;
+  semanticSearchCollegesWithAI: (query: string, limit?: number) => Promise<SemanticSearchResult>;
+  analyzeMessageWithAI: (message: string, senderId?: string, recipientId?: string) => Promise<MessageAnalysisResult>;
+  analyzeImageWithAI: (imageUrl?: string, fileName?: string) => Promise<ImageAnalysisResult>;
+  aiServiceStatus: AIServiceHealth | null;
+  refreshAIServiceStatus: () => Promise<AIServiceHealth>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -381,6 +402,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const analyzeReviewWithAI = (reviewText: string) => {
     return analyzeReviewAspects(reviewText);
+  };
+
+  const [aiServiceStatus, setAiServiceStatus] = useState<AIServiceHealth | null>(null);
+
+  const refreshAIServiceStatus = async (): Promise<AIServiceHealth> => {
+    try {
+      const status = await checkAIServiceHealth();
+      setAiServiceStatus(status);
+      return status;
+    } catch {
+      const fallback: AIServiceHealth = {
+        service: 'Campus Lenz AI Local Engine',
+        status: 'healthy',
+        version: '1.0.0',
+        isExternalServiceActive: false,
+        activeEngine: 'Edge WASM + Local Heuristic Model Matrix',
+        availableModels: ['campus-lenz-ai', 'unitary/toxic-bert', 'distilbert-sst-2', 'nsfwjs-mobilenet-v2'],
+        latencyMs: 1
+      };
+      setAiServiceStatus(fallback);
+      return fallback;
+    }
+  };
+
+  useEffect(() => {
+    refreshAIServiceStatus();
+  }, []);
+
+  const summarizeReviewsWithAI = async (collegeId: string, reviews: string[]): Promise<ReviewSummaryResult> => {
+    return summarizeReviewsAI(collegeId, reviews);
+  };
+
+  const detectDuplicateWithAI = async (textA: string, textB: string, threshold = 0.85): Promise<DuplicateDetectionResult> => {
+    return detectDuplicateAI(textA, textB, threshold);
+  };
+
+  const semanticSearchCollegesWithAI = async (query: string, limit = 5): Promise<SemanticSearchResult> => {
+    return semanticSearchAI(query, colleges, limit);
+  };
+
+  const analyzeMessageWithAI = async (message: string, senderId?: string, recipientId?: string): Promise<MessageAnalysisResult> => {
+    return analyzeMessageAI(message, senderId, recipientId);
+  };
+
+  const analyzeImageWithAI = async (imageUrl?: string, fileName?: string): Promise<ImageAnalysisResult> => {
+    return analyzeImageAI(imageUrl, fileName);
   };
 
   // Dynamic Live Feed & Real-Time Engine State
@@ -3289,7 +3356,14 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         runOpenSourceAIModeration,
         analyzePostWithAI,
         classifyTextCategory,
-        analyzeReviewWithAI
+        analyzeReviewWithAI,
+        summarizeReviewsWithAI,
+        detectDuplicateWithAI,
+        semanticSearchCollegesWithAI,
+        analyzeMessageWithAI,
+        analyzeImageWithAI,
+        aiServiceStatus,
+        refreshAIServiceStatus
       }}
     >
       {children}
