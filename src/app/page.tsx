@@ -1,23 +1,35 @@
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { getSupabaseServerClient } from '@/lib/supabase';
 import HomePageClient from './HomePageClient';
 import { INITIAL_POSTS } from '@/lib/mockData';
 
-export default async function Page() {
-  const cookieStore = await cookies();
-  const supabase = await createClient(cookieStore);
+export const revalidate = 10;
 
-  const { data: postsData } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('is_quarantined', false)
-    .order('created_at', { ascending: false })
-    .limit(40);
+export default async function Page() {
+  const supabase = getSupabaseServerClient();
+
+  const postsQuery = supabase
+    ? supabase
+        .from('posts')
+        .select('*')
+        .eq('is_quarantined', false)
+        .order('created_at', { ascending: false })
+        .limit(40)
+    : Promise.resolve({ data: [] });
+
+  const collegesQuery = supabase
+    ? supabase
+        .from('colleges')
+        .select('*')
+        .order('rating_average', { ascending: false })
+    : Promise.resolve({ data: [] });
+
+  // Fetch posts and colleges in PARALLEL for maximum speed
+  const [{ data: postsData }, { data: colleges }] = await Promise.all([postsQuery, collegesQuery]);
 
   const postIds = (postsData || []).map((p: any) => p.id);
   const commentsByPost: Record<string, any[]> = {};
 
-  if (postIds.length > 0) {
+  if (supabase && postIds.length > 0) {
     const { data: commentsData } = await supabase
       .from('comments')
       .select('*')
@@ -75,11 +87,6 @@ export default async function Page() {
     aiModelMetadata: row.ai_model_metadata,
     createdAt: row.created_at || new Date().toISOString(),
   }));
-
-  const { data: colleges } = await supabase
-    .from('colleges')
-    .select('*')
-    .order('rating_average', { ascending: false });
 
   return <HomePageClient initialPosts={posts.length > 0 ? posts : INITIAL_POSTS} initialColleges={colleges || []} />;
 }

@@ -733,56 +733,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // 2. Real-Time Dynamic Storage Sync: Auto-persist all mutations
+  // 2. Real-Time Dynamic Storage Sync: Auto-persist all mutations (Debounced for 60fps UI performance)
   useEffect(() => {
     if (!hasHydrated) return;
-    try {
-      const filteredPosts = posts.map(post => {
-        if (post.imageUrl && post.imageUrl.startsWith('data:')) {
-          const approxSize = Math.floor((post.imageUrl.length * 3) / 4);
-          if (approxSize > 500 * 1024) {
-            return { ...post, imageUrl: null };
-          }
-        }
-        return post;
-      });
-      const dataToSave = {
-        allUsers,
-        currentUser,
-        posts: filteredPosts,
-        reviews,
-        communities,
-        servers,
-        serverMessages,
-        directMessages,
-        grievanceReports,
-        savedCollegeIds,
-        savedPostIds,
-        studyRooms,
-        courseQuestions,
-        marketplaceItems,
-        assignmentTasks,
-        examMilestones,
-        mentorshipSlots,
-        alumniJobReferrals,
-        referralRequests,
-        industryAmaEvents,
-        officeHourQueue,
-        researchOpenings,
-        lectureMaterials,
-        emergencyBroadcast,
-        auditLogs
-      };
-      localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(dataToSave));
-      if (currentUser) {
-        localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
-        localStorage.setItem('campus_lenz_auth', 'true');
-      } else {
-        localStorage.removeItem('campus_lenz_user');
-        localStorage.setItem('campus_lenz_auth', 'false');
-      }
-    } catch {}
 
+    const timer = setTimeout(() => {
+      try {
+        const filteredPosts = posts.map(post => {
+          if (post.imageUrl && post.imageUrl.startsWith('data:')) {
+            const approxSize = Math.floor((post.imageUrl.length * 3) / 4);
+            if (approxSize > 500 * 1024) {
+              return { ...post, imageUrl: null };
+            }
+          }
+          return post;
+        });
+        const dataToSave = {
+          allUsers,
+          currentUser,
+          posts: filteredPosts,
+          reviews,
+          communities,
+          servers,
+          serverMessages,
+          directMessages,
+          grievanceReports,
+          savedCollegeIds,
+          savedPostIds,
+          studyRooms,
+          courseQuestions,
+          marketplaceItems,
+          assignmentTasks,
+          examMilestones,
+          mentorshipSlots,
+          alumniJobReferrals,
+          referralRequests,
+          industryAmaEvents,
+          officeHourQueue,
+          researchOpenings,
+          lectureMaterials,
+          emergencyBroadcast,
+          auditLogs
+        };
+        localStorage.setItem('CL_FRESH_DB_V7', JSON.stringify(dataToSave));
+        if (currentUser) {
+          localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
+          localStorage.setItem('campus_lenz_auth', 'true');
+        } else {
+          localStorage.removeItem('campus_lenz_user');
+          localStorage.setItem('campus_lenz_auth', 'false');
+        }
+      } catch {}
+    }, 350);
+
+    return () => clearTimeout(timer);
   }, [
     hasHydrated,
     allUsers,

@@ -99,7 +99,14 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, count: posts.length, posts });
+    return NextResponse.json(
+      { success: true, count: posts.length, posts },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message, posts: [] }, { status: 500 });
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useDeferredValue } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip } from 'lucide-react';
@@ -24,6 +24,7 @@ export default function CreateClient({
   // Post form state
   const [postCollegeId, setPostCollegeId] = useState(activeColleges[0]?.id || '');
   const [postContent, setPostContent] = useState('');
+  const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
   const [postImageUrl, setPostImageUrl] = useState<string>('');
@@ -333,8 +334,8 @@ export default function CreateClient({
           )}
 
           {/* Open-Source AI Safety Pre-Flight Scanner Box */}
-          {postContent.trim().length > 3 && (() => {
-            const ai = runOpenSourceAIModeration(postContent, postImageUrl);
+          {deferredPostContent.trim().length > 3 && (() => {
+            const ai = runOpenSourceAIModeration(deferredPostContent, postImageUrl);
             const isSevere = ai.toxicity.score >= 80;
             const isSens = ai.isSensitive;
             return (

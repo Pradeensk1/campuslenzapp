@@ -55,7 +55,14 @@ export async function GET(request: Request) {
       overallScore: c.overall_score || {},
     }));
 
-    return NextResponse.json({ success: true, count: colleges.length, colleges });
+    return NextResponse.json(
+      { success: true, count: colleges.length, colleges },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message, colleges: [] }, { status: 500 });
   }

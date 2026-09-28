@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useDeferredValue } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -118,6 +118,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   // Inline Quick Post Composer State
   const [isComposing, setIsComposing] = useState(false);
   const [postContent, setPostContent] = useState('');
+  const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Update');
   const [postImageUrl, setPostImageUrl] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -724,8 +725,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       />
 
                       {/* Live Open-Source AI Telemetry Pill */}
-                      {postContent.trim().length > 3 && (() => {
-                        const ai = runOpenSourceAIModeration(postContent, postImageUrl);
+                      {deferredPostContent.trim().length > 3 && (() => {
+                        const ai = runOpenSourceAIModeration(deferredPostContent, postImageUrl);
                         const isSevere = ai.toxicity.score >= 80;
                         const isSens = ai.isSensitive;
                         const category = ai.classification?.category || 'General';
