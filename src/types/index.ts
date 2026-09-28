@@ -234,6 +234,8 @@ export interface Post {
   };
   repostedUserIds?: string[];
   isKnowledgeBased?: boolean;
+  isInstitutionReviewOnly?: boolean;
+  institutionRating?: number;
   reportedByInstitution?: {
     reportedAt: string;
     reason: string;
