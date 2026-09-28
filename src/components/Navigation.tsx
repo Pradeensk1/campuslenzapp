@@ -95,22 +95,6 @@ export default function Navigation() {
             </div>
           </Link>
 
-          {/* Apple Spotlight Search Capsule */}
-          <div className="hidden lg:block flex-1 max-w-xs mx-2">
-            <Link
-              href="/search"
-              className="flex items-center justify-between rounded-full bg-[#E8F5FF]/70 hover:bg-[#CFEAFF]/60 border border-[#CFEAFF]/70 hover:border-[#8CCCF5] px-3.5 py-1.5 text-xs text-[#075080] transition-all duration-200 group"
-            >
-              <div className="flex items-center space-x-2 truncate">
-                <Search className="h-3.5 w-3.5 text-[#1687D4] transition-transform duration-200 group-hover:scale-110" />
-                <span className="truncate text-[11px] font-medium">Spotlight search...</span>
-              </div>
-              <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold text-[#628CA8] bg-white/90 border border-[#CFEAFF] rounded-md shadow-2xs">
-                ⌘K
-              </kbd>
-            </Link>
-          </div>
-
           {/* Apple macOS Segmented Dock Navigation Items */}
           <nav className="hidden md:flex items-center bg-slate-100/60 p-1 rounded-full border border-slate-200/40">
             {navItems.map((item) => {

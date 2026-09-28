@@ -163,7 +163,7 @@ export default function CreateClient({
     });
 
     const chosen = colleges.find(c => c.id === reviewCollegeId);
-    router.push(`/colleges/${chosen?.slug || 'explore'}`);
+    router.push(`/colleges/${chosen?.slug || 'explore'}#reviews`);
   };
 
   return (

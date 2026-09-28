@@ -15,7 +15,11 @@ export async function GET(request: Request) {
   try {
     let query = supabase.from('profiles').select('*').order('followers_count', { ascending: false });
 
-    if (role && role !== 'all') query = query.eq('role', role);
+    if (role && role !== 'all') {
+      query = query.eq('role', role);
+    } else {
+      query = query.neq('role', 'admin');
+    }
     if (collegeId) query = query.eq('college_id', collegeId);
     if (q) {
       query = query.or(`username.ilike.%${q}%,full_name.ilike.%${q}%`);
@@ -26,7 +30,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: error.message, users: [] }, { status: 400 });
     }
 
-    const users = (data || []).map((u: any) => ({
+    const users = (data || [])
+      .filter((u: any) => u.role !== 'admin')
+      .map((u: any) => ({
       id: u.id,
       username: u.username,
       email: u.email,

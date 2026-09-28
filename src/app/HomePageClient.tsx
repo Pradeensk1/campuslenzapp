@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useDeferredValue } from 'react';
+import { useState, useRef, useDeferredValue, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -43,7 +43,8 @@ import {
   PlusCircle,
   LogIn,
   Paperclip,
-  Video
+  Video,
+  Star
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
@@ -52,7 +53,6 @@ import PinterestImageModal from '@/components/PinterestImageModal';
 import AlumniHomeView from '@/components/home/AlumniHomeView';
 import FacultyHomeView from '@/components/home/FacultyHomeView';
 import InstitutionHomeView from '@/components/home/InstitutionHomeView';
-import StudentFeaturesHub from '@/components/student/StudentFeaturesHub';
 
 export default function HomePageClient({ initialPosts = [] }: { initialPosts?: Post[]; initialColleges?: any[] }) {
   const {
@@ -61,6 +61,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     addComment,
     addPost,
     currentUser,
+    colleges,
     communities,
     toggleFollowUser,
     allUsers,
@@ -103,7 +104,27 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
   // Role-Specific Workspace vs Global Stream View
   const [roleWorkspaceMode, setRoleWorkspaceMode] = useState<boolean>(true);
-  const [studentViewMode, setStudentViewMode] = useState<'feed' | 'hub'>('feed');
+  
+  // Split Feed Streams: 'campus' (all posts across ecosystem) | 'students' (student-only peer stream)
+  const [feedStream, setFeedStream] = useState<'campus' | 'students'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('stream') === 'students') return 'students';
+    }
+    return currentUser?.role === 'student' ? 'students' : 'campus';
+  });
+
+  // When student logs in, redirect / default them directly to the students social stream
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('stream') === 'students' || currentUser?.role === 'student') {
+        setFeedStream('students');
+      }
+    } else if (currentUser?.role === 'student') {
+      setFeedStream('students');
+    }
+  }, [currentUser?.role, currentUser?.id]);
 
   // Bookmarks
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -237,6 +258,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const filteredPosts = posts.filter((p) => {
     // Hide quarantined posts from non-admin users
     if (p.isQuarantined && currentUser?.role !== 'admin') return false;
+
+    // Feed Stream filter: If in Students Social Stream, strictly show student peer posts
+    if (feedStream === 'students' && p.authorRole !== 'student') return false;
 
     // Role filter
     if (feedFilter === 'students' && p.authorRole !== 'student') return false;
@@ -524,47 +548,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             </div>
           )}
 
-          {/* Quick Hub Shortcuts */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
-              Campus Hub
-            </h3>
-            <div className="space-y-1 text-xs">
-              <Link
-                href="/servers"
-                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[#1687D4]" />
-                  <span className="font-semibold">Discord Servers</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">Live</span>
-              </Link>
-
-              <Link
-                href="/grievance"
-                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[#0875BD]" />
-                  <span className="font-semibold">Private Grievances</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">To Inst ID</span>
-              </Link>
-
-              <Link
-                href="/compare"
-                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-[#3B9FE8]" />
-                  <span className="font-semibold">Compare Colleges</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">Matrix</span>
-              </Link>
-            </div>
-          </div>
-
         </aside>
 
         {/* ========================================================= */}
@@ -585,40 +568,43 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             </div>
           )}
 
-          {/* Student Mode Switcher: Social Stream vs Student Hub & Utilities */}
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl text-xs font-semibold w-full sm:w-auto">
+          {/* Feed Stream Switcher: Campus Social Stream vs Students Social Stream */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-white/80 backdrop-blur-md border border-[#CFEAFF] shadow-xs">
+            <div className="flex items-center gap-1.5 p-1 bg-[#E8F5FF]/70 rounded-xl text-xs font-semibold w-full">
               <button
                 type="button"
-                onClick={() => setStudentViewMode('feed')}
-                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition ${
-                  studentViewMode === 'feed'
-                    ? 'bg-white text-[#1687D4] shadow-xs font-bold'
+                onClick={() => setFeedStream('campus')}
+                className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  feedStream === 'campus'
+                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
                     : 'text-[#075080]/70 hover:text-[#075080]'
                 }`}
               >
-                Campus Social Stream
+                <Building2 className="w-4 h-4 text-[#1687D4]" />
+                <span>Campus Social Stream</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                  {posts.length}
+                </span>
               </button>
               <button
                 type="button"
-                onClick={() => setStudentViewMode('hub')}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg transition ${
-                  studentViewMode === 'hub'
-                    ? 'bg-white text-[#1687D4] shadow-xs font-bold'
+                onClick={() => setFeedStream('students')}
+                className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  feedStream === 'students'
+                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
                     : 'text-[#075080]/70 hover:text-[#075080]'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#1687D4]" />
-                <span>Student Hub & Utilities</span>
+                <GraduationCap className="w-4 h-4 text-[#1687D4]" />
+                <span>Students Social Stream</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                  {posts.filter(p => p.authorRole === 'student').length}
+                </span>
               </button>
             </div>
           </div>
 
-          {studentViewMode === 'hub' ? (
-            <StudentFeaturesHub />
-          ) : (
-            <>
-              {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
+          {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
               {/* Role Context & Quota Banners */}
@@ -1108,8 +1094,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               {filteredPosts.map((post) => {
                 const isLiked = currentUser ? post.likes.includes(currentUser.id) : false;
                 const isCommentsOpen = activeCommentsPostId === post.id;
-                const isAuthorSelf = currentUser ? post.authorId === currentUser.id : false;
-                const isFollowingAuthor = currentUser ? currentUser.following.includes(post.authorId) : false;
+                const isAuthorSelf = currentUser ? (post.authorId === currentUser.id || post.authorUsername === currentUser.username) : false;
+                const isFollowingAuthor = Boolean(currentUser?.following && (
+                  currentUser.following.includes(post.authorId) ||
+                  (post.authorUsername && currentUser.following.includes(post.authorUsername)) ||
+                  (post.authorUsername && currentUser.following.some(f => typeof f === 'string' && f.toLowerCase() === post.authorUsername.toLowerCase()))
+                ));
                 const isSaved = savedPosts.includes(post.id);
                 const isSensitive = Boolean(post.isSensitive);
                 const isShielded = isSensitive && sensitiveContentShieldActive && !unhiddenSensitivePostIds.includes(post.id);
@@ -1200,7 +1190,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         <div className="flex items-center gap-1 shrink-0">
                           {!isAuthorSelf && !post.isAnonymous && currentUser && currentUser.role !== 'institution' && (
                             <button
-                              onClick={() => toggleFollowUser(post.authorId)}
+                              onClick={() => toggleFollowUser(post.authorId || post.authorUsername)}
                               className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 ${
                                 isFollowingAuthor
                                   ? 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -1349,6 +1339,25 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                           </span>
                         </div>
                       </div>
+
+                      {/* Institutional Review & Ratings Direct Link */}
+                      {(post.topic === 'Review & Ratings' || post.topic?.toLowerCase().includes('review')) && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-[#E8F5FF]/80 border border-[#CFEAFF] flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Star className="w-3.5 h-3.5 text-[#1687D4] fill-[#1687D4]/30 shrink-0" />
+                            <span className="text-[11px] font-semibold text-[#075080] truncate">
+                              Institutional Review for <strong className="text-[#1687D4]">{post.collegeName || 'Verified College'}</strong>
+                            </span>
+                          </div>
+                          <Link
+                            href={`/colleges/${colleges.find(c => c.id === post.collegeId || c.name === post.collegeName)?.slug || 'explore'}#reviews`}
+                            className="px-2.5 py-1 rounded-lg bg-[#1687D4] hover:bg-[#075080] text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
+                          >
+                            <span>Reviews & Ratings</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      )}
                     </div>
 
                     {/* Reactions & Engagement Summary Bar */}
@@ -1622,8 +1631,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               </div>
             )}
           </div>
-            </>
-          )}
         </main>
 
         {/* ========================================================= */}

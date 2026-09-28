@@ -105,7 +105,7 @@ export const getRedirectUrlForRole = (role: UserRole): string => {
     case 'institution':
       return '/servers';
     case 'student':
-      return '/';
+      return '/?stream=students';
     case 'alumni':
       return '/';
     case 'faculty':
@@ -949,6 +949,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    // Dedicated Root Administrator Authentication Check
+    if (portalRole === 'admin' || cleanId === 'system_admin' || cleanId === 'admin' || cleanId === 'admin@campuslenz.com') {
+      const validAdminPasswords = ['admin123', 'Admin@2026', 'admin'];
+      if (!password || !validAdminPasswords.includes(password.trim())) {
+        return {
+          success: false,
+          redirectUrl: '/login?role=admin',
+          message: 'Invalid Admin Security Password. Access to Administrative Governance is restricted.'
+        };
+      }
+
+      let adminAcc = allUsers.find(u => u.role === 'admin' || u.username === 'system_admin');
+      if (!adminAcc) {
+        adminAcc = {
+          id: 'admin_root',
+          username: 'system_admin',
+          email: 'admin@campuslenz.com',
+          role: 'admin',
+          fullName: 'Root Administrator',
+          headline: 'Super Admin & Governance Terminal Officer',
+          isVerified: true,
+          followersCount: 0,
+          followingCount: 0,
+          followers: [],
+          following: []
+        } as any;
+        setAllUsers(prev => [adminAcc!, ...prev]);
+      }
+
+      setCurrentUser(adminAcc || null);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('campus_lenz_user', JSON.stringify(adminAcc));
+        localStorage.setItem('campus_lenz_auth', 'true');
+      } catch {}
+
+      return {
+        success: true,
+        user: adminAcc,
+        redirectUrl: '/admin',
+        message: 'Root Administrator Clearance Authenticated.'
+      };
+    }
+
     // Search registered users by username, email, roll number, or staff id
     let matched = allUsers.find(
       u =>
@@ -1255,6 +1299,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString()
     };
     setReviews(prev => [fullReview, ...prev]);
+
+    // Update target college ratings immediately
+    const targetCollege = colleges.find(c => c.id === newRev.collegeId);
+    if (targetCollege) {
+      setColleges(prev => prev.map(c => {
+        if (c.id === targetCollege.id) {
+          const currentCount = c.reviewCount || 0;
+          const currentAvg = typeof c.ratingAverage === 'number' ? c.ratingAverage : 4.0;
+          const newAvg = Number(((currentAvg * currentCount + newRev.overallRating) / (currentCount + 1)).toFixed(1));
+          return {
+            ...c,
+            reviewCount: currentCount + 1,
+            ratingAverage: newAvg
+          };
+        }
+        return c;
+      }));
+    }
+
+    // Automatically publish review to live feed stream
+    const prosText = newRev.pros && newRev.pros.length > 0 ? `\n✅ Pros: ${newRev.pros.join(', ')}` : '';
+    const consText = newRev.cons && newRev.cons.length > 0 ? `\n⚠️ Cons: ${newRev.cons.join(', ')}` : '';
+    const adviceText = newRev.advice ? `\n💡 Advice: ${newRev.advice}` : '';
+
+    addPost({
+      authorId: newRev.userId,
+      authorUsername: newRev.isAnonymous ? 'anonymous_reviewer' : (currentUser?.username || 'verified_student'),
+      authorName: newRev.isAnonymous ? 'Anonymous Student' : (newRev.authorName || currentUser?.fullName || 'Student Reviewer'),
+      authorRole: newRev.reviewerType || 'student',
+      authorHeadline: `${newRev.overallRating}★ Verified Review for ${targetCollege?.name || 'Institution'}`,
+      isVerifiedAuthor: !newRev.isAnonymous,
+      isAnonymous: newRev.isAnonymous,
+      collegeId: newRev.collegeId,
+      collegeName: targetCollege?.name,
+      topic: 'Review & Ratings',
+      content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`
+    });
 
     fetch('/api/reviews', {
       method: 'POST',
@@ -2138,16 +2219,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleFollowUser = (targetUserIdOrUsername: string) => {
-    if (!currentUser) return;
+    if (!currentUser) return { success: false, message: 'Please sign in to follow users.' };
 
     // Resolve target in allUsers by ID or username
-    const target = allUsers.find(
+    const existingTarget = allUsers.find(
       u => u.id === targetUserIdOrUsername ||
       (u.username && u.username.toLowerCase() === targetUserIdOrUsername.toLowerCase())
     );
 
-    if (!target || target.id === currentUser.id || target.username.toLowerCase() === currentUser.username.toLowerCase()) {
-      return;
+    const target: UserProfile = existingTarget || ({
+      id: targetUserIdOrUsername,
+      username: targetUserIdOrUsername,
+      fullName: targetUserIdOrUsername,
+      role: 'student',
+      followers: [],
+      followersCount: 0,
+      following: [],
+      followingCount: 0
+    } as any);
+
+    if (!existingTarget) {
+      setAllUsers(prev => [target, ...prev]);
+    }
+
+    if (target.id === currentUser.id || target.username.toLowerCase() === currentUser.username.toLowerCase()) {
+      return { success: false, message: 'You cannot follow yourself.' };
     }
 
     const targetFollowers = Array.isArray(target.followers) ? target.followers : [];
@@ -2155,9 +2251,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const isAlreadyFollowing =
       targetFollowers.includes(currentUser.id) ||
-      targetFollowers.includes(currentUser.username) ||
+      (currentUser.username && targetFollowers.includes(currentUser.username)) ||
       myFollowing.includes(target.id) ||
-      myFollowing.includes(target.username);
+      (target.username && myFollowing.includes(target.username));
 
     let nextTargetFollowers: string[];
     let nextMyFollowing: string[];
@@ -2171,7 +2267,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
     } else {
       nextTargetFollowers = [...targetFollowers.filter(id => id !== currentUser.id && id !== currentUser.username), currentUser.id];
-      nextMyFollowing = [...myFollowing.filter(id => id !== target.id && id !== target.username), target.id];
+      nextMyFollowing = [...myFollowing.filter(id => id !== target.id && id !== target.username), target.id, target.username].filter(Boolean);
     }
 
     // Optimistically update allUsers

@@ -19,8 +19,9 @@ export default function SearchClient({
 
   const normalizedQuery = query.toLowerCase().trim();
 
-  // Search through users (Students, Alumni, Staff)
+  // Search through users (Students, Alumni, Staff/Faculty) - strictly exclude Admin accounts
   const matchedUsers = allUsers.filter(user => {
+    if (user.role === 'admin') return false;
     if (!normalizedQuery) return true;
     return (
       user.fullName.toLowerCase().includes(normalizedQuery) ||

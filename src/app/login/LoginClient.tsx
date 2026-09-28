@@ -113,6 +113,24 @@ const PUBLIC_PORTALS: PortalTab[] = [
     identifierLabel: 'Authorized Admin Email or Username',
     identifierPlaceholder: 'e.g. dean.academics@college.edu or psg_admin',
     registerText: 'College Administrator? Register your institution & AISHE code'
+  },
+  {
+    id: 'admin',
+    label: 'Root Admin',
+    portalName: 'Root Administration Console',
+    subLabel: 'Platform Super Admins',
+    badge: 'System Admin',
+    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    cardColor: 'border-rose-500 bg-rose-50/30 text-rose-900',
+    accentBorder: 'border-rose-200 focus:border-rose-500 focus:ring-rose-500/20',
+    btnColor: 'bg-slate-900 hover:bg-slate-800 text-white',
+    icon: Shield,
+    targetRedirect: '/admin',
+    targetPageName: 'Platform Governance & Console',
+    tagline: 'Root access for platform telemetry, content moderation sandbox & developer tools.',
+    identifierLabel: 'Admin Login ID or Superuser Email',
+    identifierPlaceholder: 'e.g. system_admin or admin@campuslenz.com',
+    registerText: 'Admin credentials provisioned via system security.'
   }
 ];
 
@@ -215,7 +233,7 @@ function LoginFormContent() {
             <span className="text-[11px] text-slate-400">Click to switch login view</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             {PUBLIC_PORTALS.map(portal => {
               const Icon = portal.icon;
               const isSelected = selectedPortal === portal.id;
@@ -366,13 +384,19 @@ function LoginFormContent() {
           {/* Role-Specific Link to Registration */}
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
             <span className="text-slate-500">Need an account for this portal?</span>
-            <Link
-              href={`/register?role=${activePortal.id}`}
-              className="font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 text-center"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>{activePortal.registerText} →</span>
-            </Link>
+            {activePortal.id === 'admin' ? (
+              <span className="text-slate-500 font-medium">
+                Admin ID: <strong className="text-slate-900 font-mono">system_admin</strong> • Pass: <strong className="text-slate-900 font-mono">admin123</strong>
+              </span>
+            ) : (
+              <Link
+                href={`/register?role=${activePortal.id}`}
+                className="font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 text-center"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>{activePortal.registerText} →</span>
+              </Link>
+            )}
           </div>
 
         </div>
