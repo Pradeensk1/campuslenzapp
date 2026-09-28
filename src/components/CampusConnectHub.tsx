@@ -31,6 +31,7 @@ import {
   BookOpen,
   AlertTriangle,
   ArrowRight,
+  ArrowLeft,
   Hash,
   Clock,
   MessageCircle,
@@ -153,6 +154,8 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   const [communityMessageInput, setCommunityMessageInput] = useState('');
   const [slowmodeNotice, setSlowmodeNotice] = useState<string | null>(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [mobileChatView, setMobileChatView] = useState<'list' | 'chat'>('list');
+  const [mobileDmView, setMobileDmView] = useState<'list' | 'chat'>('list');
 
   // Modals for Admins
   const [showAddGroupModal, setShowAddGroupModal] = useState(false);
@@ -720,55 +723,49 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               </button>
             </div>
           ) : (
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs flex flex-col md:flex-row h-[calc(100vh-220px)] min-h-[580px] max-h-[820px]">
             {/* Left Sidebar: Community Info & Groups */}
-            <div className="md:col-span-4 border-r border-[#E2E8F0] bg-[#F8FAFC] flex flex-col justify-between">
+            <div className={`w-full md:w-80 lg:w-[340px] shrink-0 border-r border-[#E2E8F0] bg-[#F8FAFC] flex flex-col justify-between overflow-hidden ${mobileChatView === 'chat' ? 'hidden md:flex' : 'flex'}`}>
               <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="p-4 border-b border-[#E2E8F0] bg-white space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs flex-shrink-0">
+                <div className="p-3.5 border-b border-[#E2E8F0] bg-white space-y-2.5">
+                  {/* College Switcher Dropdown (full width on its own row to avoid squishing title) */}
+                  {servers.length > 1 && (
+                    <select
+                      value={activeCommunityId}
+                      onChange={(e) => {
+                        const sId = e.target.value;
+                        setActiveCommunityId(sId);
+                        const sel = servers.find((s) => s.id === sId);
+                        if (sel && sel.channels.length > 0) {
+                          setActiveGroupId(sel.channels[0].id);
+                        }
+                      }}
+                      className="w-full text-xs bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors cursor-pointer"
+                    >
+                      {servers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.collegeName || s.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
                         {(activeCommunity.name || 'Campus').substring(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <h2 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
+                      <div className="min-w-0">
+                        <h2 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight truncate">
                           {activeCommunity.name}
                         </h2>
                         <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <Users className="w-3 h-3 text-emerald-600" />
+                          <Users className="w-3 h-3 text-emerald-600 shrink-0" />
                           <span>{activeCommunity.memberCount} members</span>
                         </p>
                       </div>
                     </div>
 
-                    {servers.length > 1 && (
-                      <select
-                        value={activeCommunityId}
-                        onChange={(e) => {
-                          const sId = e.target.value;
-                          setActiveCommunityId(sId);
-                          const sel = servers.find((s) => s.id === sId);
-                          if (sel && sel.channels.length > 0) {
-                            setActiveGroupId(sel.channels[0].id);
-                          }
-                        }}
-                        className="text-xs bg-[#F1F5F9] border border-[#CBD5E1] rounded-lg px-2 py-1 text-slate-700 font-semibold focus:outline-none"
-                      >
-                        {servers.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.collegeName || s.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-600 leading-relaxed bg-[#F8FAFC] p-2.5 rounded-xl border border-slate-100">
-                    {activeCommunity.description}
-                  </p>
-
-                  {/* Role Specific Actions Bar for Community */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
                     {/* Student Join/Leave Server Button */}
                     {isStudent && (
                       currentUser?.joinedServerIds?.includes(activeCommunity.id) ? (
@@ -779,9 +776,9 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                             setConnectFeedback(`Exited ${activeCommunity.name}`);
                             setTimeout(() => setConnectFeedback(null), 3000);
                           }}
-                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition"
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition shrink-0"
                         >
-                          Exit Community
+                          Exit
                         </button>
                       ) : (
                         <button
@@ -791,9 +788,9 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                             setConnectFeedback(`Joined ${activeCommunity.name} successfully!`);
                             setTimeout(() => setConnectFeedback(null), 3000);
                           }}
-                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs"
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-2xs shrink-0"
                         >
-                          + Join Community
+                          + Join
                         </button>
                       )
                     )}
@@ -861,7 +858,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                 </div>
 
                 {/* Groups list */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-4 max-h-[480px]">
+                <div className="flex-1 overflow-y-auto p-3 space-y-4 min-h-0">
                   {/* Announcements */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
@@ -880,7 +877,10 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                       return (
                         <button
                           key={group.id}
-                          onClick={() => setActiveGroupId(group.id)}
+                          onClick={() => {
+                            setActiveGroupId(group.id);
+                            setMobileChatView('chat');
+                          }}
                           className={`w-full text-left p-3 rounded-2xl transition-all border ${
                             isSelected
                               ? 'bg-emerald-50/90 border-emerald-300 shadow-xs'
@@ -961,7 +961,10 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                       return (
                         <button
                           key={group.id}
-                          onClick={() => setActiveGroupId(group.id)}
+                          onClick={() => {
+                            setActiveGroupId(group.id);
+                            setMobileChatView('chat');
+                          }}
                           className={`w-full text-left p-3 rounded-2xl transition-all border ${
                             isSelected
                               ? 'bg-blue-50/90 border-blue-300 shadow-xs'
@@ -1051,11 +1054,19 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             </div>
 
             {/* Right Chat Canvas */}
-            <div className="md:col-span-8 flex flex-col justify-between bg-[#F8FAFC]">
+            <div className={`flex-1 flex flex-col justify-between bg-[#F8FAFC] min-w-0 overflow-hidden ${mobileChatView === 'chat' ? 'flex' : 'hidden md:flex'}`}>
               {/* Header */}
               <div className="p-3.5 px-4 sm:px-6 border-b border-[#E2E8F0] bg-white flex items-center justify-between shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-xs ${
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setMobileChatView('list')}
+                    className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+                    aria-label="Back to channels"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-xs shrink-0 ${
                     isAnnouncementGroup ? 'bg-emerald-600' : 'bg-blue-600'
                   }`}>
                     {isAnnouncementGroup ? (
@@ -1064,13 +1075,13 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                       <Hash className="w-4 h-4" />
                     )}
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">
+                  <div className="min-w-0">
+                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight truncate">
                       {isAnnouncementGroup ? '📢 ' : '#'}{activeGroup?.name}
                     </h3>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">
+                    <p className="text-[11px] text-slate-500 truncate">
                       {isAnnouncementGroup
-                        ? 'Official Community Announcements (Broadcast only)'
+                        ? 'Broadcast Channel • Official Announcements'
                         : activeGroup?.description || `${activeGroup?.memberCount || activeCommunity?.memberCount || 120} participants`}
                     </p>
                   </div>
@@ -1119,7 +1130,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               </div>
 
               {/* Chat Stream */}
-              <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-3 max-h-[440px]">
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-3 min-h-0">
                 {communityChannelMessages.length === 0 ? (
                   <div className="text-center py-16 space-y-2">
                     <p className="text-xs text-slate-400">Welcome to #{activeGroup?.name}. Start the conversation.</p>
@@ -1220,10 +1231,10 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
         {/* TAB 2: INSTAGRAM DIRECT MESSAGES                                */}
         {/* =============================================================== */}
         {activeTab === 'messages' && (
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs flex flex-col h-[calc(100vh-220px)] min-h-[580px] max-h-[820px]">
             {/* Alumni Mentorship Mode Banner */}
             {isAlumni && (
-              <div className="md:col-span-12 px-4 py-2.5 bg-[#E8F5FF] border-b border-[#CFEAFF] text-[#075080] text-xs flex items-center justify-between">
+              <div className="w-full px-4 py-2.5 bg-[#E8F5FF] border-b border-[#CFEAFF] text-[#075080] text-xs flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-[#1687D4] shrink-0" />
                   <span>Alumni Mentorship: Connect with students via 1-on-1 Direct Messages.</span>
@@ -1231,267 +1242,267 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               </div>
             )}
 
-            {/* Left Panel: Conversations list */}
-            <div className="md:col-span-4 border-r border-[#E2E8F0] bg-white flex flex-col justify-between">
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="p-4 border-b border-[#E2E8F0] flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-slate-900 text-sm sm:text-base">
-                      @{currentUser.username}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 font-bold uppercase">
-                      {currentUser.role}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setShowNewChatModal(true)}
-                    title="Write New Message"
-                    className="p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    <PenSquare className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="p-3 border-b border-[#E2E8F0] bg-[#F8FAFC]">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={conversationsSearch}
-                      onChange={(e) => setConversationsSearch(e.target.value)}
-                      placeholder="Search conversations..."
-                      className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-white text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[480px]">
-                  {filteredConversations.length === 0 ? (
-                    <div className="p-8 text-center space-y-3">
-                      <p className="text-xs text-slate-500">No active threads. Click "New Message" to chat with anyone!</p>
-                      <button
-                        onClick={() => setShowNewChatModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
-                      >
-                        <PenSquare className="w-3.5 h-3.5" />
-                        Chat with Anyone
-                      </button>
+            <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+              {/* Left Panel: Conversations list */}
+              <div className={`w-full md:w-80 lg:w-[340px] shrink-0 border-r border-[#E2E8F0] bg-white flex flex-col justify-between overflow-hidden ${mobileDmView === 'chat' && activePartner ? 'hidden md:flex' : 'flex'}`}>
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="p-3.5 border-b border-[#E2E8F0] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
+                        @{currentUser.username}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 font-bold uppercase shrink-0">
+                        {currentUser.role}
+                      </span>
                     </div>
-                  ) : (
-                    filteredConversations.map(({ partner, lastMessage }) => {
-                      const isSelected = activePartner?.id === partner.id;
-                      const isFromMe = lastMessage.senderId === currentUser?.id;
+                    <button
+                      onClick={() => setShowNewChatModal(true)}
+                      title="Write New Message"
+                      className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
+                    >
+                      <PenSquare className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                      return (
+                  <div className="p-3 border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={conversationsSearch}
+                        onChange={(e) => setConversationsSearch(e.target.value)}
+                        placeholder="Search conversations..."
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-white text-xs text-slate-800 focus:outline-none focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100 min-h-0">
+                    {filteredConversations.length === 0 ? (
+                      <div className="p-8 text-center space-y-3">
+                        <p className="text-xs text-slate-500">No active threads. Click "New Message" to chat with anyone!</p>
                         <button
-                          key={partner.id}
-                          onClick={() => setActivePartnerId(partner.id)}
-                          className={`w-full text-left p-3.5 flex items-center gap-3 transition-colors ${
-                            isSelected ? 'bg-[#EFF6FF]' : 'hover:bg-slate-50'
-                          }`}
+                          onClick={() => setShowNewChatModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                         >
-                          <div className="relative flex-shrink-0">
-                            <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm">
-                              {partner.fullName.charAt(0)}
-                            </div>
-                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                                {partner.fullName}
-                              </h4>
-                              <span suppressHydrationWarning className="text-[10px] text-slate-400 font-medium">
-                                {new Date(lastMessage.createdAt).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between mt-0.5">
-                              <p className="text-xs text-slate-500 truncate">
-                                {isFromMe ? `You: ${lastMessage.content}` : lastMessage.content}
-                              </p>
-                              {lastMessage.liked && (
-                                <Heart className="w-3 h-3 text-rose-500 fill-rose-500 flex-shrink-0 ml-1" />
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border ${getRoleBadge(partner.role)}`}>
-                                {partner.role}
-                              </span>
-                              <span className="text-[10px] text-slate-400 truncate">
-                                {partner.collegeName}
-                              </span>
-                            </div>
-                          </div>
+                          <PenSquare className="w-3.5 h-3.5" />
+                          Chat with Anyone
                         </button>
-                      );
-                    })
-                  )}
+                      </div>
+                    ) : (
+                      filteredConversations.map(({ partner, lastMessage }) => {
+                        const isSelected = activePartner?.id === partner.id;
+                        const isFromMe = lastMessage.senderId === currentUser?.id;
+
+                        return (
+                          <button
+                            key={partner.id}
+                            onClick={() => {
+                              setActivePartnerId(partner.id);
+                              setMobileDmView('chat');
+                            }}
+                            className={`w-full text-left p-3.5 flex items-center gap-3 transition-colors ${
+                              isSelected ? 'bg-[#EFF6FF]' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="relative flex-shrink-0">
+                              <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm">
+                                {partner.fullName.charAt(0)}
+                              </div>
+                              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                  {partner.fullName}
+                                </h4>
+                                <span suppressHydrationWarning className="text-[10px] text-slate-400 font-medium">
+                                  {new Date(lastMessage.createdAt).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between mt-0.5">
+                                <p className="text-xs text-slate-500 truncate">
+                                  {isFromMe ? `You: ${lastMessage.content}` : lastMessage.content}
+                                </p>
+                                {lastMessage.liked && (
+                                  <Heart className="w-3 h-3 text-rose-500 fill-rose-500 flex-shrink-0 ml-1" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border ${getRoleBadge(partner.role)}`}>
+                                  {partner.role}
+                                </span>
+                                <span className="text-[10px] text-slate-400 truncate">
+                                  {partner.collegeName}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
 
-            </div>
-
-            {/* Right Chat Canvas */}
-            <div className="md:col-span-8 flex flex-col justify-between bg-white h-full">
-              {activePartner ? (
-                <>
-                  <div className="p-3.5 px-4 sm:px-6 border-b border-[#E2E8F0] flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm">
-                          {activePartner.fullName.charAt(0)}
-                        </div>
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">
-                            {activePartner.fullName}
-                          </h3>
-                          {activePartner.isVerified && (
-                            <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-bold">
-                              ✓
-                            </span>
-                          )}
-                          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border ${getRoleBadge(activePartner.role)}`}>
-                            {activePartner.role}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400">@{activePartner.username} • Active now</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {isStudent && (
-                        <div className="flex items-center gap-1.5 mr-1">
-                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Lock className="w-3 h-3 text-emerald-600" />
-                            <span>E2E Protected</span>
-                          </span>
-                          <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                            <ShieldCheck className="w-3 h-3 text-blue-600" />
-                            <span>Screenshot Shield</span>
-                          </span>
-                        </div>
-                      )}
-                      <Link
-                        href={`/user/${activePartner.username}`}
-                        title="View Full Profile"
-                        className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                      >
-                        <Info className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Message Stream */}
-                  <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[440px] bg-white">
-                    {currentChatMessages.map((msg) => {
-                      const isMe = msg.senderId === currentUser?.id;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex items-end gap-2 group ${isMe ? 'justify-end' : 'justify-start'}`}
+              {/* Right Chat Canvas */}
+              <div className={`flex-1 flex flex-col justify-between bg-white min-w-0 overflow-hidden ${mobileDmView === 'chat' && activePartner ? 'flex' : 'hidden md:flex'}`}>
+                {activePartner ? (
+                  <>
+                    <div className="p-3.5 px-4 sm:px-6 border-b border-[#E2E8F0] flex items-center justify-between bg-white shadow-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setMobileDmView('list')}
+                          className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+                          aria-label="Back to conversations"
                         >
-                          {!isMe && (
-                            <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0 mb-1">
-                              {activePartner.fullName.charAt(0)}
-                            </div>
-                          )}
-
-                          <div className="relative max-w-[80%] sm:max-w-[65%]">
-                            <div
-                              onDoubleClick={() => toggleLikeDirectMessage(msg.id)}
-                              className={`p-3.5 px-4 rounded-2xl text-xs sm:text-sm leading-relaxed relative ${
-                                isMe
-                                  ? 'bg-[#0095F6] text-white rounded-br-xs shadow-xs'
-                                  : 'bg-[#EFEFEF] text-slate-900 rounded-bl-xs'
-                              }`}
-                            >
-                              <p className="whitespace-pre-wrap">{msg.content}</p>
-                              {msg.liked && (
-                                <span className="absolute -bottom-2.5 right-2 bg-white rounded-full p-0.5 border border-slate-200 shadow-xs flex items-center justify-center">
-                                  <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                                </span>
-                              )}
-                            </div>
-
-                            <div className={`flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                              <span suppressHydrationWarning>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <div className="relative shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm">
+                            {activePartner.fullName.charAt(0)}
+                          </div>
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight truncate">
+                              {activePartner.fullName}
+                            </h3>
+                            {activePartner.isVerified && (
+                              <span className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                                ✓
                               </span>
-                              {isMe && <span>• Seen</span>}
-                              <button
-                                onClick={() => toggleLikeDirectMessage(msg.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-rose-500"
+                            )}
+                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded-md border shrink-0 ${getRoleBadge(activePartner.role)}`}>
+                              {activePartner.role}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate">@{activePartner.username} • Active now</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/user/${activePartner.username}`}
+                          title="View Full Profile"
+                          className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          <Info className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Message Stream */}
+                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 min-h-0 bg-white">
+                      {currentChatMessages.map((msg) => {
+                        const isMe = msg.senderId === currentUser?.id;
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex items-end gap-2 group ${isMe ? 'justify-end' : 'justify-start'}`}
+                          >
+                            {!isMe && (
+                              <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0 mb-1">
+                                {activePartner.fullName.charAt(0)}
+                              </div>
+                            )}
+
+                            <div className="relative max-w-[80%] sm:max-w-[65%]">
+                              <div
+                                onDoubleClick={() => toggleLikeDirectMessage(msg.id)}
+                                className={`p-3.5 px-4 rounded-2xl text-xs sm:text-sm leading-relaxed relative ${
+                                  isMe
+                                    ? 'bg-[#0095F6] text-white rounded-br-xs shadow-xs'
+                                    : 'bg-[#EFEFEF] text-slate-900 rounded-bl-xs'
+                                }`}
                               >
-                                <Heart className={`w-3 h-3 ${msg.liked ? 'text-rose-500 fill-rose-500' : ''}`} />
-                              </button>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                {msg.liked && (
+                                  <span className="absolute -bottom-2.5 right-2 bg-white rounded-full p-0.5 border border-slate-200 shadow-xs flex items-center justify-center">
+                                    <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className={`flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <span suppressHydrationWarning>
+                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {isMe && <span>• Seen</span>}
+                                <button
+                                  onClick={() => toggleLikeDirectMessage(msg.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-rose-500"
+                                >
+                                  <Heart className={`w-3 h-3 ${msg.liked ? 'text-rose-500 fill-rose-500' : ''}`} />
+                                </button>
+                              </div>
                             </div>
                           </div>
+                        );
+                      })}
+                      <div ref={directMessagesEndRef} />
+                    </div>
+
+                    {/* DM Input Bar */}
+                    <div className="p-3 sm:p-4 border-t border-[#E2E8F0] bg-white">
+                      <form onSubmit={handleSendDirectMessage} className="flex items-center gap-2">
+                        <div className="flex-1 relative flex items-center">
+                          <input
+                            type="text"
+                            value={directMessageInput}
+                            onChange={(e) => setDirectMessageInput(e.target.value)}
+                            placeholder={`Message ${activePartner.fullName}...`}
+                            className="w-full px-4 py-2.5 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-[#0095F6] focus:bg-white pr-10"
+                          />
+                          {!directMessageInput.trim() && (
+                            <button
+                              type="button"
+                              onClick={handleSendHeart}
+                              title="Send ❤️"
+                              className="absolute right-3 text-slate-400 hover:text-rose-500"
+                            >
+                              <Heart className="w-4 h-4 hover:fill-rose-500" />
+                            </button>
+                          )}
                         </div>
-                      );
-                    })}
-                    <div ref={directMessagesEndRef} />
-                  </div>
 
-                  {/* DM Input Bar */}
-                  <div className="p-3 sm:p-4 border-t border-[#E2E8F0] bg-white">
-                    <form onSubmit={handleSendDirectMessage} className="flex items-center gap-2">
-                      <div className="flex-1 relative flex items-center">
-                        <input
-                          type="text"
-                          value={directMessageInput}
-                          onChange={(e) => setDirectMessageInput(e.target.value)}
-                          placeholder={`Message ${activePartner.fullName}...`}
-                          className="w-full px-4 py-2.5 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-[#0095F6] focus:bg-white pr-10"
-                        />
-                        {!directMessageInput.trim() && (
+                        {directMessageInput.trim() ? (
                           <button
-                            type="button"
-                            onClick={handleSendHeart}
-                            title="Send ❤️"
-                            className="absolute right-3 text-slate-400 hover:text-rose-500"
+                            type="submit"
+                            className="px-4 py-2 rounded-full bg-[#0095F6] hover:bg-blue-600 text-white font-bold text-xs transition-colors shadow-xs"
                           >
-                            <Heart className="w-4 h-4 hover:fill-rose-500" />
+                            Send
                           </button>
-                        )}
-                      </div>
-
-                      {directMessageInput.trim() ? (
-                        <button
-                          type="submit"
-                          className="px-4 py-2 rounded-full bg-[#0095F6] hover:bg-blue-600 text-white font-bold text-xs transition-colors shadow-xs"
-                        >
-                          Send
-                        </button>
-                      ) : null}
-                    </form>
+                        ) : null}
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+                    <div className="w-20 h-20 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                      <Send className="w-10 h-10 text-slate-900 -rotate-45 translate-x-1 -translate-y-1" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Your Direct Messages</h3>
+                      <p className="text-xs text-slate-500 max-w-sm mt-1">
+                        Send private 1-on-1 messages to any student, alumni, or faculty member.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowNewChatModal(true)}
+                      className="px-5 py-2.5 rounded-xl bg-[#0095F6] hover:bg-blue-600 text-white font-bold text-xs shadow-xs"
+                    >
+                      Start a Chat
+                    </button>
                   </div>
-                </>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-                  <div className="w-20 h-20 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                    <Send className="w-10 h-10 text-slate-900 -rotate-45 translate-x-1 -translate-y-1" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">Your Direct Messages</h3>
-                    <p className="text-xs text-slate-500 max-w-sm mt-1">
-                      Send private 1-on-1 messages to any student, alumni, or faculty member.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowNewChatModal(true)}
-                    className="px-5 py-2.5 rounded-xl bg-[#0095F6] hover:bg-blue-600 text-white font-bold text-xs shadow-xs"
-                  >
-                    Start a Chat
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
