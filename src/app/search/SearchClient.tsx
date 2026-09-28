@@ -45,17 +45,14 @@ export default function SearchClient({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Instagram-Inspired Search Hero */}
-      <div className="apple-card p-6 sm:p-8 space-y-4">
-        <div className="flex items-center space-x-2 text-[#2563EB]">
+      {/* Search Header */}
+      <div className="apple-card p-5 sm:p-6 space-y-4">
+        <div className="flex items-center space-x-2 text-[#1687D4]">
           <Search className="h-5 w-5" />
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
-            Instagram-Style Discovery & Search
+            Search
           </h1>
         </div>
-        <p className="text-xs sm:text-sm text-[#64748B]">
-          Search instantly for students (e.g. <strong>Junith</strong>, <strong>Arun</strong>), alumni, professors, and colleges across institutions.
-        </p>
 
         {/* Input Bar */}
         <div className="relative">
@@ -64,8 +61,8 @@ export default function SearchClient({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name (e.g. Junith), @username, college, or role..."
-            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] py-3 pl-11 pr-10 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#2563EB] focus:outline-none transition-colors shadow-2xs"
+            placeholder="Search students, alumni, faculty, or colleges..."
+            className="w-full rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] py-3 pl-11 pr-10 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#1687D4] focus:outline-none transition-colors shadow-2xs"
             autoFocus
           />
           {query && (
@@ -78,10 +75,10 @@ export default function SearchClient({
           )}
         </div>
 
-        {/* Instagram Category Tabs */}
+        {/* Category Tabs */}
         <div className="flex space-x-2 pt-2 border-t border-[#F1F5F9] text-xs">
           {[
-            { id: 'all', label: 'Top Results' },
+            { id: 'all', label: 'All' },
             { id: 'accounts', label: `People (${matchedUsers.length})` },
             { id: 'colleges', label: `Colleges (${matchedColleges.length})` },
           ].map(tab => (
@@ -90,7 +87,7 @@ export default function SearchClient({
               onClick={() => setActiveTab(tab.id as any)}
               className={`rounded-full px-4 py-1.5 font-bold transition-all ${
                 activeTab === tab.id
-                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  ? 'bg-[#1687D4] text-white shadow-xs'
                   : 'bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A]'
               }`}
             >
@@ -107,11 +104,8 @@ export default function SearchClient({
           <div className="apple-card p-5 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
-                People, Students & Staff ({matchedUsers.length})
+                People ({matchedUsers.length})
               </h2>
-              {query && (
-                <span className="text-xs text-[#2563EB] font-semibold">Matching "{query}"</span>
-              )}
             </div>
 
             {matchedUsers.length === 0 ? (
@@ -197,7 +191,7 @@ export default function SearchClient({
           <div className="apple-card p-5 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
               <h2 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
-                Institutions & Campuses ({matchedColleges.length})
+                Colleges ({matchedColleges.length})
               </h2>
             </div>
 

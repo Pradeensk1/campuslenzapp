@@ -640,11 +640,8 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               </span>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Campus Communication & Resolution Hub
+                  Connect Hub
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Unified platform: WhatsApp-style campus community groups, Instagram 1-on-1 direct messages, and confidential grievance reporting.
-                </p>
               </div>
             </div>
           </div>
@@ -662,9 +659,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
               >
                 <Users className="w-4 h-4 text-emerald-600" />
                 <span>Communities</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
-                  {activeCommunity?.channels.length || 0}
-                </span>
               </button>
             )}
 
@@ -678,9 +672,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             >
               <Send className="w-3.5 h-3.5 text-blue-600" />
               <span>Direct Messages</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800">
-                {activeConversations.length}
-              </span>
             </button>
 
             <button
@@ -693,15 +684,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             >
               <Shield className="w-3.5 h-3.5 text-purple-600" />
               <span>Private Grievance</span>
-              {isInstitutionOrAdmin ? (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
-                  {institutionReports.length}
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
-                  {studentReports.length}
-                </span>
-              )}
             </button>
           </div>
         </div>
@@ -814,34 +796,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                           + Join Community
                         </button>
                       )
-                    )}
-
-                    {/* Institution Share Community Link */}
-                    {isInstitution && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = `${window.location.origin}/servers?community=${activeCommunity.id}`;
-                          navigator.clipboard.writeText(url);
-                          setConnectFeedback('🔗 Community invite link copied to clipboard!');
-                          setTimeout(() => setConnectFeedback(null), 3000);
-                        }}
-                        className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 flex items-center gap-1 transition"
-                      >
-                        <Share2 className="w-3 h-3" />
-                        <span>Share Invite Link</span>
-                      </button>
-                    )}
-
-                    {/* Faculty Request Community button */}
-                    {isFaculty && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateCommunityModal(true)}
-                        className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition"
-                      >
-                        + Request Community Approval
-                      </button>
                     )}
                   </div>
 
@@ -1151,15 +1105,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                         </button>
                       )}
 
-                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Lock className="w-3 h-3 text-emerald-600" />
-                        <span>E2E Protected</span>
-                      </span>
-
-                      <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                        <ShieldCheck className="w-3 h-3 text-blue-600" />
-                        <span>Screenshot Shield</span>
-                      </span>
                     </>
                   )}
 
@@ -1278,16 +1223,11 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
           <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
             {/* Alumni Mentorship Mode Banner */}
             {isAlumni && (
-              <div className="md:col-span-12 p-3.5 bg-amber-50/90 border-b border-amber-200 text-amber-900 text-xs flex items-center justify-between flex-wrap gap-2">
+              <div className="md:col-span-12 px-4 py-2.5 bg-[#E8F5FF] border-b border-[#CFEAFF] text-[#075080] text-xs flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-amber-600 shrink-0" />
-                  <span>
-                    <strong>Alumni 1-on-1 Mentorship Mode:</strong> Public community and group channel feeds are hidden for alumni. Direct Messages are your dedicated bridge to guide and connect with students.
-                  </span>
+                  <GraduationCap className="w-4 h-4 text-[#1687D4] shrink-0" />
+                  <span>Alumni Mentorship: Connect with students via 1-on-1 Direct Messages.</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
-                  Verified Alumni Bridge
-                </span>
               </div>
             )}
 
@@ -1393,15 +1333,6 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                 </div>
               </div>
 
-              <div className="p-3 border-t border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">Total Contacts: {allUsers.length}</span>
-                <button
-                  onClick={() => setShowNewChatModal(true)}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
-                >
-                  + New Chat
-                </button>
-              </div>
             </div>
 
             {/* Right Chat Canvas */}
@@ -1592,17 +1523,9 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             {/* Student Submission Form */}
             {currentUser.role === 'student' && (
               <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-6 h-6 text-purple-600" />
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Submit New Private Report</h2>
-                      <p className="text-xs text-slate-500">Delivered directly to the official Institution ID inbox</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                    Student Privilege
-                  </span>
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                  <FileText className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-lg font-bold text-slate-900">Submit New Private Report</h2>
                 </div>
 
                 <form onSubmit={handleStudentGrievanceSubmit} className="space-y-5">

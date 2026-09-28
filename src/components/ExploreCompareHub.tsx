@@ -263,19 +263,17 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
       {/* =============================================================== */}
       {/* UNIFIED HEADER & PILL TAB SWITCHER                              */}
       {/* =============================================================== */}
+      {/* =============================================================== */}
       <div className="apple-card p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-[#E2E8F0] shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
+            <span className="p-2 rounded-xl bg-[#1687D4] text-white shadow-xs">
               <Compass className="w-5 h-5" />
             </span>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                Explore & Compare Hub
+                Explore & Compare
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Curated campus insights, trending peer discussions, and granular multi-college comparison benchmarks.
-              </p>
             </div>
           </div>
         </div>
@@ -286,15 +284,12 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
             onClick={() => setActiveTab('explore')}
             className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'explore'
-                ? 'bg-white text-blue-700 shadow-xs'
+                ? 'bg-white text-[#1687D4] shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Compass className="w-4 h-4 text-blue-600" />
-            <span>Explore & Pulse</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800">
-              {colleges.length} Colleges
-            </span>
+            <Compass className="w-4 h-4 text-[#1687D4]" />
+            <span>Explore</span>
           </button>
 
           <button
@@ -307,9 +302,6 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
           >
             <Scale className="w-4 h-4 text-purple-600" />
             <span>Compare Matrix</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
-              {activeColleges.length} Active
-            </span>
           </button>
         </div>
       </div>
@@ -318,44 +310,30 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
       {/* TAB 1: EXPLORE MODULE                                           */}
       {/* =============================================================== */}
       {activeTab === 'explore' && (
-        <div className="space-y-10">
-          {/* 1. Apple-Inspired Editorial Hero */}
+        <div className="space-y-8">
+          {/* 1. Clean Search & Category Navigation */}
           <section className="apple-card overflow-hidden border-[#E2E8F0] shadow-xs">
-            <div className="bg-gradient-to-r from-[#2563EB] via-[#1D4ED8] to-[#0F172A] p-6 sm:p-10 text-white">
-              <div className="max-w-2xl space-y-3">
-                <div className="inline-flex items-center space-x-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                  <Sparkles className="h-3.5 w-3.5 text-[#38E6A5]" />
-                  <span>Campus Lenz Curation</span>
-                </div>
-                <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-                  Explore the Pulse of Every Campus
-                </h2>
-                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
-                  Curated evidence, top-rated institutions, breakout student achievements, and the most active campus debates in one organized hub.
-                </p>
-              </div>
-
-              {/* Search Bar inside Hero */}
-              <div className="mt-6 max-w-xl relative">
+            <div className="bg-gradient-to-r from-[#075080] via-[#1687D4] to-[#3B9FE8] p-5 sm:p-6 text-white">
+              <div className="max-w-xl relative">
                 <Search className="absolute left-4 top-3.5 h-4 w-4 text-[#94A3B8]" />
                 <input
                   type="text"
                   value={exploreSearch}
                   onChange={(e) => setExploreSearch(e.target.value)}
-                  placeholder="Search colleges (PSG, CEG), courses (MCA), or student discussions..."
-                  className="w-full rounded-2xl border-0 bg-white py-3 pl-11 pr-4 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] shadow-lg focus:outline-none focus:ring-2 focus:ring-[#38E6A5]"
+                  placeholder="Search colleges, courses, or student discussions..."
+                  className="w-full rounded-2xl border-0 bg-white py-3 pl-11 pr-4 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] shadow-md focus:outline-none focus:ring-2 focus:ring-[#72B7EB]"
                 />
               </div>
             </div>
 
-            {/* Apple Segmented Category Navigation */}
+            {/* Category Navigation */}
             <div className="flex overflow-x-auto border-t border-[#E2E8F0] bg-[#F8FAFC] p-2 text-xs">
               {[
-                { id: 'all', label: 'All Curations', icon: Compass },
-                { id: 'colleges', label: 'Top Colleges', icon: Building2 },
-                { id: 'trending', label: 'Trending Posts', icon: Flame },
-                { id: 'discussions', label: 'Most Commented', icon: MessageSquare },
-                { id: 'mentors', label: 'Alumni & Mentors', icon: Users },
+                { id: 'all', label: 'All', icon: Compass },
+                { id: 'colleges', label: 'Colleges', icon: Building2 },
+                { id: 'trending', label: 'Trending', icon: Flame },
+                { id: 'discussions', label: 'Discussions', icon: MessageSquare },
+                { id: 'mentors', label: 'Mentors', icon: Users },
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -364,7 +342,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                     onClick={() => setSelectedSection(tab.id as any)}
                     className={`flex items-center space-x-1.5 whitespace-nowrap rounded-xl px-4 py-2 font-bold transition-all ${
                       selectedSection === tab.id
-                        ? 'bg-white text-[#2563EB] shadow-xs'
+                        ? 'bg-white text-[#1687D4] shadow-xs'
                         : 'text-[#64748B] hover:text-[#0F172A]'
                     }`}
                   >
@@ -376,59 +354,43 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
             </div>
           </section>
 
-          {/* 2. Top Performing Colleges */}
+          {/* 2. Top Institutions */}
           {(selectedSection === 'all' || selectedSection === 'colleges') && (
             <section className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <div className="flex items-center space-x-2 text-[#2563EB]">
-                    <Award className="h-4 w-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Ranked by Placement & Review Rigor</span>
-                  </div>
-                  <h3 className="text-xl font-bold tracking-tight text-[#0F172A]">
-                    Best Performing Institutions
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setActiveTab('compare')}
-                  className="text-xs font-bold text-[#2563EB] hover:underline flex items-center space-x-1"
-                >
-                  <span>Launch Multi-College Comparison</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A]">
+                  Top Institutions
+                </h3>
               </div>
 
               <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                {topColleges.map((col, idx) => {
+                {topColleges.map((col) => {
                   const isSaved = savedCollegeIds.includes(col.id);
                   return (
                     <div
                       key={col.id}
                       className="apple-card apple-card-hover flex flex-col justify-between p-6 relative overflow-hidden"
                     >
-                      <div className="flex items-start justify-between">
-                        <span className="flex items-center space-x-1 rounded-md bg-[#EFF6FF] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#2563EB]">
-                          <span>#{idx + 1} Best Performer</span>
-                        </span>
+                      <div className="flex items-start justify-end">
                         <button
                           onClick={() => toggleSaveCollege(col.id)}
                           className={`rounded-lg p-2 transition ${
-                            isSaved ? 'bg-[#2563EB] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A]'
+                            isSaved ? 'bg-[#1687D4] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A]'
                           }`}
-                          title={isSaved ? 'Saved in Research' : 'Save for Comparison'}
+                          title={isSaved ? 'Saved' : 'Save College'}
                         >
                           <Bookmark className="h-3.5 w-3.5" fill={isSaved ? 'currentColor' : 'none'} />
                         </button>
                       </div>
 
-                      <div className="mt-3">
+                      <div className="mt-2">
                         <Link href={`/colleges/${col.slug}`} className="group">
-                          <h4 className="text-base font-bold text-[#0F172A] group-hover:text-[#2563EB] transition-colors line-clamp-1">
+                          <h4 className="text-base font-bold text-[#0F172A] group-hover:text-[#1687D4] transition-colors line-clamp-1">
                             {col.name}
                           </h4>
                         </Link>
                         <div className="mt-1 flex items-center space-x-1 text-xs text-[#64748B]">
-                          <MapPin className="h-3 w-3 text-[#2563EB]" />
+                          <MapPin className="h-3 w-3 text-[#1687D4]" />
                           <span>{col.location}, {col.state}</span>
                           <span>•</span>
                           <span>{col.collegeType}</span>
@@ -464,22 +426,11 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                       <div className="mt-5 border-t border-[#F1F5F9] pt-3 flex items-center justify-between">
                         <Link
                           href={`/colleges/${col.slug}`}
-                          className="flex items-center space-x-1 text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8]"
+                          className="flex items-center space-x-1 text-xs font-bold text-[#1687D4] hover:text-[#075080]"
                         >
-                          <span>View Evidence</span>
+                          <span>View Details</span>
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Link>
-                        <button
-                          onClick={() => {
-                            if (!selectedIds.includes(col.id)) {
-                              setSelectedIds([...selectedIds, col.id]);
-                            }
-                            setActiveTab('compare');
-                          }}
-                          className="text-xs font-semibold text-purple-600 hover:text-purple-700"
-                        >
-                          Compare →
-                        </button>
                       </div>
                     </div>
                   );
@@ -488,18 +439,15 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
             </section>
           )}
 
-          {/* 3. Recent Trending Posts */}
+          {/* 3. Trending Posts */}
           {(selectedSection === 'all' || selectedSection === 'trending') && (
             <section className="space-y-4">
               <div className="flex items-center space-x-2 text-[#D97706]">
                 <Flame className="h-5 w-5 fill-current" />
-                <h3 className="text-xl font-bold tracking-tight text-[#0F172A]">
-                  Recent Trending Campus Posts
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A]">
+                  Trending Posts
                 </h3>
               </div>
-              <p className="text-xs text-[#64748B]">
-                Posts by students and alumni receiving the highest helpful votes across tech discussions, placement rounds, and research breakthroughs.
-              </p>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {trendingPosts.slice(0, 4).map((post, idx) => {
@@ -510,7 +458,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-3">
                             <Link href={post.isAnonymous ? '#' : `/user/${post.authorUsername}`}>
-                              <div className="h-10 w-10 rounded-full bg-[#EFF6FF] border border-[#E2E8F0] flex items-center justify-center font-bold text-sm text-[#2563EB]">
+                              <div className="h-10 w-10 rounded-full bg-[#EFF6FF] border border-[#E2E8F0] flex items-center justify-center font-bold text-sm text-[#1687D4]">
                                 {post.isAnonymous ? '?' : post.authorName[0]}
                               </div>
                             </Link>
@@ -518,7 +466,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                               <div className="flex items-center space-x-1.5">
                                 <Link
                                   href={post.isAnonymous ? '#' : `/user/${post.authorUsername}`}
-                                  className="font-bold text-sm text-[#0F172A] hover:text-[#2563EB]"
+                                  className="font-bold text-sm text-[#0F172A] hover:text-[#1687D4]"
                                 >
                                   {post.isAnonymous ? 'Anonymous Student' : post.authorName}
                                 </Link>
@@ -544,7 +492,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                         <button
                           onClick={() => toggleLikePost(post.id)}
                           className={`flex items-center space-x-1.5 font-semibold transition-colors ${
-                            isLiked ? 'text-[#2563EB]' : 'hover:text-[#0F172A]'
+                            isLiked ? 'text-[#1687D4]' : 'hover:text-[#0F172A]'
                           }`}
                         >
                           <ThumbsUp className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
@@ -552,7 +500,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                         </button>
                         <Link
                           href="/"
-                          className="flex items-center space-x-1 text-[#64748B] hover:text-[#2563EB]"
+                          className="flex items-center space-x-1 text-[#64748B] hover:text-[#1687D4]"
                         >
                           <MessageSquare className="h-3.5 w-3.5" />
                           <span>{post.commentsCount} comments</span>
@@ -565,18 +513,15 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
             </section>
           )}
 
-          {/* 4. Most Commented Discussions */}
+          {/* 4. Campus Discussions */}
           {(selectedSection === 'all' || selectedSection === 'discussions') && (
             <section className="space-y-4">
-              <div className="flex items-center space-x-2 text-[#2563EB]">
+              <div className="flex items-center space-x-2 text-[#1687D4]">
                 <MessageSquare className="h-5 w-5" />
-                <h3 className="text-xl font-bold tracking-tight text-[#0F172A]">
-                  Hot Campus Discussions (Most Commented)
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A]">
+                  Campus Discussions
                 </h3>
               </div>
-              <p className="text-xs text-[#64748B]">
-                Conversations with the most active peer replies, interview guidance, and verified alumni advice.
-              </p>
 
               <div className="space-y-4">
                 {mostCommentedPosts.map((post) => (
@@ -590,18 +535,18 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                         </Link>
                         <div>
                           <div className="flex items-center space-x-2">
-                            <Link href={`/user/${post.authorUsername}`} className="font-bold text-sm text-[#0F172A] hover:text-[#2563EB]">
+                            <Link href={`/user/${post.authorUsername}`} className="font-bold text-sm text-[#0F172A] hover:text-[#1687D4]">
                               {post.authorName}
                             </Link>
                             {post.collegeName && (
-                              <span className="text-xs text-[#2563EB] font-medium">• {post.collegeName}</span>
+                              <span className="text-xs text-[#1687D4] font-medium">• {post.collegeName}</span>
                             )}
                           </div>
                           <p className="text-[10px] text-[#94A3B8]">{new Date(post.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
 
-                      <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-bold text-[#2563EB] flex items-center space-x-1">
+                      <span className="rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-bold text-[#1687D4] flex items-center space-x-1">
                         <MessageSquare className="h-3 w-3" />
                         <span>{post.commentsCount} active replies</span>
                       </span>
@@ -636,15 +581,9 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
           {(selectedSection === 'all' || selectedSection === 'mentors') && (
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center space-x-2 text-[#059669]">
-                    <GraduationCap className="h-4 w-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Networking & Mentorship</span>
-                  </div>
-                  <h3 className="text-xl font-bold tracking-tight text-[#0F172A]">
-                    Verified Mentors & Student Innovators
-                  </h3>
-                </div>
+                <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A]">
+                  Mentors & Alumni
+                </h3>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

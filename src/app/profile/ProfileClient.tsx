@@ -112,21 +112,18 @@ export default function ProfileClient({
           <User className="w-8 h-8" />
         </div>
         <h2 className="text-xl font-bold text-slate-900">Sign In to View Profile</h2>
-        <p className="text-xs text-slate-500">
-          Your profile, saved colleges, and verification details are linked to your authenticated account.
-        </p>
         <div className="flex items-center justify-center gap-3 pt-2">
           <Link
             href="/login"
             className="apple-button-primary text-xs font-bold py-2.5 px-5"
           >
-            Sign In to Account
+            Sign In
           </Link>
           <Link
             href="/register"
             className="apple-button-secondary text-xs font-bold py-2.5 px-5"
           >
-            Register Fresh
+            Register
           </Link>
         </div>
       </div>
@@ -196,13 +193,13 @@ export default function ProfileClient({
                 <span className="text-[#CBD5E1]">•</span>
                 <span className="text-[#64748B] font-medium">{currentUser?.collegeName}</span>
               </div>
-              <div className="mt-2.5 flex items-center gap-2">
+              <div className="mt-2.5 flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="apple-button-secondary text-xs !py-1 !px-3 font-semibold flex items-center space-x-1.5 hover:border-[#2563EB]"
+                  className="apple-button-secondary text-xs !py-1 !px-3 font-semibold flex items-center space-x-1.5 hover:border-[#1687D4]"
                 >
-                  <Edit3 className="h-3 w-3 text-[#2563EB]" />
-                  <span>Edit Profile & Avatar</span>
+                  <Edit3 className="h-3 w-3 text-[#1687D4]" />
+                  <span>Edit Profile</span>
                 </button>
                 <Link
                   href={`/user/${currentUser.username}`}
@@ -211,35 +208,10 @@ export default function ProfileClient({
                   <span>Public View</span>
                   <ExternalLink className="h-3 w-3" />
                 </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Account Security & Sign Out Section */}
-          <div className="flex flex-col space-y-2 text-xs">
-            <span className="font-semibold text-[#64748B] uppercase tracking-wider text-[10px]">
-              Active Session:
-            </span>
-            <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold text-[#0F172A] capitalize">
-                  {currentUser?.role} Account
-                </span>
-                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  Active
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 pt-1">
-                <Link
-                  href="/login"
-                  className="apple-button-secondary text-[10px] !py-1 !px-2.5 font-bold flex-1 text-center"
-                >
-                  Switch Account
-                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="apple-button-primary text-[10px] !py-1 !px-2.5 font-bold flex items-center justify-center gap-1 bg-rose-600 hover:bg-rose-700 text-white"
+                  className="apple-button-secondary text-xs !py-1 !px-3 font-semibold flex items-center space-x-1 text-rose-600 hover:text-rose-700 hover:border-rose-300"
                 >
                   <LogOut className="h-3 w-3" />
                   <span>Sign Out</span>
@@ -249,19 +221,19 @@ export default function ProfileClient({
           </div>
         </div>
 
-        {/* INSTAGRAM-STYLE INTERACTIVE FOLLOWERS / FOLLOWING STATS BAR */}
+        {/* INTERACTIVE FOLLOWERS / FOLLOWING STATS BAR */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 border-t border-[#F1F5F9] pt-4 text-center">
           <button
             onClick={() => setActiveTab('posts')}
             className={`p-2.5 rounded-2xl transition cursor-pointer group text-center ${
-              activeTab === 'posts' ? 'bg-blue-50/80 border border-blue-200' : 'bg-slate-50/60 hover:bg-slate-100/60'
+              activeTab === 'posts' ? 'bg-[#E8F5FF] border border-[#CFEAFF]' : 'bg-slate-50/60 hover:bg-slate-100/60'
             }`}
           >
-            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-blue-600 transition">
+            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-[#1687D4] transition">
               {userPosts.length}
             </p>
-            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
-              Posts (View)
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-[#1687D4]">
+              Posts
             </p>
           </button>
 
@@ -275,31 +247,31 @@ export default function ProfileClient({
               {userReposts.length}
             </p>
             <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-purple-600">
-              Reposts (View)
+              Reposts
             </p>
           </button>
 
           <button
             onClick={() => setFollowersModalTitle('Followers')}
-            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer text-center"
+            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-[#E8F5FF] transition group cursor-pointer text-center"
           >
-            <p className="text-base sm:text-lg font-black text-blue-600 group-hover:underline">
+            <p className="text-base sm:text-lg font-black text-[#1687D4] group-hover:underline">
               {currentUser.followersCount || (currentUser.followers || []).length}
             </p>
-            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
-              Followers (Live)
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-[#1687D4]">
+              Followers
             </p>
           </button>
 
           <button
             onClick={() => setFollowersModalTitle('Following')}
-            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-blue-50/60 transition group cursor-pointer text-center"
+            className="p-2.5 rounded-2xl bg-slate-50/60 hover:bg-[#E8F5FF] transition group cursor-pointer text-center"
           >
-            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-blue-600 group-hover:underline">
+            <p className="text-base sm:text-lg font-black text-slate-900 group-hover:text-[#1687D4] group-hover:underline">
               {currentUser.followingCount || (currentUser.following || []).length}
             </p>
-            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-blue-600">
-              Following (Live)
+            <p className="text-[10px] uppercase font-bold text-slate-500 group-hover:text-[#1687D4]">
+              Following
             </p>
           </button>
         </div>
@@ -310,7 +282,7 @@ export default function ProfileClient({
             onClick={() => setActiveTab('posts')}
             className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'posts'
-                ? 'bg-[#2563EB] text-white shadow-xs'
+                ? 'bg-[#1687D4] text-white shadow-xs'
                 : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
@@ -334,34 +306,34 @@ export default function ProfileClient({
             onClick={() => setActiveTab('details')}
             className={`rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'details'
-                ? 'bg-[#2563EB] text-white shadow-xs'
+                ? 'bg-[#1687D4] text-white shadow-xs'
                 : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
-            Academic Profile
+            Academic
           </button>
 
           <button
             onClick={() => setActiveTab('saved')}
             className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'saved'
-                ? 'bg-[#2563EB] text-white shadow-xs'
+                ? 'bg-[#1687D4] text-white shadow-xs'
                 : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
             <Bookmark className="h-3.5 w-3.5" />
-            <span>Saved Colleges ({savedColleges.length})</span>
+            <span>Saved ({savedColleges.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('verification')}
             className={`rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
               activeTab === 'verification'
-                ? 'bg-[#2563EB] text-white shadow-xs'
+                ? 'bg-[#1687D4] text-white shadow-xs'
                 : 'text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100'
             }`}
           >
-            Identity Verification
+            Verification
           </button>
         </div>
       </div>
@@ -371,15 +343,15 @@ export default function ProfileClient({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-600" />
-              <span>Posts Authored by You ({userPosts.length})</span>
+              <FileText className="w-4 h-4 text-[#1687D4]" />
+              <span>Posts ({userPosts.length})</span>
             </h2>
             <Link
               href="/create"
               className="apple-button-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Create New Post</span>
+              <span>New Post</span>
             </Link>
           </div>
 
