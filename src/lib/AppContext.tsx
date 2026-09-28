@@ -1290,9 +1290,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const followerCount = target.followers?.length || target.followersCount || 0;
-    const requiredFollowers = 5;
-    const maxWeekly = 5;
+    const followerCount = Math.max(target.followers?.length || 0, target.followersCount || 0);
+    const requiredFollowers = 1;
+    const maxWeekly = 10;
 
     // Rolling 7 days count
     const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000;
@@ -1309,19 +1309,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           requiredFollowers,
           weeklyCount,
           maxWeekly,
-          message: `🚨 Account Cooldown Active: ${target.bannedReason || 'Temporary restriction due to vulgarity or ragebait policy violation.'}`
+          message: `🚨 Account Cooldown Active: ${target.bannedReason || 'Temporary restriction due to policy violation.'}`
         };
       }
     }
 
-    if (followerCount < requiredFollowers) {
+    if (followerCount < requiredFollowers && !target.isVerified) {
       return {
         eligible: false,
         followerCount,
         requiredFollowers,
         weeklyCount,
         maxWeekly,
-        message: `🔒 Creator Requirement: 5+ followers needed to post publicly (Current: ${followerCount}/5). Connect and mentor students in DMs to unlock!`
+        message: `🔒 Creator Requirement: At least ${requiredFollowers} follower needed to post publicly (Current: ${followerCount}).`
       };
     }
 
@@ -1332,7 +1332,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         requiredFollowers,
         weeklyCount,
         maxWeekly,
-        message: `⏱️ Weekly Quota Exceeded: Alumni accounts are limited to 5 posts per rolling week (${weeklyCount}/${maxWeekly} used).`
+        message: `⏱️ Weekly Quota Exceeded: Alumni accounts are limited to ${maxWeekly} posts per rolling week (${weeklyCount}/${maxWeekly} used).`
       };
     }
 
@@ -1347,15 +1347,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Comprehensive Role-Based Post Creation Engine
   const addPost = (newPost: Omit<Post, 'id' | 'createdAt' | 'likes' | 'likesCount' | 'comments' | 'commentsCount' | 'sharesCount' | 'moderationStatus'>) => {
-    if (!currentUser) {
-      return {
-        success: false,
-        message: 'Please sign in or register to publish a post.'
-      };
-    }
+    const effectiveAuthorRole = currentUser?.role || newPost.authorRole || 'student';
+    const effectiveAuthorId = currentUser?.id || newPost.authorId || 'user-student-guest';
+    const effectiveAuthorUsername = currentUser?.username || newPost.authorUsername || 'student_guest';
+    const effectiveAuthorName = currentUser?.fullName || newPost.authorName || 'Campus Student';
+    const effectiveHeadline = currentUser?.headline || newPost.authorHeadline || 'Student Contributor';
+    const effectiveVerified = currentUser ? Boolean(currentUser.isVerified) : Boolean(newPost.isVerifiedAuthor);
+    const effectiveCollegeId = currentUser?.collegeId || newPost.collegeId || 'col-psg';
+    const effectiveCollegeName = currentUser?.collegeName || newPost.collegeName || 'PSG College of Technology';
 
     // Check account ban / cooldown status
-    if (currentUser.isBanned) {
+    if (currentUser?.isBanned) {
       const isStillBanned = currentUser.bannedUntil ? new Date(currentUser.bannedUntil).getTime() > Date.now() : true;
       if (isStillBanned) {
         return {
@@ -1365,9 +1367,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Role Limitation: ALUMNI (Follower threshold, 5/week quota)
-    if (currentUser.role === 'alumni') {
-      const eligibility = checkAlumniPostEligibility(currentUser);
+    // Role Limitation: ALUMNI (Follower threshold, 10/week quota)
+    if (effectiveAuthorRole === 'alumni') {
+      const eligibility = checkAlumniPostEligibility(currentUser || undefined);
       if (!eligibility.eligible) {
         return {
           success: false,
@@ -1381,43 +1383,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Critical Threats / Severe Hate Speech -> AUTOMATED TOXICITY BAN (Only for severe threats)
     if (aiModelSettings.autoBanEnabled && (aiResult.toxicity.categories.threat > 90 || aiResult.toxicity.categories.identityHate > 95)) {
-      const nextStrikes = (currentUser.strikesCount || 0) + 1;
-      const bannedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        isBanned: true,
-        bannedUntil,
-        bannedReason: `Automated AI Ban: ${aiResult.actionReason || 'Severe toxicity violation'} (toxic-bert score: ${aiResult.toxicity.score}%)`,
-        strikesCount: nextStrikes,
-        lastStrikeTimestamp: new Date().toISOString()
-      };
+      if (currentUser) {
+        const nextStrikes = (currentUser.strikesCount || 0) + 1;
+        const bannedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+        const updatedUser: UserProfile = {
+          ...currentUser,
+          isBanned: true,
+          bannedUntil,
+          bannedReason: `Automated AI Ban: ${aiResult.actionReason || 'Severe threat violation'}`,
+          strikesCount: nextStrikes,
+          lastStrikeTimestamp: new Date().toISOString()
+        };
 
-      setCurrentUser(updatedUser);
-      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-      try {
-        localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
-      } catch {}
+        setCurrentUser(updatedUser);
+        setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+        try {
+          localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+        } catch {}
 
-      logAdminAction(
-        'AUTOMATED_TOXICITY_BAN',
-        `@${currentUser.username}`,
-        `AI Model unitary/toxic-bert auto-banned user for 48h (Strike #${nextStrikes}). Violation: "${aiResult.actionReason}". Offending snippet: "${newPost.content.slice(0, 60)}..."`,
-        'critical'
-      );
+        logAdminAction(
+          'AUTOMATED_TOXICITY_BAN',
+          `@${currentUser.username}`,
+          `AI Model unitary/toxic-bert auto-banned user for 48h (Strike #${nextStrikes}). Violation: "${aiResult.actionReason}". Offending snippet: "${newPost.content.slice(0, 60)}..."`,
+          'critical'
+        );
+      }
 
       return {
         success: false,
-        message: `🚨 Automated AI Action: Post rejected and account restricted for 48 hours due to severe toxicity violation (Score: ${aiResult.toxicity.score}%). Recorded in administrative audit log.`
+        message: `🚨 Automated AI Action: Post rejected due to severe safety policy violation (Score: ${aiResult.toxicity.score}%). Recorded in administrative audit log.`
       };
     }
 
-    // Quarantine Flagging
+    // Quarantine Flagging (only for spam bots or explicit graphic images)
     const isQuarantined = aiResult.actionRecommended === 'quarantine';
     if (isQuarantined) {
       logAdminAction(
         'AI_AUTOMATED_QUARANTINE',
         'Campus Stream',
-        `Open-source AI quarantined post by @${currentUser.username} (${aiResult.actionReason})`,
+        `Open-source AI quarantined post by @${effectiveAuthorUsername} (${aiResult.actionReason})`,
         'warning'
       );
     }
@@ -1425,21 +1429,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Role Limitation: FACULTY (Only knowledge-based content)
     let isKnowledgeBased = false;
     let finalTopic = newPost.topic;
-    if (currentUser.role === 'faculty') {
+    if (effectiveAuthorRole === 'faculty') {
       isKnowledgeBased = true;
-      const academicTopics = ['Research & Tech', 'Academic Guidance', 'Career & Internships', 'Campus Notice', 'Lecture Notes', 'Knowledge Base'];
+      const academicTopics = [
+        'Research & Tech', 'Academic Guidance', 'Career & Internships', 'Campus Notice', 'Lecture Notes', 'Knowledge Base',
+        'Research & Publications', 'Curriculum & Syllabus', 'Lab & Project Guidance', 'Industry Guest Lecture', 'Examination Guidelines',
+        'Academics'
+      ];
       if (!newPost.topic || !academicTopics.includes(newPost.topic)) {
         finalTopic = 'Academic Guidance';
       }
     }
 
     // Role Limitation: INSTITUTION (Official Announcements)
-    if (currentUser.role === 'institution') {
+    if (effectiveAuthorRole === 'institution') {
       finalTopic = finalTopic || 'Official Announcement';
     }
 
     // Role Limitation: STUDENT (Full social capabilities + anonymous toggle)
-    const isAnonymous = currentUser.role === 'student' ? Boolean(newPost.isAnonymous) : false;
+    const isAnonymous = effectiveAuthorRole === 'student' ? Boolean(newPost.isAnonymous) : false;
 
     // Topic & Category classification via campus-lenz-ai
     if (!finalTopic || finalTopic === 'Campus Discussion' || finalTopic === 'Campus Update') {
@@ -1455,6 +1463,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const post: Post = {
       ...newPost,
       id: generatedPostId,
+      authorId: effectiveAuthorId,
+      authorUsername: effectiveAuthorUsername,
+      authorName: effectiveAuthorName,
+      authorRole: effectiveAuthorRole,
+      authorHeadline: effectiveHeadline,
+      isVerifiedAuthor: effectiveVerified,
+      collegeId: effectiveCollegeId,
+      collegeName: effectiveCollegeName,
       topic: finalTopic,
       isAnonymous,
       isKnowledgeBased,
@@ -1510,6 +1526,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ? {
                     ...p,
                     ...data.post,
+                    authorId: p.authorId || data.post.authorId,
+                    authorUsername: p.authorUsername || data.post.authorUsername,
+                    authorName: p.authorName || data.post.authorName,
                     imageUrl: data.post.imageUrl || p.imageUrl,
                     comments: p.comments
                   }

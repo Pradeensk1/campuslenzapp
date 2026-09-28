@@ -223,6 +223,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       handleRemoveMedia();
       setIsAnonymousPost(false);
       setIsComposing(false);
+      setFeedFilter('all');
+      setFeedSentimentFilter('all');
       setActionFeedback('🎉 Post published to live campus stream!');
       setTimeout(() => setActionFeedback(null), 4000);
     } else {

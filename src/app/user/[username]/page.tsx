@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import UserProfileClient from './UserProfileClient';
+import { INITIAL_USERS, INITIAL_POSTS } from '@/lib/mockData';
 
 export default async function Page({ params }: { params: Promise<{ username: string }> }) {
   const cookieStore = await cookies();
@@ -39,6 +40,13 @@ export default async function Page({ params }: { params: Promise<{ username: str
       achievements: profileData.achievements,
       createdAt: profileData.created_at,
     };
+  } else {
+    const mockUser = INITIAL_USERS.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
+    );
+    if (mockUser) {
+      initialProfile = mockUser;
+    }
   }
 
   // Fetch user posts
@@ -48,7 +56,7 @@ export default async function Page({ params }: { params: Promise<{ username: str
     .or(`author_username.ilike.${username},author_id.eq.${profileData?.id || 'none'}`)
     .order('created_at', { ascending: false });
 
-  const initialPosts = (postsData || []).map((row: any) => ({
+  let initialPosts: any[] = (postsData || []).map((row: any) => ({
     id: row.id,
     authorId: row.author_id,
     authorUsername: row.author_username,
@@ -72,6 +80,14 @@ export default async function Page({ params }: { params: Promise<{ username: str
     sentiment: row.sentiment || 'neutral',
     createdAt: row.created_at || new Date().toISOString(),
   }));
+
+  if (initialPosts.length === 0) {
+    initialPosts = INITIAL_POSTS.filter(
+      (p) =>
+        (p.authorUsername && p.authorUsername.toLowerCase() === username.toLowerCase()) ||
+        (initialProfile?.id && p.authorId === initialProfile.id)
+    );
+  }
 
   return (
     <UserProfileClient
