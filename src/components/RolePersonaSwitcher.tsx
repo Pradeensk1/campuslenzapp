@@ -34,7 +34,7 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     name: 'Junith Scholar',
     username: 'student_scholar',
     icon: GraduationCap,
-    color: 'from-blue-600 to-indigo-600 text-blue-600 bg-blue-50 border-blue-200',
+    color: 'from-[#1687D4] to-[#0875BD] text-[#1687D4] bg-[#E8F5FF] border-[#CFEAFF]',
     badge: 'Social & Anonymous',
     summary: 'Full social feed, anonymous posting switch, join/leave communities freely'
   },
@@ -44,7 +44,7 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     name: 'Karthika Mentor',
     username: 'alumni_mentor',
     icon: Briefcase,
-    color: 'from-emerald-600 to-teal-600 text-emerald-600 bg-emerald-50 border-emerald-200',
+    color: 'from-[#0875BD] to-[#075080] text-[#0875BD] bg-[#E8F5FF] border-[#CFEAFF]',
     badge: 'Mentorship HQ',
     summary: '1-on-1 DMs with students, 5-follower requirement, 5-post/week limit, no public groups'
   },
@@ -54,7 +54,7 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     name: 'Dr. Arunkumar',
     username: 'academic_faculty',
     icon: BookOpen,
-    color: 'from-amber-600 to-orange-600 text-amber-600 bg-amber-50 border-amber-200',
+    color: 'from-[#3B9FE8] to-[#1687D4] text-[#1687D4] bg-[#E8F5FF] border-[#CFEAFF]',
     badge: 'Academic Portal',
     summary: 'Peer-reviewed knowledge posts, circular reposting, community proposals'
   },
@@ -64,7 +64,7 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     name: 'PSG Tech Administration',
     username: 'institution_admin',
     icon: Building2,
-    color: 'from-purple-600 to-pink-600 text-purple-600 bg-purple-50 border-purple-200',
+    color: 'from-[#075080] to-[#0875BD] text-[#075080] bg-[#CFEAFF] border-[#8CCCF5]',
     badge: 'Executive Governance',
     summary: '1-community page limit, faculty proposal approvals, showcase student achievements'
   },
@@ -74,7 +74,7 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     name: 'Root Administrator',
     username: 'system_admin',
     icon: ShieldCheck,
-    color: 'from-rose-600 to-red-600 text-rose-600 bg-rose-50 border-rose-200',
+    color: 'from-[#0875BD] to-[#075080] text-[#075080] bg-[#CFEAFF] border-[#8CCCF5]',
     badge: 'Root Clearance',
     summary: 'Delete any user/post/comment, unban accounts, access Developer Terminal'
   }

@@ -58,14 +58,14 @@ export default function Navigation() {
 
   const roleColorBadge =
     currentUser?.role === 'institution'
-      ? 'bg-purple-50 text-purple-700 border-purple-200'
+      ? 'bg-[#E8F5FF] text-[#075080] border-[#CFEAFF]'
       : currentUser?.role === 'alumni'
-      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      ? 'bg-[#E8F5FF] text-[#0875BD] border-[#CFEAFF]'
       : currentUser?.role === 'faculty'
-      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      ? 'bg-[#E8F5FF] text-[#1687D4] border-[#CFEAFF]'
       : currentUser?.role === 'admin'
-      ? 'bg-rose-50 text-rose-700 border-rose-200'
-      : 'bg-blue-50 text-blue-700 border-blue-200';
+      ? 'bg-[#CFEAFF] text-[#075080] border-[#8CCCF5]'
+      : 'bg-[#F5FBFF] text-[#0875BD] border-[#CFEAFF]';
 
   const RoleIcon =
     currentUser?.role === 'institution' ? Building2 :
@@ -82,14 +82,14 @@ export default function Navigation() {
           
           {/* Apple Squircle Brand Glyph */}
           <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#0071e3] to-[#2563EB] text-white font-black text-sm shadow-[0_4px_12px_rgba(0,113,227,0.35)] transition-transform duration-300 group-hover:scale-105">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-sm shadow-[0_4px_12px_rgba(22,135,212,0.35)] transition-transform duration-300 group-hover:scale-105">
               CL
             </div>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#0F172A] leading-none">
-                CAMPUS<span className="text-[#0071e3]">LENZ</span>
+              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#075080] leading-none">
+                CAMPUS<span className="text-[#1687D4]">LENZ</span>
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#94A3B8] mt-0.5">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#628CA8] mt-0.5">
                 Ecosystem
               </span>
             </div>
@@ -99,13 +99,13 @@ export default function Navigation() {
           <div className="hidden lg:block flex-1 max-w-xs mx-2">
             <Link
               href="/search"
-              className="flex items-center justify-between rounded-full bg-slate-100/70 hover:bg-slate-200/60 border border-slate-200/50 hover:border-slate-300/80 px-3.5 py-1.5 text-xs text-slate-500 hover:text-slate-900 transition-all duration-200 group"
+              className="flex items-center justify-between rounded-full bg-[#E8F5FF]/70 hover:bg-[#CFEAFF]/60 border border-[#CFEAFF]/70 hover:border-[#8CCCF5] px-3.5 py-1.5 text-xs text-[#075080] transition-all duration-200 group"
             >
               <div className="flex items-center space-x-2 truncate">
-                <Search className="h-3.5 w-3.5 text-[#0071e3] transition-transform duration-200 group-hover:scale-110" />
+                <Search className="h-3.5 w-3.5 text-[#1687D4] transition-transform duration-200 group-hover:scale-110" />
                 <span className="truncate text-[11px] font-medium">Spotlight search...</span>
               </div>
-              <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold text-slate-400 bg-white/90 border border-slate-200 rounded-md shadow-2xs">
+              <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold text-[#628CA8] bg-white/90 border border-[#CFEAFF] rounded-md shadow-2xs">
                 ⌘K
               </kbd>
             </Link>
@@ -128,8 +128,8 @@ export default function Navigation() {
                   href={item.href}
                   className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'text-[#0071e3] font-bold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      ? 'text-[#1687D4] font-bold'
+                      : 'text-[#075080] hover:text-[#1687D4] hover:bg-white/60'
                   }`}
                 >
                   <Icon className={`h-3.5 w-3.5 transition-transform duration-200 ${isActive ? 'scale-110 stroke-[2.2]' : ''}`} />
@@ -137,7 +137,7 @@ export default function Navigation() {
                   {isActive && (
                     <motion.div
                       layoutId="appleNavPill"
-                      className="absolute inset-0 bg-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] -z-10"
+                      className="absolute inset-0 bg-white rounded-full shadow-[0_2px_8px_rgba(7,80,128,0.08),0_1px_2px_rgba(7,80,128,0.04)] -z-10"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
@@ -153,13 +153,13 @@ export default function Navigation() {
                 {/* User Info Capsule */}
                 <Link
                   href={`/user/${currentUser.username}`}
-                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-slate-100/80 hover:bg-slate-200/70 border border-slate-200/60 transition-all duration-200 group"
+                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-[#E8F5FF]/80 hover:bg-[#CFEAFF]/70 border border-[#CFEAFF] transition-all duration-200 group"
                 >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#0071e3] to-blue-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
                     {currentUser.fullName.charAt(0)}
                   </div>
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs font-bold text-slate-900 leading-none truncate max-w-[110px]">
+                    <div className="text-xs font-bold text-[#075080] leading-none truncate max-w-[110px]">
                       {currentUser.fullName}
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -175,7 +175,7 @@ export default function Navigation() {
                 <button
                   onClick={handleLogout}
                   title="Sign out of active account"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-200/70 bg-white/80 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-xs font-semibold text-slate-600 transition-all shadow-2xs"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#CFEAFF] bg-white/80 hover:bg-[#E8F5FF] hover:border-[#8CCCF5] hover:text-[#0875BD] text-xs font-semibold text-[#075080] transition-all shadow-2xs"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign Out</span>
@@ -185,14 +185,14 @@ export default function Navigation() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-700 hover:text-[#0071e3] hover:bg-slate-100/80 transition-all duration-200"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#075080] hover:text-[#1687D4] hover:bg-[#E8F5FF] transition-all duration-200"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>Sign In</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[#0071e3] hover:bg-[#0077ED] text-white shadow-[0_2px_10px_rgba(0,113,227,0.35)] transition-all duration-200"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[#1687D4] hover:bg-[#0875BD] text-white shadow-[0_2px_10px_rgba(22,135,212,0.35)] transition-all duration-200"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Register</span>
@@ -229,7 +229,7 @@ export default function Navigation() {
                 key={item.href}
                 href={item.href}
                 className={`relative flex flex-col items-center justify-center py-1.5 px-2.5 rounded-2xl transition-all duration-200 ${
-                  isActive ? 'text-[#0071e3]' : 'text-slate-500 hover:text-slate-900'
+                  isActive ? 'text-[#1687D4]' : 'text-[#075080]/70 hover:text-[#075080]'
                 }`}
               >
                 <Icon className={`h-4 w-4 transition-transform duration-200 ${isActive ? 'scale-115 stroke-[2.2]' : ''}`} />
@@ -239,7 +239,7 @@ export default function Navigation() {
                 {isActive && (
                   <motion.span
                     layoutId="appleMobileDockDot"
-                    className="h-1 w-1 rounded-full bg-[#0071e3] mt-0.5 shadow-[0_0_6px_#0071e3]"
+                    className="h-1 w-1 rounded-full bg-[#1687D4] mt-0.5 shadow-[0_0_6px_#1687D4]"
                     transition={{ type: "spring", stiffness: 450, damping: 35 }}
                   />
                 )}

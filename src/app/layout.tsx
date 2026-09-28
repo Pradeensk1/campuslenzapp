@@ -35,26 +35,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="text-[#0F172A] antialiased min-h-screen relative overflow-x-hidden selection:bg-sky-500/20 selection:text-sky-900 bg-[#EEF4F8]">
-        {/* Apple-Inspired Liquid Glass Ambient Canvas */}
-        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#EEF4F8]">
+      <body className="text-[#075080] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#F5FBFF]">
+        {/* Apple-Inspired Liquid Frosted Glass Ambient Canvas (Strictly Monochromatic Ocean Blue & Frosted White) */}
+        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#F5FBFF]">
           {/* Liquid Base Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#E2EDF8] via-[#EBF4FA] to-[#F1EEF9]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F5FBFF] via-[#E8F5FF] to-[#E0F2FE]" />
           
-          {/* Liquid Orb 1: Deep Ocean Cerulean & Cyan Wave */}
-          <div className="absolute -top-40 left-1/4 w-[45rem] h-[45rem] rounded-full bg-gradient-to-tr from-sky-400/35 via-cyan-400/30 to-blue-500/20 blur-[130px] animate-pulse" style={{ animationDuration: '8s' }} />
+          {/* Liquid Orb 1: Primary Ocean Blue & Cyan Wave */}
+          <div className="absolute -top-40 left-1/4 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tr from-[#3B9FE8]/25 via-[#8CCCF5]/30 to-[#1687D4]/20 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
           
-          {/* Liquid Orb 2: Soft Lilac & Rose Peach Caustic */}
-          <div className="absolute top-1/3 -right-20 w-[42rem] h-[42rem] rounded-full bg-gradient-to-bl from-pink-400/25 via-rose-300/20 to-purple-400/25 blur-[140px]" />
+          {/* Liquid Orb 2: Soft Light Ocean Blue Caustic */}
+          <div className="absolute top-1/3 -right-20 w-[42rem] h-[42rem] rounded-full bg-gradient-to-bl from-[#8CCCF5]/25 via-[#CFEAFF]/30 to-[#3B9FE8]/20 blur-[140px]" />
           
-          {/* Liquid Orb 3: Fresh Emerald / Mint Oceanic Aura */}
-          <div className="absolute -bottom-32 -left-20 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tr from-teal-300/25 via-emerald-400/20 to-sky-300/25 blur-[140px]" />
+          {/* Liquid Orb 3: Deep Ocean Navy Ambient Mist */}
+          <div className="absolute -bottom-32 -left-20 w-[50rem] h-[50rem] rounded-full bg-gradient-to-tr from-[#0875BD]/15 via-[#8CCCF5]/25 to-[#CFEAFF]/30 blur-[150px]" />
 
           {/* Liquid Orb 4: Center Specular Luster Glow */}
-          <div className="absolute top-1/2 left-1/3 w-[36rem] h-[36rem] rounded-full bg-gradient-to-r from-blue-300/20 via-indigo-200/15 to-transparent blur-[120px]" />
+          <div className="absolute top-1/2 left-1/3 w-[38rem] h-[38rem] rounded-full bg-gradient-to-r from-[#CFEAFF]/30 via-[#E8F5FF]/40 to-transparent blur-[120px]" />
 
-          {/* Apple Liquid Specular Micro-Texture */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.7),transparent_70%)]" />
+          {/* Specular Micro-Texture */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.85),transparent_70%)]" />
         </div>
 
         <AppProvider>

@@ -125,9 +125,9 @@ export default function AlumniHomeView() {
   return (
     <div className="space-y-6">
       {/* Top Banner: Alumni Mentorship HQ */}
-      <div className="rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#075080] via-[#0875BD] to-[#1687D4] p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-100 text-xs font-bold border border-white/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[#CFEAFF] text-xs font-bold border border-white/20">
             <Briefcase className="w-3.5 h-3.5" />
             <span>Alumni Mentorship HQ</span>
           </div>

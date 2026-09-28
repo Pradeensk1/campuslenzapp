@@ -19,16 +19,12 @@ export default function EmergencyBroadcastBanner() {
   const canDismiss = currentUser?.role === 'institution' || currentUser?.role === 'admin';
 
   const bgGradient = isCritical
-    ? 'from-red-600 via-rose-600 to-red-700 text-white border-red-500'
+    ? 'from-[#075080] via-[#0875BD] to-[#1687D4] text-white border-[#3B9FE8]'
     : isWarning
-    ? 'from-amber-600 via-orange-600 to-amber-700 text-white border-amber-500'
-    : 'from-blue-600 via-indigo-600 to-sky-700 text-white border-blue-500';
+    ? 'from-[#0875BD] via-[#1687D4] to-[#3B9FE8] text-white border-[#8CCCF5]'
+    : 'from-[#1687D4] via-[#3B9FE8] to-[#0875BD] text-white border-[#CFEAFF]';
 
-  const badgeBg = isCritical
-    ? 'bg-red-950/40 text-red-100 border-red-400/30'
-    : isWarning
-    ? 'bg-amber-950/40 text-amber-100 border-amber-400/30'
-    : 'bg-blue-950/40 text-blue-100 border-blue-400/30';
+  const badgeBg = 'bg-[#075080]/60 text-[#CFEAFF] border-[#8CCCF5]/40';
 
   const Icon = isCritical ? ShieldAlert : isWarning ? AlertTriangle : Info;
 

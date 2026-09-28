@@ -1,26 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  /* Crisp Modern Clean Palette (Light/Neutral Premium Slate) */
-  --bg-app: #F8FAFC;            /* Clean crisp background */
-  --surface-white: #FFFFFF;     /* Solid pure white card surfaces */
-  --surface-subtle: #F1F5F9;    /* Soft background accents */
-  --surface-hover: #E2E8F0;     /* Interactive hover state */
-  --border-subtle: #E2E8F0;     /* Crisp fine border */
-  --border-active: #CBD5E1;     /* Emphasized border */
+  /* Strict Ocean Blue & Frosted White Monochromatic System */
+  --ocean-ultra-light: #F5FBFF;
+  --ocean-very-light: #E8F5FF;
+  --ocean-light: #CFEAFF;
+  --ocean-soft: #8CCCF5;
+  --ocean-vibrant: #3B9FE8;
+  --ocean-primary: #1687D4;
+  --ocean-deep: #0875BD;
+  --ocean-navy: #075080;
+  --frosted-white: #FFFFFF;
 
-  /* Deep High-Contrast Typography */
-  --text-primary: #0F172A;      /* Deep slate 900 */
-  --text-secondary: #475569;    /* Slate 600 */
-  --text-muted: #94A3B8;        /* Slate 400 */
+  /* Theme Semantic Mappings */
+  --bg-app: #F5FBFF;
+  --surface-white: #FFFFFF;
+  --surface-subtle: #E8F5FF;
+  --surface-hover: #CFEAFF;
+  --border-subtle: #CFEAFF;
+  --border-active: #8CCCF5;
 
-  /* Vibrant Accent Tokens */
-  --accent-primary: #2563EB;    /* Royal Blue */
-  --accent-primary-hover: #1D4ED8;
-  --accent-teal: #0D9488;       /* Deep Teal */
-  --accent-emerald: #059669;    /* Trust Emerald */
-  --accent-amber: #D97706;      /* Star Amber */
-  --accent-indigo: #4F46E5;     /* Community Indigo */
+  /* Deep High-Contrast Ocean Navy Typography */
+  --text-primary: #075080;
+  --text-secondary: #0A3C5E;
+  --text-muted: #4A708B;
+
+  /* Accent Tokens - Strictly Ocean Blue */
+  --accent-primary: #1687D4;
+  --accent-primary-hover: #0875BD;
+  --accent-teal: #0875BD;
+  --accent-emerald: #1687D4;
+  --accent-amber: #0875BD;
+  --accent-indigo: #075080;
 }
 
 body {
@@ -35,95 +46,228 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Apple Liquid Frosted Glass Cards (Inspired by Reference UI) */
+/* Apple-Inspired Liquid Frosted Glass Cards (Matches user reference photo) */
 .apple-card,
-div.bg-white.border.border-slate-200,
-article.bg-white.border.border-slate-200,
-aside.bg-white.border.border-slate-200,
-nav.bg-white.border.border-slate-200 {
-  background-color: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.75) !important;
-  border-radius: 1.65rem !important; /* 26px smooth Apple curve */
-  box-shadow: 0 14px 38px -8px rgba(15, 23, 42, 0.07), 
+.ocean-glass-card,
+div.bg-white,
+article.bg-white,
+aside.bg-white,
+nav.bg-white {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(207, 234, 255, 0.75) !important;
+  box-shadow: 0 14px 38px -8px rgba(7, 80, 128, 0.08), 
               inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), 
-              inset 0 -1px 1px 0 rgba(255, 255, 255, 0.35) !important;
+              inset 0 -1px 1px 0 rgba(207, 234, 255, 0.35) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .apple-card-hover:hover,
-div.bg-white.border.border-slate-200:hover,
-article.bg-white.border.border-slate-200:hover {
-  border-color: rgba(255, 255, 255, 0.95) !important;
+div.bg-white:hover,
+article.bg-white:hover {
+  border-color: rgba(140, 204, 245, 0.9) !important;
   transform: translateY(-2px);
-  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.12), 
+  box-shadow: 0 20px 48px -10px rgba(7, 80, 128, 0.14), 
               inset 0 1.5px 1px 0 rgba(255, 255, 255, 1) !important;
-  background-color: rgba(255, 255, 255, 0.88) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
 }
 
-/* Apple-style Frosted Inputs */
-input.border.border-slate-200,
-textarea.border.border-slate-200 {
-  background-color: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-color: rgba(255, 255, 255, 0.8) !important;
-  border-radius: 1rem !important;
-  box-shadow: inset 0 1px 2px 0 rgba(15, 23, 42, 0.04) !important;
+/* Frosted Inputs & Textareas */
+input,
+textarea,
+select {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(207, 234, 255, 0.85) !important;
+  color: #075080 !important;
+  box-shadow: inset 0 1px 2px 0 rgba(7, 80, 128, 0.04) !important;
   transition: all 0.2s ease;
 }
 
-input.border.border-slate-200:focus,
-textarea.border.border-slate-200:focus {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-color: #38BDF8 !important;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+input:focus,
+textarea:focus,
+select:focus {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: #3B9FE8 !important;
+  box-shadow: 0 0 0 3px rgba(59, 159, 232, 0.25) !important;
+  outline: none !important;
 }
 
-/* Apple-style Primary & Secondary Buttons */
+/* Primary Buttons: Ocean Blue background, White text, Deep Ocean Blue hover */
 .apple-button-primary,
+.ocean-button-primary,
 button.bg-blue-600,
-a.bg-blue-600 {
-  background: linear-gradient(135deg, #0284C7 0%, #2563EB 100%) !important;
+a.bg-blue-600,
+button.bg-slate-900,
+a.bg-slate-900 {
+  background: linear-gradient(135deg, #1687D4 0%, #0875BD 100%) !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-radius: 9999px !important;
-  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 4px 16px rgba(8, 117, 189, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .apple-button-primary:hover,
+.ocean-button-primary:hover,
 button.bg-blue-600:hover,
-a.bg-blue-600:hover {
-  background: linear-gradient(135deg, #0EA5E9 0%, #1D4ED8 100%) !important;
-  transform: translateY(-1.5px) scale(1.02) !important;
-  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+a.bg-blue-600:hover,
+button.bg-slate-900:hover,
+a.bg-slate-900:hover {
+  background: linear-gradient(135deg, #3B9FE8 0%, #075080 100%) !important;
+  box-shadow: 0 8px 24px rgba(8, 117, 189, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+  color: #FFFFFF !important;
 }
 
+/* Secondary Buttons: Frosted White with Ocean Blue text & border */
 .apple-button-secondary,
-button.border.border-slate-200,
-a.border.border-slate-200 {
-  background-color: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
-  border-radius: 9999px !important;
+.ocean-button-secondary,
+button.border,
+a.border {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border-color: rgba(207, 234, 255, 0.85) !important;
+  color: #075080 !important;
+  box-shadow: 0 2px 8px rgba(7, 80, 128, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .apple-button-secondary:hover,
-button.border.border-slate-200:hover,
-a.border.border-slate-200:hover {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(56, 189, 248, 0.6) !important;
-  color: #0284C7 !important;
-  transform: translateY(-1px) !important;
+.ocean-button-secondary:hover,
+button.border:hover,
+a.border:hover {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #8CCCF5 !important;
+  color: #0875BD !important;
 }
 
-/* Subtle clean scrollbars */
+/* STRICT MONOCHROMATIC OCEAN BLUE: Map all non-ocean colors */
+.text-purple-600,
+.text-purple-700,
+.text-purple-800,
+.text-purple-900,
+.text-emerald-600,
+.text-emerald-700,
+.text-emerald-800,
+.text-emerald-900,
+.text-amber-500,
+.text-amber-600,
+.text-amber-700,
+.text-amber-800,
+.text-amber-900,
+.text-rose-500,
+.text-rose-600,
+.text-rose-700,
+.text-rose-800,
+.text-rose-900,
+.text-red-500,
+.text-red-600,
+.text-red-700,
+.text-orange-500,
+.text-orange-600,
+.text-pink-500,
+.text-pink-600,
+.text-teal-500,
+.text-teal-600,
+.text-teal-700,
+.text-indigo-600,
+.text-indigo-700 {
+  color: #0875BD !important;
+}
+
+.bg-purple-50,
+.bg-emerald-50,
+.bg-amber-50,
+.bg-rose-50,
+.bg-red-50,
+.bg-orange-50,
+.bg-pink-50,
+.bg-teal-50,
+.bg-indigo-50 {
+  background-color: #E8F5FF !important;
+}
+
+.bg-purple-100,
+.bg-emerald-100,
+.bg-amber-100,
+.bg-rose-100,
+.bg-red-100,
+.bg-orange-100,
+.bg-pink-100,
+.bg-teal-100,
+.bg-indigo-100 {
+  background-color: #CFEAFF !important;
+}
+
+.bg-purple-200,
+.bg-emerald-200,
+.bg-amber-200,
+.bg-rose-200,
+.bg-teal-200 {
+  background-color: #8CCCF5 !important;
+}
+
+.bg-purple-600,
+.bg-purple-700,
+.bg-emerald-600,
+.bg-emerald-700,
+.bg-amber-600,
+.bg-amber-700,
+.bg-rose-600,
+.bg-rose-700,
+.bg-red-600,
+.bg-red-700,
+.bg-orange-600,
+.bg-teal-600 {
+  background-color: #1687D4 !important;
+}
+
+.border-purple-100,
+.border-purple-200,
+.border-emerald-100,
+.border-emerald-200,
+.border-amber-100,
+.border-amber-200,
+.border-rose-100,
+.border-rose-200,
+.border-red-100,
+.border-red-200,
+.border-teal-100,
+.border-teal-200 {
+  border-color: #CFEAFF !important;
+}
+
+/* Map Slate Text Classes to Deep Ocean Navy */
+.text-slate-900 {
+  color: #075080 !important;
+}
+.text-slate-800,
+.text-slate-700 {
+  color: #0A3C5E !important;
+}
+.text-slate-600,
+.text-slate-500 {
+  color: #305D7C !important;
+}
+.text-slate-400 {
+  color: #628CA8 !important;
+}
+
+.bg-slate-50 {
+  background-color: #F5FBFF !important;
+}
+.bg-slate-100 {
+  background-color: #E8F5FF !important;
+}
+.border-slate-100,
+.border-slate-200 {
+  border-color: #CFEAFF !important;
+}
+
+/* Clean Ocean Blue Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -132,9 +276,9 @@ a.border.border-slate-200:hover {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #8CCCF5;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #3B9FE8;
 }

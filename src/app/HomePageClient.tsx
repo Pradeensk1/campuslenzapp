@@ -418,16 +418,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
       {/* Admin Quick Governance Alert Banner */}
       {currentUser?.role === 'admin' && (
-        <div className="mb-6 p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mb-6 p-3.5 rounded-2xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-rose-600 shrink-0" />
+            <Shield className="w-4 h-4 text-[#0875BD] shrink-0" />
             <span className="text-xs font-bold">
               Root Administrator Active: Full user account purge, post moderation & terminal privileges enabled
             </span>
           </div>
           <Link
             href="/admin"
-            className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 shrink-0"
+            className="px-3.5 py-1.5 rounded-xl bg-[#1687D4] hover:bg-[#0875BD] text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 shrink-0"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Open Admin Platform Console →</span>
@@ -445,11 +445,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           {/* User Profile Card or Guest Welcome Card */}
           {currentUser ? (
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-              <div className="h-16 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600" />
+              <div className="h-16 bg-gradient-to-r from-[#1687D4] via-[#0875BD] to-[#075080]" />
               <div className="px-4 pb-4 text-center">
                 <div className="-mt-8 mb-2 flex justify-center">
                   <Link href={`/user/${currentUser.username}`}>
-                    <div className="h-16 w-16 rounded-2xl border-3 border-white bg-slate-100 flex items-center justify-center text-xl font-bold text-blue-600 shadow-sm hover:scale-102 transition-transform">
+                    <div className="h-16 w-16 rounded-2xl border-3 border-white bg-slate-100 flex items-center justify-center text-xl font-bold text-[#1687D4] shadow-sm hover:scale-102 transition-transform">
                       {currentUser.fullName[0] || 'U'}
                     </div>
                   </Link>
@@ -532,35 +532,35 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             <div className="space-y-1 text-xs">
               <Link
                 href="/servers"
-                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-purple-600" />
+                  <MessageSquare className="w-4 h-4 text-[#1687D4]" />
                   <span className="font-semibold">Discord Servers</span>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Live</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">Live</span>
               </Link>
 
               <Link
                 href="/grievance"
-                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-blue-600" />
+                  <Shield className="w-4 h-4 text-[#0875BD]" />
                   <span className="font-semibold">Private Grievances</span>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">To Inst ID</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">To Inst ID</span>
               </Link>
 
               <Link
                 href="/compare"
-                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                className="flex items-center justify-between p-2 rounded-xl text-[#075080] hover:bg-[#E8F5FF] hover:text-[#1687D4] transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-emerald-600" />
+                  <Scale className="w-4 h-4 text-[#3B9FE8]" />
                   <span className="font-semibold">Compare Colleges</span>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Matrix</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#E8F5FF] text-[#0875BD]">Matrix</span>
               </Link>
             </div>
           </div>
@@ -574,12 +574,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           
           {/* Action Feedback Banner if present */}
           {actionFeedback && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+            <div className="p-3 rounded-xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] text-xs font-semibold flex items-center justify-between shadow-xs">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[#1687D4] flex-shrink-0" />
                 <span>{actionFeedback}</span>
               </div>
-              <button onClick={() => setActionFeedback(null)} className="text-emerald-700 hover:text-emerald-900">
+              <button onClick={() => setActionFeedback(null)} className="text-[#0875BD] hover:text-[#075080]">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -593,8 +593,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 onClick={() => setStudentViewMode('feed')}
                 className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition ${
                   studentViewMode === 'feed'
-                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#1687D4] shadow-xs font-bold'
+                    : 'text-[#075080]/70 hover:text-[#075080]'
                 }`}
               >
                 Campus Social Stream
@@ -604,11 +604,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 onClick={() => setStudentViewMode('hub')}
                 className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg transition ${
                   studentViewMode === 'hub'
-                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white text-[#1687D4] shadow-xs font-bold'
+                    : 'text-[#075080]/70 hover:text-[#075080]'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#0071e3]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#1687D4]" />
                 <span>Student Hub & Utilities</span>
               </button>
             </div>
@@ -626,12 +626,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 const elig = checkAlumniPostEligibility(currentUser);
                 if (!elig.eligible) {
                   return (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
+                    <div className="p-3.5 rounded-xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] text-xs space-y-2">
                       <div className="flex items-center gap-2 font-bold">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-[#0875BD] shrink-0" />
                         <span>Alumni Public Posting Restriction</span>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-amber-800">
+                      <p className="text-[11px] leading-relaxed text-[#0A3C5E]">
                         {elig.message}
                       </p>
                       {elig.followerCount < elig.requiredFollowers && (
@@ -640,13 +640,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             <span>Follower Eligibility Progress</span>
                             <span>{elig.followerCount} / {elig.requiredFollowers} Followers</span>
                           </div>
-                          <div className="w-full h-2 rounded-full bg-amber-200 overflow-hidden">
+                          <div className="w-full h-2 rounded-full bg-[#CFEAFF] overflow-hidden">
                             <div
-                              className="h-full bg-amber-600 rounded-full transition-all duration-300"
+                              className="h-full bg-[#1687D4] rounded-full transition-all duration-300"
                               style={{ width: `${Math.min(100, (elig.followerCount / elig.requiredFollowers) * 100)}%` }}
                             />
                           </div>
-                          <p className="text-[10px] text-amber-700 italic">
+                          <p className="text-[10px] text-[#0875BD] italic">
                             💡 Tip: Mentor students via Direct Messages in Connect Hub to gain followers!
                           </p>
                         </div>
@@ -655,11 +655,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   );
                 }
                 return (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center justify-between flex-wrap gap-1">
+                  <div className="p-2.5 rounded-xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] text-[11px] flex items-center justify-between flex-wrap gap-1">
                     <span className="font-semibold">
                       🎓 Alumni Quota: <strong>{elig.weeklyCount} / {elig.maxWeekly} posts</strong> used this week
                     </span>
-                    <span className="text-[10px] text-emerald-700 bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                    <span className="text-[10px] text-[#0875BD] bg-white/80 px-2 py-0.5 rounded border border-[#CFEAFF]">
                       Anti-Ragebait Shield Active
                     </span>
                   </div>
@@ -667,8 +667,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               })()}
 
               {currentUser.role === 'faculty' && (
-                <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="p-2.5 rounded-xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] text-[11px] flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#1687D4] shrink-0" />
                   <span>
                     <strong>Academic Faculty Stream:</strong> Posts are tagged as academic curriculum, research publications, or laboratory resources.
                   </span>
@@ -676,8 +676,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               )}
 
               {currentUser.role === 'institution' && (
-                <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-[11px] flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-purple-600 shrink-0" />
+                <div className="p-2.5 rounded-xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] text-[11px] flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#0875BD] shrink-0" />
                   <span>
                     <strong>Official Institutional Channel:</strong> Broadcast verified circulars, recruitment drives, and collegiate milestones.
                   </span>
@@ -1033,11 +1033,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 title={sensitiveContentShieldActive ? 'AI Sensitive Content Shield is Active' : 'AI Shield is Paused'}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs ${
                   sensitiveContentShieldActive
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                    ? 'bg-[#E8F5FF] text-[#0875BD] border border-[#CFEAFF] hover:bg-[#CFEAFF]'
+                    : 'bg-slate-100 text-[#075080] border border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-[#1687D4]' : 'text-[#628CA8]'}`} />
                 <span>AI Shield: {sensitiveContentShieldActive ? 'Active' : 'Off'}</span>
               </button>
             </div>
@@ -1045,15 +1045,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             {/* Row 2: Sentiment & AI Classification Filter Pills */}
             <div className="flex items-center justify-between border-t border-slate-100 pt-2 flex-wrap gap-2 text-xs">
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-500" /> AI Filter:
+                <span className="text-[11px] font-bold text-[#628CA8] mr-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-[#1687D4]" /> AI Filter:
                 </span>
                 <button
                   onClick={() => setFeedSentimentFilter('all')}
                   className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition ${
                     feedSentimentFilter === 'all'
-                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-[#1687D4] text-white font-bold shadow-2xs'
+                      : 'text-[#075080] hover:bg-[#E8F5FF]'
                   }`}
                 >
                   All Sentiments
@@ -1062,8 +1062,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   onClick={() => setFeedSentimentFilter('positive')}
                   className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'positive'
-                      ? 'bg-emerald-600 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-[#0875BD] text-white font-bold shadow-2xs'
+                      : 'text-[#075080] hover:bg-[#E8F5FF]'
                   }`}
                 >
                   <span>🌟 Positive & Inspiring</span>
@@ -1075,8 +1075,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   onClick={() => setFeedSentimentFilter('academic')}
                   className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'academic'
-                      ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-[#1687D4] text-white font-bold shadow-2xs'
+                      : 'text-[#075080] hover:bg-[#E8F5FF]'
                   }`}
                 >
                   <span>📘 Academic Guidance</span>
@@ -1085,12 +1085,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   onClick={() => setFeedSentimentFilter('sensitive')}
                   className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'sensitive'
-                      ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-[#075080] text-white font-bold shadow-2xs'
+                      : 'text-[#075080] hover:bg-[#E8F5FF]'
                   }`}
                 >
                   <span>⚠️ Sensitive / Flagged</span>
-                  <span className="text-[10px] px-1 rounded-full bg-amber-100 text-amber-800 font-bold">
+                  <span className="text-[10px] px-1 rounded-full bg-[#CFEAFF] text-[#075080] font-bold">
                     {posts.filter(p => p.isSensitive).length}
                   </span>
                 </button>

@@ -140,14 +140,14 @@ export default function InstitutionHomeView() {
   return (
     <div className="space-y-6">
       {/* Top Banner: University Executive Governance */}
-      <div className="rounded-3xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#075080] via-[#0875BD] to-[#1687D4] p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-purple-100 text-xs font-bold border border-white/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[#CFEAFF] text-xs font-bold border border-white/20">
               <Building2 className="w-3.5 h-3.5" />
               <span>University Executive Governance Console</span>
             </span>
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-xs font-bold border border-emerald-400/30">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#1687D4]/30 text-white text-xs font-bold border border-[#8CCCF5]/40">
               <Award className="w-3.5 h-3.5" />
               <span>NAAC {currentUser.accreditationGrade || 'A++'} Certified</span>
             </span>

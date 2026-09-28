@@ -157,9 +157,9 @@ export default function FacultyHomeView() {
   return (
     <div className="space-y-6">
       {/* Top Banner: Academic Knowledge Exchange */}
-      <div className="rounded-3xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#0875BD] via-[#1687D4] to-[#3B9FE8] p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-amber-100 text-xs font-bold border border-white/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[#CFEAFF] text-xs font-bold border border-white/20">
             <BookOpen className="w-3.5 h-3.5" />
             <span>Academic Knowledge Exchange & Faculty Portal</span>
           </div>
