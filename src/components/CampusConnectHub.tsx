@@ -597,7 +597,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-transparent py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-sm">
           <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xs">
             <MessageSquare className="w-8 h-8" />
@@ -629,13 +629,13 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-4 px-2 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-transparent py-4 px-2 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-4">
 
         {/* =============================================================== */}
         {/* UNIFIED HEADER & TOP PILL TAB SWITCHER                          */}
         {/* =============================================================== */}
-        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
+        <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)]">
           <div>
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">

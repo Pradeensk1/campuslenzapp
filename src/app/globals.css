@@ -13,7 +13,7 @@
   --frosted-white: #FFFFFF;
 
   /* Theme Semantic Mappings */
-  --bg-app: #F5FBFF;
+  --bg-app: #0c1824;
   --surface-white: #FFFFFF;
   --surface-subtle: #E8F5FF;
   --surface-hover: #CFEAFF;
@@ -50,11 +50,11 @@ body {
 .liquid-glass,
 .apple-card,
 .ocean-glass-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.68) 100%) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.74) 100%) !important;
   backdrop-filter: blur(28px) saturate(200%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 12px 36px -6px rgba(7, 80, 128, 0.07), 
+  border: 1px solid rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 16px 44px -8px rgba(0, 0, 0, 0.22), 
               inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.98), 
               inset 0 -1px 1px 0 rgba(207, 234, 255, 0.35) !important;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
