@@ -632,17 +632,17 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
         {/* =============================================================== */}
         {/* UNIFIED HEADER & TOP PILL TAB SWITCHER                          */}
         {/* =============================================================== */}
-        <div className="ocean-glass-card touch-over-glass border border-white/80 rounded-[28px] p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
           <div>
-            <div className="flex items-center gap-3">
-              <span className="p-2.5 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-md shadow-sky-500/20">
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
                 <MessageSquare className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-sky-950">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   Campus Communication & Resolution Hub
                 </h1>
-                <p className="text-xs text-sky-800/80 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Unified platform: WhatsApp-style campus community groups, Instagram 1-on-1 direct messages, and confidential grievance reporting.
                 </p>
               </div>
@@ -650,19 +650,19 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
           </div>
 
           {/* Unified Tab Switcher (Communities hidden for Alumni as requested) */}
-          <div className="flex items-center bg-white/60 p-1.5 rounded-full border border-white/90 text-xs font-bold w-full md:w-auto shadow-inner">
+          <div className="flex items-center bg-[#F1F5F9] p-1 rounded-2xl border border-[#E2E8F0] text-xs font-bold w-full md:w-auto">
             {!isAlumni && (
               <button
                 onClick={() => setActiveTab('community')}
-                className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full transition-all duration-300 ${
+                className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
                   activeTab === 'community'
-                    ? 'ocean-glossy-button text-white shadow-md'
-                    : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/50'
+                    ? 'bg-white text-emerald-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Users className="w-4 h-4 text-sky-300" />
+                <Users className="w-4 h-4 text-emerald-600" />
                 <span>Communities</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-200/60 text-sky-900 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
                   {activeCommunity?.channels.length || 0}
                 </span>
               </button>
@@ -670,35 +670,35 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full transition-all duration-300 ${
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
                 activeTab === 'messages'
-                  ? 'ocean-glossy-button text-white shadow-md'
-                  : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/50'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Send className="w-3.5 h-3.5 text-sky-300" />
+              <Send className="w-3.5 h-3.5 text-blue-600" />
               <span>Direct Messages</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-200/60 text-sky-900 font-bold">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800">
                 {activeConversations.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab('grievance')}
-              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-full transition-all duration-300 ${
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
                 activeTab === 'grievance'
-                  ? 'ocean-glossy-button text-white shadow-md'
-                  : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/50'
+                  ? 'bg-white text-purple-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Shield className="w-3.5 h-3.5 text-cyan-300" />
+              <Shield className="w-3.5 h-3.5 text-purple-600" />
               <span>Private Grievance</span>
               {isInstitutionOrAdmin ? (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-200/60 text-cyan-950 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
                   {institutionReports.length}
                 </span>
               ) : (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-200/60 text-cyan-950 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
                   {studentReports.length}
                 </span>
               )}

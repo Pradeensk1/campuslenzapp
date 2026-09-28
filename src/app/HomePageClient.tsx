@@ -43,26 +43,7 @@ import {
   PlusCircle,
   LogIn,
   Paperclip,
-  Video,
-  Home,
-  Users,
-  Compass,
-  Crown,
-  Download,
-  ExternalLink,
-  Clock,
-  MapPin,
-  Award,
-  Zap,
-  Tag,
-  Circle,
-  CheckCircle,
-  ChevronRight,
-  Activity,
-  Scan,
-  Layers,
-  Cpu,
-  MoreHorizontal
+  Video
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
@@ -123,96 +104,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   // Role-Specific Workspace vs Global Stream View
   const [roleWorkspaceMode, setRoleWorkspaceMode] = useState<boolean>(true);
   const [studentViewMode, setStudentViewMode] = useState<'feed' | 'hub'>('feed');
-
-  // New Navigation & Category State matching Reference Mockup
-  const [activeLeftNav, setActiveLeftNav] = useState<string>('home');
-  const [trendingTab, setTrendingTab] = useState<string>('All');
-  const [recommendedTab, setRecommendedTab] = useState<string>('Colleges');
-  const [resourcesTab, setResourcesTab] = useState<string>('Notes');
-  const [communityCategory, setCommunityCategory] = useState<string>('All Posts');
-  const [followedRecIds, setFollowedRecIds] = useState<string[]>(['rec-1']);
-
-  // Apple Liquid Theme: Calendar Day & Daily Routine Steps State
-  const [selectedDay, setSelectedDay] = useState<string>('Wed');
-  const [todaySteps, setTodaySteps] = useState<Array<{
-    id: string;
-    title: string;
-    subtitle: string;
-    category: string;
-    time: string;
-    isCompleted: boolean;
-  }>>([
-    {
-      id: 'step-1',
-      title: 'Attend Data Structures & Algorithm Lab',
-      subtitle: 'Practical session on Graph Traversal & BFS/DFS',
-      category: 'Academic',
-      time: '09:30 AM · Lab 3',
-      isCompleted: true,
-    },
-    {
-      id: 'step-2',
-      title: 'AI Campus Review: Submit DBMS Assignment',
-      subtitle: 'Upload SQL queries & ER diagrams to portal',
-      category: 'Assignment',
-      time: 'Due 05:00 PM · Online',
-      isCompleted: false,
-    },
-    {
-      id: 'step-3',
-      title: 'Apply for Python Developer Internship',
-      subtitle: 'TechCorp India · Remote · ₹15,000/mo stipend',
-      category: 'Career',
-      time: 'Application Closing Today',
-      isCompleted: false,
-    },
-    {
-      id: 'step-4',
-      title: 'Smart India Hackathon Team Standup',
-      subtitle: 'Sync on IoT architecture & presentation slides',
-      category: 'Project',
-      time: '06:30 PM · Connect Hub',
-      isCompleted: false,
-    }
-  ]);
-
-  const toggleDailyStep = (id: string) => {
-    setTodaySteps(prev =>
-      prev.map(step =>
-        step.id === id ? { ...step, isCompleted: !step.isCompleted } : step
-      )
-    );
-    const step = todaySteps.find(s => s.id === id);
-    if (step) {
-      setActionFeedback(!step.isCompleted ? `🎉 Completed "${step.title}"!` : `Marked "${step.title}" as pending`);
-      setTimeout(() => setActionFeedback(null), 3000);
-    }
-  };
-
-  // Apple-Inspired Campus AI Scanner Drawer State
-  const [isScanDrawerOpen, setIsScanDrawerOpen] = useState(false);
-  const [activeScanTool, setActiveScanTool] = useState<string>('notes');
-  const [scanInputText, setScanInputText] = useState('');
-  const [scanAnalysisResult, setScanAnalysisResult] = useState<string | null>(null);
-
-  const handleRunScanTool = (tool: string) => {
-    setActiveScanTool(tool);
-    if (tool === 'notes') {
-      setScanAnalysisResult('✨ AI Note Summary generated: Extracted 3 Core Principles, 4 Formulas & 2 Practice Questions.');
-    } else if (tool === 'shield') {
-      setScanAnalysisResult('🛡️ AI Safety Shield: Content scored 98% safe with 0 ragebait triggers.');
-    } else if (tool === 'internship') {
-      setScanAnalysisResult('🎯 Career Match: Profile matches 92% with Python Developer Intern at TechCorp India.');
-    } else {
-      setScanAnalysisResult('📊 TNEA Cutoff Predictor: Aggregate Cutoff 192.5/200 — 96% chance for CEG Anna Univ.');
-    }
-  };
-
-  const toggleFollowRec = (id: string) => {
-    setFollowedRecIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
 
   // Bookmarks
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -356,13 +247,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     if (feedSentimentFilter === 'positive' && p.sentiment !== 'positive') return false;
     if (feedSentimentFilter === 'academic' && !p.isKnowledgeBased && !p.topic?.includes('Academic') && !p.topic?.includes('Research') && !p.topic?.includes('Placement') && !p.topic?.includes('Notes')) return false;
     if (feedSentimentFilter === 'sensitive' && !p.isSensitive) return false;
-
-    // Community Category filter
-    if (communityCategory === 'Questions' && !p.content.includes('?') && !p.topic?.toLowerCase().includes('question') && !p.topic?.toLowerCase().includes('doubt')) return false;
-    if (communityCategory === 'Opportunities' && !p.topic?.toLowerCase().includes('job') && !p.topic?.toLowerCase().includes('intern') && !p.topic?.toLowerCase().includes('hiring') && !p.content.toLowerCase().includes('intern') && !p.content.toLowerCase().includes('job') && !p.content.toLowerCase().includes('hiring')) return false;
-    if (communityCategory === 'Projects' && !p.topic?.toLowerCase().includes('project') && !p.content.toLowerCase().includes('project') && !p.content.toLowerCase().includes('build')) return false;
-    if (communityCategory === 'Events' && !p.topic?.toLowerCase().includes('event') && !p.topic?.toLowerCase().includes('hackathon') && !p.content.toLowerCase().includes('hackathon') && !p.content.toLowerCase().includes('fest') && !p.content.toLowerCase().includes('webinar')) return false;
-    if (communityCategory === 'Achievements' && !p.topic?.toLowerCase().includes('achievement') && !p.topic?.toLowerCase().includes('won') && !p.content.toLowerCase().includes('winner') && !p.content.toLowerCase().includes('congrat') && !p.content.toLowerCase().includes('placed')) return false;
 
     return true;
   });
@@ -509,7 +393,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   }
 
   return (
-    <div className="max-w-[1560px] mx-auto px-3 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Role Workspace Return Banner if browsing feed */}
       {currentUser && (currentUser.role === 'alumni' || currentUser.role === 'faculty' || currentUser.role === 'institution') && (
         <div className="mb-6 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -551,74 +435,142 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         
         {/* ========================================================= */}
-        {/* LEFT COLUMN (Cols 1-2): 10-Item Nav Card + Premium Upgrade */}
+        {/* LEFT COLUMN (Cols 1-3): Clean Profile & Shortcuts Hub */}
         {/* ========================================================= */}
-        <aside className="hidden xl:block xl:col-span-2 space-y-4 sticky top-20">
+        <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
           
-          {/* 10-Item Navigation Card matching reference mockup */}
-          <div className="ocean-glass-card p-3 space-y-1 touch-over-glass">
-            {[
-              { id: 'home', label: 'Home', icon: Home, href: '/' },
-              { id: 'colleges', label: 'Colleges', icon: Building2, href: '/colleges' },
-              { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase, href: '/jobs' },
-              { id: 'resources', label: 'Study Resources', icon: BookOpen, href: '/resources' },
-              { id: 'events', label: 'Events', icon: Calendar, href: '/events' },
-              { id: 'students', label: 'Students & Community', icon: Users, href: '/servers' },
-              { id: 'projects', label: 'Projects & Ideas', icon: Sparkles, href: '/projects' },
-              { id: 'explore', label: 'Explore', icon: Compass, href: '/search' },
-              { id: 'saved', label: 'Saved', icon: Bookmark, href: '/saved' },
-              { id: 'profile', label: 'My Profile', icon: UserCheck, href: currentUser ? `/user/${currentUser.username}` : '/login' },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeLeftNav === item.id;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={() => setActiveLeftNav(item.id)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 ${
-                    isActive
-                      ? 'bg-emerald-600 text-white shadow-[0_4px_12px_rgba(5,150,105,0.3)]'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
+          {/* User Profile Card or Guest Welcome Card */}
+          {currentUser ? (
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <div className="h-16 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600" />
+              <div className="px-4 pb-4 text-center">
+                <div className="-mt-8 mb-2 flex justify-center">
+                  <Link href={`/user/${currentUser.username}`}>
+                    <div className="h-16 w-16 rounded-2xl border-3 border-white bg-slate-100 flex items-center justify-center text-xl font-bold text-blue-600 shadow-sm hover:scale-102 transition-transform">
+                      {currentUser.fullName[0] || 'U'}
+                    </div>
+                  </Link>
+                </div>
 
-          {/* Upgrade to CampusLenz Premium Card */}
-          <div className="rounded-3xl p-4.5 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-emerald-500/10 border border-amber-300/40 backdrop-blur-md shadow-xs space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center shadow-[0_4px_10px_rgba(245,158,11,0.3)] shrink-0">
-                <Crown className="w-4 h-4" />
+                <Link href={`/user/${currentUser.username}`} className="group block">
+                  <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                    {currentUser.fullName}
+                  </h2>
+                </Link>
+                
+                <div className="mt-1 flex items-center justify-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    {currentUser.role}
+                  </span>
+                  {currentUser.isVerified && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                  )}
+                </div>
+
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500 line-clamp-2">
+                  {currentUser.headline}
+                </p>
+
+                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 text-center text-xs">
+                  <div>
+                    <div className="font-bold text-slate-900">{currentUser.followersCount}</div>
+                    <div className="text-[10px] text-slate-400">Followers</div>
+                  </div>
+                  <div className="border-l border-slate-100">
+                    <div className="font-bold text-slate-900">{currentUser.followingCount}</div>
+                    <div className="text-[10px] text-slate-400">Following</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <Link
+                    href={`/user/${currentUser.username}`}
+                    className="w-full py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <span>My Profile</span>
+                    <ArrowRight className="w-3 h-3 text-slate-400" />
+                  </Link>
+                </div>
               </div>
-              <span className="text-xs font-black text-slate-900 leading-tight">
-                Upgrade to CampusLenz Premium
-              </span>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-600">
-              Unlock AI Notes, verified alumni mentor badges & mock interviews.
-            </p>
-            <Link
-              href="/register"
-              className="w-full py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold text-center block shadow-[0_4px_12px_rgba(16,185,129,0.25)] transition-all"
-            >
-              Upgrade Now →
-            </Link>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-xs space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 font-black text-lg flex items-center justify-center mx-auto shadow-2xs">
+                CL
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Welcome to Campus Lenz</h3>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  Join verified college networks, connect with alumni mentors, and explore institutional analytics.
+                </p>
+              </div>
+              <div className="pt-1 flex flex-col gap-2">
+                <Link
+                  href="/register"
+                  className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition text-center"
+                >
+                  Create Account
+                </Link>
+                <Link
+                  href="/login"
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition text-center"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Hub Shortcuts */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
+              Campus Hub
+            </h3>
+            <div className="space-y-1 text-xs">
+              <Link
+                href="/servers"
+                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold">Discord Servers</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Live</span>
+              </Link>
+
+              <Link
+                href="/grievance"
+                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold">Private Grievances</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">To Inst ID</span>
+              </Link>
+
+              <Link
+                href="/compare"
+                className="flex items-center justify-between p-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold">Compare Colleges</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Matrix</span>
+              </Link>
+            </div>
           </div>
 
         </aside>
 
         {/* ========================================================= */}
-        {/* CENTER COLUMN (Cols 3-9): Live Dynamic Feed Stream        */}
+        {/* CENTER COLUMN (Cols 4-9): Live Dynamic Feed Stream        */}
         {/* ========================================================= */}
-        <main className="col-span-1 xl:col-span-7 space-y-6">
+        <main className="lg:col-span-6 space-y-4">
           
           {/* Action Feedback Banner if present */}
           {actionFeedback && (
@@ -634,15 +586,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           )}
 
           {/* Student Mode Switcher: Social Stream vs Student Hub & Utilities */}
-          <div className="ocean-glass-card p-2 shadow-xs touch-over-glass">
-            <div className="flex items-center gap-1.5 p-1 bg-sky-100/50 rounded-2xl text-xs font-semibold w-full sm:w-auto border border-white/60">
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl text-xs font-semibold w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setStudentViewMode('feed')}
-                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl transition-all duration-200 ${
+                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg transition ${
                   studentViewMode === 'feed'
-                    ? 'bg-white/95 text-[#0284C7] shadow-[0_2px_8px_rgba(2,132,199,0.18)] font-black'
-                    : 'text-slate-600 hover:text-[#0C2340]'
+                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Campus Social Stream
@@ -650,13 +602,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               <button
                 type="button"
                 onClick={() => setStudentViewMode('hub')}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all duration-200 ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg transition ${
                   studentViewMode === 'hub'
-                    ? 'bg-white/95 text-[#0284C7] shadow-[0_2px_8px_rgba(2,132,199,0.18)] font-black'
-                    : 'text-slate-600 hover:text-[#0C2340]'
+                    ? 'bg-white text-[#0071e3] shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#0284C7]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#0071e3]" />
                 <span>Student Hub & Utilities</span>
               </button>
             </div>
@@ -666,412 +618,20 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             <StudentFeaturesHub />
           ) : (
             <>
-              {/* 1. Apple-Inspired Hero Greeting Banner with Floating Glass Metrics */}
-              <div className="relative overflow-hidden rounded-[32px] bg-white/60 backdrop-blur-3xl border border-white/80 p-6 sm:p-7 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08),inset_0_1.5px_1px_rgba(255,255,255,0.95)] flex flex-col lg:flex-row items-center justify-between gap-6">
-                <div className="space-y-4 text-left z-10 flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-sky-400 to-[#0284C7] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-md">
-                      {currentUser?.fullName?.[0] || 'P'}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 font-semibold">Good morning 👋</span>
-                      </div>
-                      <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">
-                        {currentUser ? currentUser.fullName : 'Partha S.'}
-                      </h1>
-                    </div>
-                  </div>
-
-                  <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-lg">
-                    Understand your campus journey better. Track daily lecture tasks, verified internship opportunities, and AI-powered study insights.
-                  </p>
-
-                  {/* Calendar Day Selector Ribbon (Apple VisionOS / iOS 18 style) */}
-                  <div className="pt-1">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                      {[
-                        { day: 'Mon', date: '12', done: true },
-                        { day: 'Tue', date: '13', done: true },
-                        { day: 'Wed', date: '14', done: true, current: true },
-                        { day: 'Thu', date: '15', done: false },
-                        { day: 'Fri', date: '16', done: false },
-                        { day: 'Sat', date: '17', done: false },
-                      ].map((item) => {
-                        const isSelected = selectedDay === item.day;
-                        return (
-                          <button
-                            key={item.day}
-                            type="button"
-                            onClick={() => {
-                              setSelectedDay(item.day);
-                              setActionFeedback(`📅 Viewed routine for ${item.day} ${item.date}`);
-                              setTimeout(() => setActionFeedback(null), 2500);
-                            }}
-                            className={`flex flex-col items-center justify-center py-2 px-3 sm:px-3.5 rounded-2xl transition-all duration-200 shrink-0 ${
-                              isSelected
-                                ? 'bg-slate-900 text-white shadow-md scale-105'
-                                : 'bg-white/60 hover:bg-white/90 text-slate-600 border border-white/80'
-                            }`}
-                          >
-                            <span className="text-[10px] font-semibold uppercase tracking-wider">{item.day}</span>
-                            <div className="flex items-center justify-center mt-1">
-                              {isSelected ? (
-                                <Check className="w-4 h-4 text-white" />
-                              ) : item.done ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              ) : (
-                                <span className="text-xs font-bold">{item.date}</span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-1">
-                    <button
-                      onClick={() => setIsScanDrawerOpen(true)}
-                      className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
-                    >
-                      <Scan className="w-3.5 h-3.5" />
-                      <span>Campus AI Scanner</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        const el = document.getElementById('daily-steps-box');
-                        el?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="px-3.5 py-2 rounded-2xl bg-white/70 hover:bg-white text-slate-700 text-xs font-bold border border-white/90 shadow-2xs transition-all flex items-center gap-1.5"
-                    >
-                      <span>Daily Steps ({todaySteps.filter(s => s.isCompleted).length}/{todaySteps.length})</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Right Side: Portrait with Floating Apple Glass Metric Badges */}
-                <div className="relative shrink-0 hidden md:block">
-                  <div className="w-48 h-48 md:w-56 md:h-56 rounded-[32px] overflow-hidden border-4 border-white/90 shadow-2xl relative bg-gradient-to-tr from-sky-200 via-teal-100 to-indigo-200">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80"
-                      alt="Student"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent pointer-events-none" />
-                  </div>
-
-                  {/* Floating Metric 1: Campus Sentiment (Top-Left) */}
-                  <div className="apple-floating-metric absolute -top-3 -left-6 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Campus Pulse 87%</span>
-                  </div>
-
-                  {/* Floating Metric 2: Study Streak (Top-Right) */}
-                  <div className="apple-floating-metric absolute -top-2 -right-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                    <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span>5 Day Streak</span>
-                  </div>
-
-                  {/* Floating Metric 3: Overall Verified (Bottom-Left) */}
-                  <div className="apple-floating-metric absolute -bottom-3 -left-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#0284C7]" />
-                    <span>Verified 4.9★</span>
-                  </div>
-
-                  {/* Floating Metric 4: AI Shield (Bottom-Right) */}
-                  <div className="apple-floating-metric absolute -bottom-2 -right-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-emerald-800">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>AI Shield Active</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Apple VisionOS "Today's Steps & Routine" Interactive Hub */}
-              <div id="daily-steps-box" className="ocean-glass-card p-5 sm:p-6 space-y-4 touch-over-glass">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <span>Today's Steps & Routine</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {todaySteps.filter(s => s.isCompleted).length} / {todaySteps.length} Completed
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Check off daily lecture sessions, academic submissions & internship applications
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsScanDrawerOpen(true)}
-                    className="p-2 rounded-xl bg-white/70 hover:bg-white text-slate-600 hover:text-slate-900 border border-white/90 transition shadow-2xs"
-                    title="Open Scanner Tools"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Steps List */}
-                <div className="space-y-2.5">
-                  {todaySteps.map((step) => {
-                    return (
-                      <div
-                        key={step.id}
-                        onClick={() => toggleDailyStep(step.id)}
-                        className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
-                          step.isCompleted
-                            ? 'bg-white/45 border-white/60 text-slate-500'
-                            : 'bg-white/80 hover:bg-white/95 border-white/90 text-slate-900 shadow-2xs'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleDailyStep(step.id);
-                            }}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                              step.isCompleted
-                                ? 'bg-emerald-600 text-white shadow-2xs'
-                                : 'border-2 border-slate-300 hover:border-emerald-600 bg-white'
-                            }`}
-                          >
-                            {step.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </button>
-
-                          <div className="min-w-0">
-                            <p className={`text-xs font-bold truncate ${step.isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                              {step.title}
-                            </p>
-                            <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                              {step.subtitle}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="hidden sm:inline-block text-[10px] font-semibold text-slate-500 bg-white/70 px-2 py-0.5 rounded-lg border border-slate-200/60">
-                            {step.time}
-                          </span>
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                            step.category === 'Academic'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : step.category === 'Assignment'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : step.category === 'Career'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-purple-50 text-purple-700 border-purple-200'
-                          }`}>
-                            {step.category}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* 2 Bottom Quick Diagnostic / Action Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div
-                    onClick={() => setIsScanDrawerOpen(true)}
-                    className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-200/60 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between shadow-2xs group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-[#0284C7] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <Scan className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900">Campus AI Scanner</h4>
-                        <p className="text-[10px] text-slate-500">Scan notes, code & get AI feedback</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#0284C7] transition-colors" />
-                  </div>
-
-                  <div
-                    onClick={() => {
-                      setTrendingTab('Internships');
-                      const el = document.getElementById('trending-section');
-                      el?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-200/60 hover:border-emerald-300 cursor-pointer transition-all flex items-center justify-between shadow-2xs group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900">Career Roadmap</h4>
-                        <p className="text-[10px] text-slate-500">1,200+ Internships & Cutoffs</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. 🔥 Trending for Students */}
-              <div id="trending-section" className="ocean-glass-card p-5 space-y-4 touch-over-glass">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-black text-slate-900 flex items-center gap-1.5">
-                      🔥 Trending for Students
-                    </span>
-                  </div>
-                  {/* Tabs */}
-                  <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-                    {['All', 'Internships', 'Admissions', 'Projects', 'Events', 'Exams'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setTrendingTab(tab)}
-                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                          trendingTab === tab
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 4 Opportunity Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {[
-                    {
-                      id: 'trend-1',
-                      category: 'Internships',
-                      title: 'Python Developer Intern',
-                      company: 'TechCorp India',
-                      location: 'Remote',
-                      stipend: '₹15,000/mo',
-                      actionLabel: 'Apply Now',
-                      tagColor: 'bg-orange-50 text-orange-700 border-orange-200',
-                    },
-                    {
-                      id: 'trend-2',
-                      category: 'Admissions',
-                      title: 'MCA Admissions 2026',
-                      company: 'Anna University, CEG',
-                      location: 'Chennai',
-                      stipend: 'Counselling Open',
-                      actionLabel: 'View Details',
-                      tagColor: 'bg-blue-50 text-blue-700 border-blue-200',
-                    },
-                    {
-                      id: 'trend-3',
-                      category: 'Events',
-                      title: 'Smart India Hackathon 2026',
-                      company: 'All India Inter-College',
-                      location: 'Hybrid',
-                      stipend: 'Prize: ₹1,00,000',
-                      actionLabel: 'Register',
-                      tagColor: 'bg-amber-50 text-amber-700 border-amber-200',
-                    },
-                    {
-                      id: 'trend-4',
-                      category: 'Projects',
-                      title: 'IoT Project Team Needed',
-                      company: 'Final Year CSE Project',
-                      location: 'Coimbatore',
-                      stipend: '2 Members Wanted',
-                      actionLabel: 'Join Team',
-                      tagColor: 'bg-purple-50 text-purple-700 border-purple-200',
-                    },
-                  ]
-                    .filter((item) => trendingTab === 'All' || item.category === trendingTab)
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-4 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs hover:shadow-xs transition-all space-y-2.5 flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.tagColor}`}>
-                              {item.category}
-                            </span>
-                            <span className="text-[11px] font-extrabold text-emerald-700">{item.stipend}</span>
-                          </div>
-                          <h4 className="font-extrabold text-xs text-slate-900 mt-2">{item.title}</h4>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{item.company} · {item.location}</p>
-                        </div>
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-medium">Verified by CampusLenz</span>
-                          <button
-                            onClick={() => {
-                              setActionFeedback(`✅ Opened application for ${item.title}`);
-                              setTimeout(() => setActionFeedback(null), 3000);
-                            }}
-                            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white text-[11px] font-bold transition shadow-2xs"
-                          >
-                            {item.actionLabel} →
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* 4. 👥 Campus Community Header */}
-              <div id="community-feed-section" className="ocean-glass-card p-4 space-y-3 touch-over-glass">
-                <div className="flex items-center justify-between flex-wrap gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-emerald-600" />
-                    <h3 className="text-sm font-black text-slate-900">Campus Community</h3>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {filteredPosts.length} posts
-                    </span>
-                  </div>
-                  
-                  {/* + Create Post Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsComposing(true);
-                      const el = document.getElementById('post-composer-box');
-                      el?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>+ Create Post</span>
-                  </button>
-                </div>
-
-                {/* Sub-Category Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-                  {['All Posts', 'Questions', 'Opportunities', 'Projects', 'Events', 'Achievements'].map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setCommunityCategory(cat)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                        communityCategory === cat
-                          ? 'bg-emerald-600 text-white shadow-2xs'
-                          : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 5. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
+              {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
-            <div id="post-composer-box" className="ocean-glass-card p-5 space-y-3.5 touch-over-glass">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
               {/* Role Context & Quota Banners */}
               {currentUser.role === 'alumni' && (() => {
                 const elig = checkAlumniPostEligibility(currentUser);
                 if (!elig.eligible) {
                   return (
-                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-300/40 text-amber-950 text-xs space-y-2 backdrop-blur-md">
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2">
                       <div className="flex items-center gap-2 font-bold">
                         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>Alumni Public Posting Restriction</span>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-amber-900">
+                      <p className="text-[11px] leading-relaxed text-amber-800">
                         {elig.message}
                       </p>
                       {elig.followerCount < elig.requiredFollowers && (
@@ -1080,13 +640,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             <span>Follower Eligibility Progress</span>
                             <span>{elig.followerCount} / {elig.requiredFollowers} Followers</span>
                           </div>
-                          <div className="w-full h-2 rounded-full bg-amber-200/60 overflow-hidden">
+                          <div className="w-full h-2 rounded-full bg-amber-200 overflow-hidden">
                             <div
                               className="h-full bg-amber-600 rounded-full transition-all duration-300"
                               style={{ width: `${Math.min(100, (elig.followerCount / elig.requiredFollowers) * 100)}%` }}
                             />
                           </div>
-                          <p className="text-[10px] text-amber-800 italic">
+                          <p className="text-[10px] text-amber-700 italic">
                             💡 Tip: Mentor students via Direct Messages in Connect Hub to gain followers!
                           </p>
                         </div>
@@ -1095,11 +655,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   );
                 }
                 return (
-                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-300/50 text-emerald-900 text-[11px] flex items-center justify-between flex-wrap gap-1 backdrop-blur-md">
-                    <span className="font-bold">
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center justify-between flex-wrap gap-1">
+                    <span className="font-semibold">
                       🎓 Alumni Quota: <strong>{elig.weeklyCount} / {elig.maxWeekly} posts</strong> used this week
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-white/80 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+                    <span className="text-[10px] text-emerald-700 bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
                       Anti-Ragebait Shield Active
                     </span>
                   </div>
@@ -1107,8 +667,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               })()}
 
               {currentUser.role === 'faculty' && (
-                <div className="p-2.5 rounded-2xl bg-sky-500/10 border border-sky-300/50 text-sky-950 text-[11px] flex items-center gap-2 backdrop-blur-md">
-                  <BookOpen className="w-4 h-4 text-[#0284C7] shrink-0" />
+                <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>
                     <strong>Academic Faculty Stream:</strong> Posts are tagged as academic curriculum, research publications, or laboratory resources.
                   </span>
@@ -1116,8 +676,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               )}
 
               {currentUser.role === 'institution' && (
-                <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-300/50 text-cyan-950 text-[11px] flex items-center gap-2 backdrop-blur-md">
-                  <Building2 className="w-4 h-4 text-[#0284C7] shrink-0" />
+                <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-[11px] flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-600 shrink-0" />
                   <span>
                     <strong>Official Institutional Channel:</strong> Broadcast verified circulars, recruitment drives, and collegiate milestones.
                   </span>
@@ -1126,7 +686,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
               <div className="flex items-start gap-3">
                 <Link href={`/user/${currentUser.username}`}>
-                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-sky-400 to-[#0284C7] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(2,132,199,0.3)]">
+                  <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0">
                     {currentUser.fullName[0] || 'U'}
                   </div>
                 </Link>
@@ -1135,7 +695,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   {!isComposing ? (
                     <button
                       onClick={() => setIsComposing(true)}
-                      className="w-full text-left rounded-2xl border border-white/90 bg-white/70 backdrop-blur-md px-4 py-3 text-xs text-slate-500 hover:bg-white/95 hover:text-[#0C2340] shadow-[inset_0_1px_2px_rgba(12,74,110,0.04)] transition-all"
+                      className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition"
                     >
                       {currentUser.role === 'faculty'
                         ? 'Publish academic research, curriculum notes, or lecture slides...'
@@ -1160,7 +720,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             ? 'Share mentorship advice, career insights, or industry interview tips...'
                             : "What's happening on campus? Share interview tips, symposium invites, or milestones..."
                         }
-                        className="ocean-glass-input w-full p-3.5 text-xs text-[#0C2340] resize-none"
+                        className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden resize-none"
                         autoFocus
                       />
 
@@ -1171,15 +731,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         const isSens = ai.isSensitive;
                         const category = ai.classification?.category || 'General';
                         return (
-                          <div className={`p-3 rounded-2xl text-[11px] font-bold flex items-center justify-between transition-all backdrop-blur-md ${
+                          <div className={`p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between transition-all ${
                             isSevere
-                              ? 'bg-rose-500/15 border border-rose-300 text-rose-900'
+                              ? 'bg-rose-50 border border-rose-200 text-rose-800'
                               : isSens
-                              ? 'bg-amber-500/15 border border-amber-300 text-amber-900'
-                              : 'bg-emerald-500/15 border border-emerald-300 text-emerald-900'
+                              ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
                           }`}>
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#0284C7]" />
+                              <Sparkles className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">
                                 {isSevere ? (
                                   <>🚨 <strong>Critical Toxicity ({ai.toxicity.score}%):</strong> Submission rejected by policy</>
@@ -1190,8 +750,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                                 )}
                               </span>
                             </div>
-                            <span className="text-[10px] text-sky-800/60 font-mono hidden sm:inline shrink-0 ml-2">
-                              campus-lenz-ai • ocean
+                            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline shrink-0 ml-2">
+                              campus-lenz-ai • toxic-bert
                             </span>
                           </div>
                         );
@@ -1199,23 +759,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       {/* Student Anonymous Toggle */}
                       {currentUser.role === 'student' && (
-                        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/60 border border-white/80 text-xs">
-                          <label className="flex items-center gap-2 cursor-pointer font-bold text-[#0C2340]">
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                          <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
                             <input
                               type="checkbox"
                               checked={isAnonymousPost}
                               onChange={e => setIsAnonymousPost(e.target.checked)}
-                              className="h-4 w-4 rounded text-[#0284C7] focus:ring-[#0284C7]"
+                              className="h-3.5 w-3.5 rounded text-blue-600 focus:ring-blue-500"
                             />
                             <span>Post Anonymously (Hide Name & Profile)</span>
                           </label>
-                          <span className="text-[10px] font-semibold text-slate-400">Protects student privacy</span>
+                          <span className="text-[10px] text-slate-400">Protects student privacy</span>
                         </div>
                       )}
 
                       {/* Hashtag suggestions */}
                       <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-                        <span className="text-slate-400 font-bold">Suggested:</span>
+                        <span className="text-slate-400 font-semibold">Suggested:</span>
                         {(currentUser.role === 'faculty'
                           ? ['#Research', '#AcademicSyllabus', '#LabProjects', '#GuestLecture', '#ExamGuide']
                           : currentUser.role === 'institution'
@@ -1226,7 +786,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             key={tag}
                             type="button"
                             onClick={() => setPostContent(prev => prev + ' ' + tag)}
-                            className="px-2.5 py-0.5 rounded-full bg-sky-100/60 text-[#0284C7] font-bold hover:bg-sky-200/70 border border-sky-200/40 transition"
+                            className="px-2 py-0.5 rounded-full bg-slate-100 text-blue-600 font-semibold hover:bg-blue-50 transition"
                           >
                             {tag}
                           </button>
@@ -1244,7 +804,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         />
 
                         {postImageUrl ? (
-                          <div className="relative rounded-2xl border border-white/80 bg-slate-900 overflow-hidden p-2 shadow-sm">
+                          <div className="relative rounded-2xl border border-slate-200 bg-slate-900 overflow-hidden p-2 shadow-xs">
                             {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? (
                               <video
                                 src={postImageUrl}
@@ -1280,13 +840,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             <button
                               type="button"
                               onClick={() => fileInputRef.current?.click()}
-                              className="ocean-glossy-pill-subtle inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-[#0284C7]"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs font-semibold text-slate-700 hover:text-blue-600 transition"
                             >
-                              <Paperclip className="w-3.5 h-3.5 text-[#0284C7]" />
+                              <Paperclip className="w-3.5 h-3.5 text-blue-600" />
                               <span>Attach Photo or Video</span>
                             </button>
 
-                            <div className="flex-1 flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-white/80 bg-white/70">
+                            <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white">
                               <ImageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               <input
                                 type="url"
@@ -1296,7 +856,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                                   setMediaFileType(isVideoMedia(e.target.value) ? 'video' : 'image');
                                 }}
                                 placeholder="or paste image/video URL..."
-                                className="w-full text-xs text-[#0C2340] focus:outline-hidden bg-transparent"
+                                className="w-full text-xs text-slate-800 focus:outline-hidden"
                               />
                             </div>
                           </div>
@@ -1308,7 +868,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         <select
                           value={postTopic}
                           onChange={e => setPostTopic(e.target.value)}
-                          className="text-xs font-bold text-slate-700 bg-white/80 border border-white/90 rounded-2xl px-3 py-2 shadow-2xs focus:outline-none"
+                          className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5"
                         >
                           {currentUser.role === 'faculty' ? (
                             <>
@@ -1345,14 +905,14 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               setPostImageUrl('');
                               setIsAnonymousPost(false);
                             }}
-                            className="ocean-glossy-pill-subtle px-3.5 py-1.5 text-xs font-bold"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
                             disabled={!postContent.trim() || (currentUser.role === 'alumni' && !checkAlumniPostEligibility(currentUser).eligible)}
-                            className="ocean-glossy-button px-5 py-2 text-xs font-bold disabled:opacity-50"
+                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition"
                           >
                             Publish Post
                           </button>
@@ -1364,12 +924,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               </div>
 
               {!isComposing && (
-                <div className="flex items-center justify-around pt-2.5 border-t border-sky-100/70 text-xs text-slate-600">
+                <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-xs text-slate-600">
                   <button
                     onClick={() => setIsComposing(true)}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-white/80 hover:text-[#0284C7] transition-all font-bold"
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition font-medium"
                   >
-                    <ImageIcon className="w-4 h-4 text-[#0284C7]" />
+                    <ImageIcon className="w-4 h-4 text-blue-500" />
                     <span>Media</span>
                   </button>
                   <button
@@ -1377,7 +937,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       setIsComposing(true);
                       setPostTopic('Hackathons & Projects');
                     }}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-white/80 hover:text-amber-600 transition-all font-bold"
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-amber-600 transition font-medium"
                   >
                     <Calendar className="w-4 h-4 text-amber-500" />
                     <span>Event</span>
@@ -1387,7 +947,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       setIsComposing(true);
                       setPostTopic('Campus Placements');
                     }}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-white/80 hover:text-emerald-600 transition-all font-bold"
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-emerald-600 transition font-medium"
                   >
                     <FileText className="w-4 h-4 text-emerald-500" />
                     <span>Placement</span>
@@ -1420,46 +980,46 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           )}
 
           {/* 3. Feed Filter & AI Safety Controls Bar */}
-          <div className="ocean-glass-card p-4 space-y-3 touch-over-glass">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-2.5">
             {/* Row 1: Role tabs + AI Content Shield Switch */}
-            <div className="flex items-center justify-between flex-wrap gap-2.5">
-              <div className="flex items-center gap-1.5 bg-sky-100/40 p-1.5 rounded-2xl text-xs font-bold border border-white/70">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl text-xs font-semibold">
                 <button
                   onClick={() => setFeedFilter('all')}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
+                  className={`px-3 py-1 rounded-lg transition-all ${
                     feedFilter === 'all'
-                      ? 'bg-white/95 text-[#0284C7] shadow-[0_2px_8px_rgba(2,132,199,0.2)] font-black'
-                      : 'text-slate-600 hover:text-[#0C2340]'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   All Posts ({posts.length})
                 </button>
                 <button
                   onClick={() => setFeedFilter('students')}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
+                  className={`px-3 py-1 rounded-lg transition-all ${
                     feedFilter === 'students'
-                      ? 'bg-white/95 text-[#0284C7] shadow-[0_2px_8px_rgba(2,132,199,0.2)] font-black'
-                      : 'text-slate-600 hover:text-[#0C2340]'
+                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Students ({posts.filter(p => p.authorRole === 'student').length})
                 </button>
                 <button
                   onClick={() => setFeedFilter('alumni')}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
+                  className={`px-3 py-1 rounded-lg transition-all ${
                     feedFilter === 'alumni'
-                      ? 'bg-white/95 text-emerald-600 shadow-[0_2px_8px_rgba(5,150,105,0.2)] font-black'
-                      : 'text-slate-600 hover:text-[#0C2340]'
+                      ? 'bg-white text-emerald-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Alumni ({posts.filter(p => p.authorRole === 'alumni').length})
                 </button>
                 <button
                   onClick={() => setFeedFilter('institution')}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all duration-200 ${
+                  className={`px-3 py-1 rounded-lg transition-all ${
                     feedFilter === 'institution'
-                      ? 'bg-white/95 text-cyan-700 shadow-[0_2px_8px_rgba(14,116,144,0.2)] font-black'
-                      : 'text-slate-600 hover:text-[#0C2340]'
+                      ? 'bg-white text-purple-600 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Circulars
@@ -1471,10 +1031,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 type="button"
                 onClick={toggleSensitiveContentShield}
                 title={sensitiveContentShieldActive ? 'AI Sensitive Content Shield is Active' : 'AI Shield is Paused'}
-                className={`ocean-glossy-pill-subtle inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold transition-all shadow-2xs ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs ${
                   sensitiveContentShieldActive
-                    ? 'bg-emerald-500/15 text-emerald-900 border-emerald-300 hover:bg-emerald-500/25'
-                    : 'bg-white/60 text-slate-600 border-white/80 hover:bg-white/80'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
                 }`}
               >
                 <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-emerald-600' : 'text-slate-400'}`} />
@@ -1483,60 +1043,60 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             </div>
 
             {/* Row 2: Sentiment & AI Classification Filter Pills */}
-            <div className="flex items-center justify-between border-t border-sky-100/70 pt-2.5 flex-wrap gap-2 text-xs">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-black text-sky-800/70 mr-1 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#0284C7]" /> AI Filter:
+            <div className="flex items-center justify-between border-t border-slate-100 pt-2 flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" /> AI Filter:
                 </span>
                 <button
                   onClick={() => setFeedSentimentFilter('all')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition ${
                     feedSentimentFilter === 'all'
-                      ? 'ocean-glossy-button text-white'
-                      : 'ocean-glossy-pill-subtle text-slate-600'
+                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   All Sentiments
                 </button>
                 <button
                   onClick={() => setFeedSentimentFilter('positive')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'positive'
-                      ? 'bg-emerald-600 text-white shadow-[0_2px_8px_rgba(5,150,105,0.3)]'
-                      : 'ocean-glossy-pill-subtle text-slate-600'
+                      ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <span>🌟 Positive</span>
-                  <span className="text-[10px] opacity-80">
+                  <span>🌟 Positive & Inspiring</span>
+                  <span className="text-[10px] opacity-75">
                     ({posts.filter(p => p.sentiment === 'positive').length})
                   </span>
                 </button>
                 <button
                   onClick={() => setFeedSentimentFilter('academic')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'academic'
-                      ? 'bg-[#0284C7] text-white shadow-[0_2px_8px_rgba(2,132,199,0.3)]'
-                      : 'ocean-glossy-pill-subtle text-slate-600'
+                      ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <span>📘 Academic</span>
+                  <span>📘 Academic Guidance</span>
                 </button>
                 <button
                   onClick={() => setFeedSentimentFilter('sensitive')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
                     feedSentimentFilter === 'sensitive'
-                      ? 'bg-amber-600 text-white shadow-[0_2px_8px_rgba(217,119,6,0.3)]'
-                      : 'ocean-glossy-pill-subtle text-slate-600'
+                      ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <span>⚠️ Sensitive</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 font-bold">
+                  <span>⚠️ Sensitive / Flagged</span>
+                  <span className="text-[10px] px-1 rounded-full bg-amber-100 text-amber-800 font-bold">
                     {posts.filter(p => p.isSensitive).length}
                   </span>
                 </button>
               </div>
 
-              <span className="text-[11px] text-sky-900/60 font-semibold">
+              <span className="text-[11px] text-slate-400 font-medium">
                 {filteredPosts.length} posts matching AI filters
               </span>
             </div>
@@ -1559,7 +1119,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     key={post.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="ocean-glass-card overflow-hidden touch-over-glass"
+                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-slate-300/80 transition-colors"
                   >
                     {/* Top Micro-Banner for Institution Repost */}
                     {post.repostedByInstitution && (
@@ -1598,28 +1158,28 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <Link href={post.isAnonymous ? '#' : `/user/${post.authorUsername}`}>
-                            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-sky-200 to-white border border-white/90 shadow-[0_4px_12px_rgba(2,132,199,0.18),inset_0_1px_1px_#ffffff] flex items-center justify-center text-sm font-black text-[#0284C7] shrink-0 hover:scale-105 transition-transform">
+                            <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 shrink-0 hover:border-blue-500 transition-colors">
                               {post.isAnonymous ? '?' : post.authorName[0]}
                             </div>
                           </Link>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {post.isAnonymous ? (
-                                <span className="text-sm font-extrabold text-[#0C2340]">Anonymous Student</span>
+                                <span className="text-sm font-bold text-slate-900">Anonymous Student</span>
                               ) : (
                                 <Link
                                   href={`/user/${post.authorUsername}`}
-                                  className="text-sm font-extrabold text-[#0C2340] hover:text-[#0284C7] transition-colors truncate"
+                                  className="text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors truncate"
                                 >
                                   {post.authorName}
                                 </Link>
                               )}
 
                               {post.isVerifiedAuthor && !post.isAnonymous && (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-[#0284C7] flex-shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
                               )}
 
-                              <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.2 rounded-full bg-sky-100/70 text-[#0284C7] border border-sky-200/60 shadow-2xs">
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
                                 {post.authorRole}
                               </span>
                             </div>
@@ -1682,31 +1242,31 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         </div>
                       </div>
 
-                      {/* Post Content (Protected by 70% Blur Frosted Sensitive Shield if flagged) */}
+                      {/* Post Content (Protected by Apple-style Frosted Sensitive Blur Shield if flagged) */}
                       {isShielded ? (
-                        <div className="relative mt-3.5 rounded-3xl border border-amber-300/40 bg-amber-500/10 overflow-hidden min-h-[160px] flex items-center justify-center">
+                        <div className="relative mt-3 rounded-2xl border border-amber-200 bg-amber-50/20 overflow-hidden">
                           {/* Frosted/Blurred Background Preview */}
-                          <div className="filter blur-xl select-none pointer-events-none opacity-30 p-5">
-                            <p className="text-[13.5px] leading-relaxed text-[#0C2340] line-clamp-3">
+                          <div className="filter blur-md select-none pointer-events-none opacity-40 p-4">
+                            <p className="text-[13.5px] leading-relaxed text-slate-800 line-clamp-3">
                               {post.content}
                             </p>
                             {post.imageUrl && (
-                              <div className="mt-2 h-28 bg-slate-200/50 rounded-2xl" />
+                              <div className="mt-2 h-28 bg-slate-200 rounded-xl" />
                             )}
                           </div>
 
                           {/* Centered Sensitive Content Warning Shield */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-white/70 backdrop-blur-2xl space-y-2.5">
-                            <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 shadow-xs">
-                              <AlertTriangle className="w-5 h-5 text-amber-600" />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center bg-white/75 backdrop-blur-xs space-y-2">
+                            <div className="p-2 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 shadow-xs">
+                              <AlertTriangle className="w-5 h-5" />
                             </div>
-                            <div className="space-y-1 max-w-sm">
-                              <h4 className="text-xs font-black text-[#0C2340] tracking-tight">
+                            <div className="space-y-0.5 max-w-sm">
+                              <h4 className="text-xs font-bold text-slate-900 tracking-tight">
                                 Sensitive Content Shield Activated
                               </h4>
                               <p className="text-[11px] text-slate-600 leading-snug">
                                 Flagged by open-source AI ({post.aiModelMetadata || 'unitary/toxic-bert'}):{' '}
-                                <span className="font-bold text-amber-900">
+                                <span className="font-semibold text-amber-900">
                                   {post.sensitiveReason || 'Hostile or controversial discourse'}
                                 </span>{' '}
                                 (Toxicity: {post.toxicityScore ?? 54}%)
@@ -1715,9 +1275,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             <button
                               type="button"
                               onClick={() => handleRevealSensitivePost(post.id)}
-                              className="ocean-glossy-button px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
                             >
-                              <Eye className="w-3.5 h-3.5 text-sky-200" />
+                              <Eye className="w-3.5 h-3.5 text-amber-300" />
                               <span>Show Content Anyway</span>
                             </button>
                           </div>
@@ -1725,34 +1285,34 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       ) : (
                         <>
                           {/* Post Body Content */}
-                          <p className="mt-3.5 text-[13.5px] leading-relaxed text-[#0C2340] whitespace-pre-line font-normal">
+                          <p className="mt-3 text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
                             {post.content}
                           </p>
 
                           {/* Media Attachment (Image with Zoom or Video with Player) */}
                           {post.imageUrl && (
                             isVideoMedia(post.imageUrl) ? (
-                              <div className="mt-3.5 rounded-3xl overflow-hidden border border-white/80 bg-black shadow-sm">
+                              <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
                                 <video
                                   src={post.imageUrl}
                                   controls
-                                  className="w-full max-h-[480px] rounded-3xl bg-black"
+                                  className="w-full max-h-[480px] rounded-2xl bg-black"
                                   preload="metadata"
                                 />
                               </div>
                             ) : (
                               <div
                                 onClick={() => setZoomedPost(post)}
-                                className="mt-3.5 rounded-3xl overflow-hidden border border-white/90 bg-sky-50/50 relative group cursor-zoom-in shadow-xs"
+                                className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
                               >
                                 <img
                                   src={post.imageUrl}
                                   alt="Post visual attachment"
                                   loading="lazy"
-                                  className="w-full max-h-[460px] object-cover rounded-3xl transition-transform duration-300 group-hover:scale-[1.01]"
+                                  className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
                                 />
-                                <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-md">
-                                  <ZoomIn className="w-3.5 h-3.5 text-sky-300" />
+                                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                                  <ZoomIn className="w-3.5 h-3.5" />
                                   <span>Zoom Full</span>
                                 </div>
                               </div>
@@ -1762,27 +1322,27 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       )}
 
                       {/* Topic Tag & AI Provenance Badge */}
-                      <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
+                      <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
                         {post.topic && (
-                          <span className="text-[11px] font-bold text-[#0284C7] bg-sky-100/60 px-2.5 py-0.5 rounded-full border border-sky-200/50 shadow-2xs">
+                          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
                             #{post.topic.replace(/\s+/g, '')}
                           </span>
                         )}
 
                         {/* Open-Source AI Telemetry Badge */}
                         <div className="flex items-center gap-1.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 border shadow-2xs backdrop-blur-md ${
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${
                             post.sentiment === 'positive'
-                              ? 'bg-emerald-500/15 text-emerald-900 border-emerald-300'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : post.isSensitive || post.sentiment === 'ragebait'
-                              ? 'bg-amber-500/15 text-amber-900 border-amber-300'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
                               : post.sentiment === 'toxic'
-                              ? 'bg-rose-500/15 text-rose-900 border-rose-300'
-                              : 'bg-white/70 text-slate-600 border-white/80'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
                           }`}
                           title={`AI Model: ${post.aiModelMetadata || 'toxic-bert + distilbert'} | Toxicity: ${post.toxicityScore ?? 4}%`}
                           >
-                            <Sparkles className="w-2.5 h-2.5 text-[#0284C7]" />
+                            <Sparkles className="w-2.5 h-2.5" />
                             <span>{post.sentiment || 'clean'}</span>
                             <span>•</span>
                             <span>{post.toxicityScore ?? 4}% tox</span>
@@ -1792,14 +1352,14 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Reactions & Engagement Summary Bar */}
-                    <div className="px-5 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-sky-100/70">
+                    <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
                       <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-full bg-[#0284C7] text-white text-[9px] flex items-center justify-center shadow-xs">
+                        <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center">
                           👍
                         </span>
-                        <span className="font-bold text-[#0C2340]">{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
+                        <span>{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
                         {post.sharesCount > 0 && (
-                          <span className="text-[#0284C7] font-bold">• {post.sharesCount} reposts</span>
+                          <span className="text-purple-600 font-semibold">• {post.sharesCount} reposts</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
@@ -1808,19 +1368,19 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         </span>
                         <button
                           onClick={() => handleToggleComments(post.id)}
-                          className="hover:text-[#0284C7] transition-colors font-bold text-slate-600"
+                          className="hover:text-slate-900 transition-colors font-medium"
                         >
                           {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
                         </button>
                       </div>
                     </div>
 
-                    {/* Action Bar (Glossy Frosted Button Suite) */}
-                    <div className="grid grid-cols-5 border-t border-sky-100/70 text-xs font-bold text-slate-600 bg-white/40">
+                    {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
+                    <div className="grid grid-cols-5 border-t border-slate-100 text-xs font-semibold text-slate-600">
                       <button
                         onClick={() => toggleLikePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/80 hover:text-[#0284C7] transition-colors ${
-                          isLiked ? 'text-[#0284C7] font-black' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isLiked ? 'text-blue-600 font-bold' : ''
                         }`}
                       >
                         <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
@@ -1829,8 +1389,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleToggleComments(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/80 hover:text-[#0284C7] transition-colors ${
-                          isCommentsOpen ? 'text-[#0284C7] font-black' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isCommentsOpen ? 'text-blue-600 font-bold' : ''
                         }`}
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
@@ -1839,9 +1399,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleRepost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-sky-50 hover:text-[#0284C7] transition-colors ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
                           post.repostedByInstitution || post.repostedByFaculty || post.repostedByStudent
-                            ? 'text-[#0284C7] font-black'
+                            ? 'text-purple-600 font-bold'
                             : ''
                         }`}
                         title={
@@ -1866,8 +1426,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => toggleSavePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/80 hover:text-amber-600 transition-colors ${
-                          isSaved ? 'text-amber-600 font-black' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
+                          isSaved ? 'text-amber-600 font-bold' : ''
                         }`}
                       >
                         <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
@@ -1876,7 +1436,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleSharePost(post.id)}
-                        className="flex items-center justify-center gap-1.5 py-3 hover:bg-white/80 hover:text-[#0C2340] transition-colors"
+                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Share</span>
@@ -2067,296 +1627,110 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </main>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN (Cols 10-12): Events, Recommended, Resources */}
+        {/* RIGHT COLUMN (Cols 10-12): Circles & Peer Suggestions */}
         {/* ========================================================= */}
-        <aside className="hidden xl:block xl:col-span-3 space-y-5 sticky top-20">
+        <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
           
-          {/* 1. 📅 Upcoming Events */}
-          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-black text-slate-900">Upcoming Events</h3>
+          {/* Quick Search Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Campus Search
+            </h3>
+            <p className="text-xs text-slate-500">
+              Find classmates, seniors, professors, or colleges across Tamil Nadu.
+            </p>
+            <Link
+              href="/search"
+              className="mt-2 w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between transition-colors"
+            >
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Search className="w-3.5 h-3.5 text-blue-600" />
+                <span>Search alumni, students...</span>
               </div>
-              <Link href="/events" className="text-[11px] font-bold text-emerald-600 hover:underline">
-                View All →
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
+          </div>
+
+          {/* Active Campus Circles */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Campus Channels
+              </h3>
+              <Link href="/servers" className="text-xs text-blue-600 font-semibold hover:underline">
+                View All
               </Link>
             </div>
-
-            <div className="space-y-2.5">
-              {[
-                { dateMonth: 'SEP', dateDay: '12', title: 'TN Engineering Cutoff Webinar', detail: 'Online · 6:00 PM', tag: 'Webinar' },
-                { dateMonth: 'SEP', dateDay: '18', title: 'HackMIT Inter-College Hackathon', detail: 'MIT Chennai · 24h', tag: 'Hackathon' },
-                { dateMonth: 'SEP', dateDay: '25', title: 'TCS National Qualifier Test 2026', detail: 'Online Assessment Exam', tag: 'Placement' },
-                { dateMonth: 'OCT', dateDay: '03', title: "PSG Tech Cultural Fest 'Vibrance'", detail: 'PSG Tech, Coimbatore', tag: 'Cultural' },
-              ].map((ev, idx) => (
-                <div key={idx} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center gap-3">
-                  {/* Date badge */}
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex flex-col items-center justify-center shrink-0 shadow-2xs">
-                    <span className="text-[9px] font-extrabold uppercase leading-none">{ev.dateMonth}</span>
-                    <span className="text-sm font-black leading-none mt-0.5">{ev.dateDay}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900 truncate">{ev.title}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5 truncate">{ev.detail}</p>
-                    <span className="inline-block mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {ev.tag}
-                    </span>
+            
+            <div className="space-y-2">
+              {communities.slice(0, 3).map((comm) => (
+                <div key={comm.id} className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/80 text-xs">
+                  <div className="font-bold text-slate-800 line-clamp-1">{comm.name}</div>
+                  <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{comm.description}</div>
+                  <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                    <span>{comm.membersCount} members</span>
+                    <Link href="/servers" className="text-blue-600 font-semibold hover:underline">
+                      Join →
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 2. 👥 Recommended for You */}
-          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-black text-slate-900">Recommended for You</h3>
-              </div>
-            </div>
-
-            {/* Category tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-              {['Colleges', 'Students', 'Internships', 'Communities'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setRecommendedTab(tab)}
-                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all shrink-0 ${
-                    recommendedTab === tab
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Recommended List */}
+          {/* Suggested Peers */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Peers to Connect
+            </h3>
             <div className="space-y-2.5">
-              {[
-                { id: 'rec-1', name: 'PSG College of Technology', location: 'Coimbatore · Top Engineering', iconLetter: 'P' },
-                { id: 'rec-2', name: 'Christ University', location: 'Bengaluru · Multi-Disciplinary', iconLetter: 'C' },
-                { id: 'rec-3', name: 'Amrita Vishwa Vidyapeetham', location: 'Coimbatore · Top Ranked', iconLetter: 'A' },
-                { id: 'rec-4', name: 'Anna University (CEG)', location: 'Chennai · Premier State Univ', iconLetter: 'A' },
-              ].map((item) => {
-                const isFollowed = followedRecIds.includes(item.id);
-                return (
-                  <div key={item.id} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-100 to-sky-100 border border-white/90 shadow-2xs flex items-center justify-center font-black text-emerald-700 text-xs shrink-0">
-                        {item.iconLetter}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">{item.name}</p>
-                        <p className="text-[10px] text-slate-500 truncate">{item.location}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => toggleFollowRec(item.id)}
-                      className={`px-3 py-1 rounded-xl text-[11px] font-bold transition shrink-0 ${
-                        isFollowed
-                          ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                      }`}
-                    >
-                      {isFollowed ? 'Following' : '+ Follow'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3. 📘 Study Resources */}
-          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-black text-slate-900">Study Resources</h3>
-              </div>
-              <Link href="/resources" className="text-[11px] font-bold text-emerald-600 hover:underline">
-                View Library →
-              </Link>
-            </div>
-
-            {/* Category tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
-              {['Notes', 'PYQs', 'Syllabus', 'Books', 'Videos'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setResourcesTab(tab)}
-                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all shrink-0 ${
-                    resourcesTab === tab
-                      ? 'bg-emerald-600 text-white shadow-2xs'
-                      : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Downloadable PDF Items */}
-            <div className="space-y-2.5">
-              {[
-                { title: 'Data Structures & Algorithms - Complete Notes', meta: 'PDF (4.2 MB) · Anna Univ R2021' },
-                { title: 'Digital Signal Processing - Solved PYQs (2019-2025)', meta: 'PDF (6.8 MB) · Dept of ECE' },
-                { title: 'Database Management Systems - Revision Cheatsheet', meta: 'PDF (2.1 MB) · CS / IT' },
-              ].map((res, idx) => (
-                <div key={idx} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center justify-between gap-2.5">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 line-clamp-1">{res.title}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">{res.meta}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setActionFeedback(`📥 Downloading ${res.title}...`);
-                      setTimeout(() => setActionFeedback(null), 3000);
-                    }}
-                    className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 transition shrink-0"
-                    title="Download Resource"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
+              {allUsers.filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni')).length === 0 ? (
+                <div className="text-center py-4 px-2 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-xs font-semibold text-slate-700">No other users registered yet</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Invite batchmates or register a test account.</p>
+                  {!currentUser && (
+                    <Link href="/register" className="inline-block mt-2 text-xs font-bold text-blue-600 hover:underline">
+                      Register Now →
+                    </Link>
+                  )}
                 </div>
-              ))}
+              ) : (
+                allUsers
+                  .filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni'))
+                  .slice(0, 3)
+                  .map(peer => {
+                    const isFollowing = currentUser ? currentUser.following.includes(peer.id) : false;
+                    return (
+                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs">
+                        <Link href={`/user/${peer.username}`} className="flex items-center gap-2 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 shrink-0">
+                            {peer.fullName[0] || 'U'}
+                          </div>
+                          <div className="truncate">
+                            <p className="font-bold text-slate-900 truncate hover:text-blue-600">{peer.fullName}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{peer.course || peer.role}</p>
+                          </div>
+                        </Link>
+                        <button
+                          onClick={() => toggleFollowUser(peer.id)}
+                          className={`text-[10px] font-bold px-2 py-1 rounded-md transition-colors shrink-0 ${
+                            isFollowing
+                              ? 'bg-slate-100 text-slate-600'
+                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                          }`}
+                        >
+                          {isFollowing ? 'Following' : '+ Follow'}
+                        </button>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
 
         </aside>
 
       </div>
-
-      {/* APPLE-INSPIRED CAMPUS AI SCANNER MODAL / DRAWER (Matching Right Mockup) */}
-      <AnimatePresence>
-        {isScanDrawerOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg rounded-[32px] bg-white/75 backdrop-blur-3xl border border-white/90 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.95)] p-6 space-y-5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
-                    <Scan className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">Campus AI Scanner</h3>
-                    <p className="text-xs text-slate-500">Scan notes, code, or profile to get instant AI insights</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsScanDrawerOpen(false);
-                    setScanAnalysisResult(null);
-                  }}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* 4 Frosted Scan Tool Rows (Matching Right Mockup in media_1790577152316.png) */}
-              <div className="space-y-2.5">
-                {[
-                  {
-                    id: 'notes',
-                    icon: BookOpen,
-                    color: 'text-purple-600 bg-purple-100',
-                    title: 'Scan & Summarize Notes',
-                    desc: 'Analyze lecture PDFs, handouts & generate flashcards',
-                  },
-                  {
-                    id: 'shield',
-                    icon: ShieldCheck,
-                    color: 'text-emerald-600 bg-emerald-100',
-                    title: 'AI Safety & Toxicity Shield',
-                    desc: 'Scan posts & drafts with real-time sentiment analytics',
-                  },
-                  {
-                    id: 'internship',
-                    icon: Briefcase,
-                    color: 'text-orange-600 bg-orange-100',
-                    title: 'Career & Internship Radar',
-                    desc: 'Scan your skills against 1,200+ active company roles',
-                  },
-                  {
-                    id: 'cutoff',
-                    icon: GraduationCap,
-                    color: 'text-blue-600 bg-blue-100',
-                    title: 'TNEA Cutoff & Eligibility Scanner',
-                    desc: 'Calculate aggregate cutoff & top engineering rank',
-                  },
-                ].map((tool) => {
-                  const Icon = tool.icon;
-                  const isSelected = activeScanTool === tool.id;
-                  return (
-                    <button
-                      key={tool.id}
-                      type="button"
-                      onClick={() => handleRunScanTool(tool.id)}
-                      className={`w-full p-3.5 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'bg-white/95 border-emerald-500/80 shadow-md ring-2 ring-emerald-500/20'
-                          : 'bg-white/70 hover:bg-white/90 border-white/80 shadow-2xs'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tool.color}`}>
-                          <Icon className="w-4.5 h-4.5" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">{tool.title}</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{tool.desc}</p>
-                        </div>
-                      </div>
-                      <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Live Scanner Output Result */}
-              {scanAnalysisResult && (
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-300/60 backdrop-blur-md space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs font-bold text-emerald-900">AI Diagnostic Report</span>
-                  </div>
-                  <p className="text-xs text-emerald-950 leading-relaxed font-medium">
-                    {scanAnalysisResult}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsScanDrawerOpen(false);
-                    setScanAnalysisResult(null);
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900"
-                >
-                  Done
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRunScanTool(activeScanTool)}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition"
-                >
-                  Run Deep AI Scan →
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* PINTEREST-STYLE ZOOM LIGHTBOX MODAL */}
       <PinterestImageModal

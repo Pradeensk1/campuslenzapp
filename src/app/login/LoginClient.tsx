@@ -226,28 +226,28 @@ function LoginFormContent() {
                   onClick={() => handlePortalSwitch(portal.id)}
                   className={`p-3.5 rounded-2xl border text-left transition-all relative ${
                     isSelected
-                      ? 'ocean-glass-card border-2 border-sky-400 bg-sky-500/15 shadow-md text-sky-950 scale-[1.02]'
-                      : 'bg-white/70 backdrop-blur-md border border-white/80 hover:border-sky-300 hover:bg-white/90 text-sky-900'
+                      ? `${portal.cardColor} border-2 shadow-sm`
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                         isSelected
-                          ? 'bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-xs'
-                          : 'bg-sky-100/80 text-sky-700'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-700'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     {isSelected && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-white shadow-xs">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </span>
                     )}
                   </div>
-                  <h3 className="font-bold text-xs sm:text-sm text-sky-950">{portal.label}</h3>
-                  <p className="text-[10px] text-sky-800/70 line-clamp-1 mt-0.5 font-medium">
+                  <h3 className="font-bold text-xs sm:text-sm">{portal.label}</h3>
+                  <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
                     {portal.subLabel}
                   </p>
                 </button>
@@ -257,36 +257,36 @@ function LoginFormContent() {
         </div>
 
         {/* Main Dedicated Portal Sign In Card */}
-        <div className="ocean-glass-card touch-over-glass border border-white/80 rounded-[32px] shadow-xl p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-sky-100/80">
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
                 <ActiveIcon className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-sky-950">{activePortal.portalName}</h2>
+                  <h2 className="text-lg font-bold text-slate-900">{activePortal.portalName}</h2>
                   <span
-                    className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-sky-200 bg-sky-100/80 text-sky-800"
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${activePortal.badgeColor}`}
                   >
                     {activePortal.badge}
                   </span>
                 </div>
-                <p className="text-xs text-sky-800/70 mt-0.5 font-medium">{activePortal.tagline}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{activePortal.tagline}</p>
               </div>
             </div>
           </div>
 
           {/* Error & Success Feedback */}
           {errorMessage && (
-            <div className="p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <span>{successMessage}</span>
             </div>
@@ -295,42 +295,42 @@ function LoginFormContent() {
           {/* Form */}
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-sky-950 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 {activePortal.identifierLabel} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-sky-500" />
+                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   required
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
                   placeholder={activePortal.identifierPlaceholder}
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl ocean-glass-input text-sm text-sky-950 font-medium placeholder-sky-800/40 focus:outline-none"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 ${activePortal.accentBorder}`}
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-sky-950">
+                <label className="block text-xs font-bold text-slate-700">
                   Password <span className="text-rose-500">*</span>
                 </label>
               </div>
               <div className="relative">
-                <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-sky-500" />
+                <KeyRound className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter your account password..."
-                  className="w-full pl-10 pr-10 py-3 rounded-2xl ocean-glass-input text-sm text-sky-950 font-medium placeholder-sky-800/40 focus:outline-none"
+                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl border bg-white text-sm text-slate-900 focus:outline-none focus:ring-2 ${activePortal.accentBorder}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-sky-600 hover:text-sky-800"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -338,25 +338,25 @@ function LoginFormContent() {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-sky-800/80 font-medium">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  className="rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>Remember this portal session</span>
               </label>
 
-              <div className="text-xs text-sky-700/70 font-medium">
-                Directs to: <strong className="text-sky-950">{activePortal.targetPageName}</strong>
+              <div className="text-xs text-slate-400">
+                Directs to: <strong className="text-slate-700">{activePortal.targetPageName}</strong>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="ocean-glossy-button w-full py-3.5 px-4 font-bold text-sm text-white rounded-2xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${activePortal.btnColor} disabled:opacity-60`}
             >
               <span>{isSubmitting ? 'Authenticating...' : `Sign In to ${activePortal.portalName}`}</span>
               <ArrowRight className="w-4 h-4" />

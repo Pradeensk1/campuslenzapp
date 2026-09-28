@@ -263,17 +263,17 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
       {/* =============================================================== */}
       {/* UNIFIED HEADER & PILL TAB SWITCHER                              */}
       {/* =============================================================== */}
-      <div className="ocean-glass-card touch-over-glass p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/80 rounded-[28px] shadow-lg">
+      <div className="apple-card p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-[#E2E8F0] shadow-xs">
         <div>
-          <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-md shadow-sky-500/20">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-blue-600 text-white shadow-xs">
               <Compass className="w-5 h-5" />
             </span>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-sky-950">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                 Explore & Compare Hub
               </h1>
-              <p className="text-xs text-sky-800/80 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Curated campus insights, trending peer discussions, and granular multi-college comparison benchmarks.
               </p>
             </div>
@@ -281,33 +281,33 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
         </div>
 
         {/* 2-Pill Tab Switcher */}
-        <div className="flex items-center bg-white/60 p-1.5 rounded-full border border-white/90 text-xs font-bold w-full md:w-auto shadow-inner">
+        <div className="flex items-center bg-[#F1F5F9] p-1 rounded-2xl border border-[#E2E8F0] text-xs font-bold w-full md:w-auto">
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 ${
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'explore'
-                ? 'ocean-glossy-button text-white shadow-md'
-                : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/50'
+                ? 'bg-white text-blue-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Compass className="w-4 h-4 text-sky-400" />
+            <Compass className="w-4 h-4 text-blue-600" />
             <span>Explore & Pulse</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-200/60 text-sky-900 font-bold">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800">
               {colleges.length} Colleges
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('compare')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 ${
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'compare'
-                ? 'ocean-glossy-button text-white shadow-md'
-                : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/50'
+                ? 'bg-white text-purple-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Scale className="w-4 h-4 text-cyan-300" />
+            <Scale className="w-4 h-4 text-purple-600" />
             <span>Compare Matrix</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-200/60 text-cyan-950 font-bold">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
               {activeColleges.length} Active
             </span>
           </button>
@@ -320,37 +320,36 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
       {activeTab === 'explore' && (
         <div className="space-y-10">
           {/* 1. Apple-Inspired Editorial Hero */}
-          <section className="ocean-glass-card overflow-hidden border border-white/80 rounded-[32px] shadow-xl">
-            <div className="bg-gradient-to-r from-[#0284C7] via-[#0369A1] to-[#0C2340] p-6 sm:p-10 text-white relative">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
-              <div className="max-w-2xl space-y-3 relative z-10">
-                <div className="inline-flex items-center space-x-2 rounded-full bg-white/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md border border-white/30 shadow-xs">
-                  <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
-                  <span className="text-white">Campus Lenz Curation</span>
+          <section className="apple-card overflow-hidden border-[#E2E8F0] shadow-xs">
+            <div className="bg-gradient-to-r from-[#2563EB] via-[#1D4ED8] to-[#0F172A] p-6 sm:p-10 text-white">
+              <div className="max-w-2xl space-y-3">
+                <div className="inline-flex items-center space-x-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+                  <Sparkles className="h-3.5 w-3.5 text-[#38E6A5]" />
+                  <span>Campus Lenz Curation</span>
                 </div>
                 <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
                   Explore the Pulse of Every Campus
                 </h2>
-                <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed font-medium">
+                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
                   Curated evidence, top-rated institutions, breakout student achievements, and the most active campus debates in one organized hub.
                 </p>
               </div>
 
               {/* Search Bar inside Hero */}
-              <div className="mt-6 max-w-xl relative z-10">
-                <Search className="absolute left-4 top-3.5 h-4 w-4 text-sky-400" />
+              <div className="mt-6 max-w-xl relative">
+                <Search className="absolute left-4 top-3.5 h-4 w-4 text-[#94A3B8]" />
                 <input
                   type="text"
                   value={exploreSearch}
                   onChange={(e) => setExploreSearch(e.target.value)}
                   placeholder="Search colleges (PSG, CEG), courses (MCA), or student discussions..."
-                  className="w-full rounded-2xl border border-white/80 bg-white/90 backdrop-blur-xl py-3 pl-11 pr-4 text-xs sm:text-sm text-sky-950 placeholder-sky-800/40 shadow-xl focus:outline-none focus:ring-2 focus:ring-sky-400 font-medium"
+                  className="w-full rounded-2xl border-0 bg-white py-3 pl-11 pr-4 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] shadow-lg focus:outline-none focus:ring-2 focus:ring-[#38E6A5]"
                 />
               </div>
             </div>
 
             {/* Apple Segmented Category Navigation */}
-            <div className="flex overflow-x-auto border-t border-sky-100/80 bg-white/50 backdrop-blur-md p-2 text-xs gap-1">
+            <div className="flex overflow-x-auto border-t border-[#E2E8F0] bg-[#F8FAFC] p-2 text-xs">
               {[
                 { id: 'all', label: 'All Curations', icon: Compass },
                 { id: 'colleges', label: 'Top Colleges', icon: Building2 },
@@ -363,10 +362,10 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
                   <button
                     key={tab.id}
                     onClick={() => setSelectedSection(tab.id as any)}
-                    className={`flex items-center space-x-1.5 whitespace-nowrap rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
+                    className={`flex items-center space-x-1.5 whitespace-nowrap rounded-xl px-4 py-2 font-bold transition-all ${
                       selectedSection === tab.id
-                        ? 'ocean-glossy-button text-white shadow-xs'
-                        : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/60'
+                        ? 'bg-white text-[#2563EB] shadow-xs'
+                        : 'text-[#64748B] hover:text-[#0F172A]'
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
