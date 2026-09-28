@@ -35,26 +35,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="text-[#075080] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#0c1824]">
-        {/* Apple iOS 27 Liquid Glass Ambient Canvas with User Fluid Marble Wallpaper */}
+      <body className="text-[#05233b] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#0c1824]">
+        {/* Apple iOS 27 Liquid Glass Ambient Canvas with Ultra High-Definition 6K Fluid Wallpaper */}
         <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#0c1824]">
-          {/* High-Resolution Fluid Wallpaper */}
+          {/* Pristine 6000x4000 Full-Fidelity Wallpaper (Zero Quality Loss) */}
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 scale-[1.02]"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
             style={{
-              backgroundImage: "url('/background-ui.png')",
-              filter: "saturate(1.22) contrast(1.08) brightness(0.96)",
+              backgroundImage: "url('/background-ui.jpg')",
             }}
           />
 
-          {/* Frosted Glass Ambient Lighting & Diffusion Layer */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#F5FBFF]/20 via-transparent to-[#075080]/30 backdrop-blur-[0.5px] pointer-events-none" />
+          {/* Ultra-Subtle Ambient Lighting (No background blur to preserve 100% pin-sharp image resolution) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/25 pointer-events-none" />
 
           {/* Soft Center Top Specular Luster Glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.35),transparent_75%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.25),transparent_75%)] pointer-events-none" />
 
           {/* Deep Ambient Vignette Around Viewport Borders for Contrast */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,transparent_65%,rgba(7,24,39,0.35)_100%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,transparent_65%,rgba(7,24,39,0.3)_100%)] pointer-events-none" />
         </div>
 
         <AppProvider>
