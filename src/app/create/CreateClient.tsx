@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useDeferredValue } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useDeferredValue, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip } from 'lucide-react';
 import { isVideoMedia, formatFileSize, compressImageToDataUrl } from '@/lib/mediaUtils';
@@ -12,9 +12,15 @@ export default function CreateClient({
   initialColleges?: any[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryTab = searchParams.get('tab');
+  const queryCollegeId = searchParams.get('collegeId');
+
   const { colleges, currentUser, addPost, addReview, runOpenSourceAIModeration } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'post' | 'review'>('post');
+  const [activeTab, setActiveTab] = useState<'post' | 'review'>(
+    queryTab === 'review' ? 'review' : 'post'
+  );
   const [postError, setPostError] = useState<string | null>(null);
   const [isOptimizingMedia, setIsOptimizingMedia] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,7 +28,9 @@ export default function CreateClient({
   const activeColleges = colleges.length > 0 ? colleges : initialColleges;
 
   // Post form state
-  const [postCollegeId, setPostCollegeId] = useState(activeColleges[0]?.id || '');
+  const [postCollegeId, setPostCollegeId] = useState(
+    queryCollegeId || activeColleges[0]?.id || ''
+  );
   const [postContent, setPostContent] = useState('');
   const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
@@ -81,7 +89,9 @@ export default function CreateClient({
   };
 
   // Review form state
-  const [reviewCollegeId, setReviewCollegeId] = useState(colleges[0]?.id || '');
+  const [reviewCollegeId, setReviewCollegeId] = useState(
+    queryCollegeId || activeColleges[0]?.id || ''
+  );
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewExperience, setReviewExperience] = useState('');
   const [reviewPros, setReviewPros] = useState('');
@@ -102,6 +112,28 @@ export default function CreateClient({
     studentExperience: 4,
   });
 
+  useEffect(() => {
+    if (queryTab === 'review') {
+      setActiveTab('review');
+    } else if (queryTab === 'post') {
+      setActiveTab('post');
+    }
+  }, [queryTab]);
+
+  useEffect(() => {
+    if (queryCollegeId) {
+      setPostCollegeId(queryCollegeId);
+      setReviewCollegeId(queryCollegeId);
+    } else {
+      if (!postCollegeId && activeColleges[0]?.id) {
+        setPostCollegeId(activeColleges[0].id);
+      }
+      if (!reviewCollegeId && activeColleges[0]?.id) {
+        setReviewCollegeId(activeColleges[0].id);
+      }
+    }
+  }, [queryCollegeId, activeColleges, postCollegeId, reviewCollegeId]);
+
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!postContent.trim()) return;
@@ -112,7 +144,7 @@ export default function CreateClient({
 
     setIsSubmitting(true);
     setPostError(null);
-    const chosenCollege = colleges.find(c => c.id === postCollegeId);
+    const chosenCollege = activeColleges.find(c => c.id === postCollegeId);
 
     const res = addPost({
       authorId: currentUser?.id || 'guest',
@@ -162,7 +194,7 @@ export default function CreateClient({
       batch: reviewBatch
     });
 
-    const chosen = colleges.find(c => c.id === reviewCollegeId);
+    const chosen = activeColleges.find(c => c.id === reviewCollegeId);
     router.push(`/colleges/${chosen?.slug || 'explore'}#reviews`);
   };
 
@@ -210,7 +242,7 @@ export default function CreateClient({
               onChange={(e) => setPostCollegeId(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
             >
-              {colleges.map((c) => (
+              {activeColleges.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
@@ -447,7 +479,7 @@ export default function CreateClient({
                 onChange={(e) => setReviewCollegeId(e.target.value)}
                 className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A] focus:outline-none"
               >
-                {colleges.map((c) => (
+                {activeColleges.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

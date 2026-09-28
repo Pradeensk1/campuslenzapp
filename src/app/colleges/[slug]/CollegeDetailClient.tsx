@@ -79,7 +79,7 @@ export default function CollegeDetailClient({
               <span>{isSaved ? 'Saved in Research' : 'Save College'}</span>
             </button>
             <Link
-              href="/create"
+              href={`/create?tab=review&collegeId=${college.id}`}
               className="apple-button-primary text-xs"
             >
               Write Review
@@ -167,7 +167,7 @@ export default function CollegeDetailClient({
         </div>
 
         {/* Layer B: Community Experience */}
-        <div className="apple-card p-6 space-y-5">
+        <div id="reviews" className="apple-card p-6 space-y-5 scroll-mt-24">
           <div className="flex items-center space-x-2 border-b border-[#F1F5F9] pb-4 text-[#059669]">
             <Shield className="h-5 w-5" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
