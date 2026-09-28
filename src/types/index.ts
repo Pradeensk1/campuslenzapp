@@ -290,6 +290,35 @@ export interface ImageSafetyClassification {
   model: string;
 }
 
+export interface CampusLenzCategoryClassification {
+  category: 'Academics' | 'Faculty' | 'Placements' | 'Infrastructure' | 'Hostel' | 'Campus Life' | 'Events' | 'Fees' | 'Student Experience' | 'General';
+  confidence: number;
+  isCollegeRelated: boolean;
+  model: string;
+}
+
+export interface PostAnalysisResult {
+  sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
+  category: 'Academics' | 'Faculty' | 'Placements' | 'Infrastructure' | 'Hostel' | 'Campus Life' | 'Events' | 'Fees' | 'Student Experience' | 'General';
+  moderation: 'normal' | 'sensitive' | 'spam' | 'potentially_harmful';
+  college_related: boolean;
+  action: 'publish' | 'reject' | 'safety_review';
+  confidence: number;
+  model: string;
+  flagReason?: string;
+}
+
+export interface ReviewAspectAnalysis {
+  name: 'Academics' | 'Faculty' | 'Placements' | 'Infrastructure' | 'Hostel' | 'Campus Life' | 'Value for Money' | 'Student Experience';
+  sentiment: 'positive' | 'negative' | 'neutral';
+}
+
+export interface ReviewAnalysisResult {
+  overall_sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
+  aspects: ReviewAspectAnalysis[];
+  model: string;
+}
+
 export interface UnifiedAIModerationResult {
   sentiment: TextSentimentAnalysis;
   toxicity: TextToxicityAnalysis;
@@ -298,6 +327,8 @@ export interface UnifiedAIModerationResult {
   isHarmful: boolean;
   actionRecommended: 'allow' | 'blur_sensitive' | 'quarantine' | 'auto_ban';
   actionReason?: string;
+  classification?: CampusLenzCategoryClassification;
+  postAnalysis?: PostAnalysisResult;
 }
 
 export interface AIModelSettings {

@@ -742,13 +742,34 @@ Developer environment initialized. Type 'help' to view available system commands
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    3 / 3 Models Active (Local WASM)
+                    4 / 4 Models Active (campus-lenz-ai + Local WASM)
                   </span>
                 </div>
               </div>
 
               {/* Model Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Model 0: campus-lenz-ai (Category & Post Analyzer) */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider">
+                      Text & Post Analyzer
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● Active (5ms)</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-mono">campus-lenz-ai</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      10-category topic classification, aspect-based review breakdown, and deterministic policy filter.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Engine: <strong>Ollama / Native Edge</strong></span>
+                    <span>Categories: <strong>10 Classes</strong></span>
+                    <span>Policy: <strong>Active</strong></span>
+                  </div>
+                </div>
+
                 {/* Model 1: unitary/toxic-bert */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
@@ -1006,6 +1027,18 @@ Developer environment initialized. Type 'help' to view available system commands
                   <button
                     type="button"
                     onClick={() => {
+                      const sample = 'The hostel food and rooms need serious repair, but our professors and placement support are top notch!';
+                      setAiScanInput(sample);
+                      setAiScanImageUrl('');
+                      handleRunAIScan(sample, '');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition"
+                  >
+                    🏫 Mixed Campus Review (campus-lenz-ai)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       const sample = 'Recommended midterm preparation roadmap for Data Structures & Algorithms with cheat sheets and problem sets.';
                       setAiScanInput(sample);
                       setAiScanImageUrl('');
@@ -1176,8 +1209,32 @@ Developer environment initialized. Type 'help' to view available system commands
                     </span>
                   </div>
 
-                  {/* 3 Model Metric Columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* 4 Model Metric Columns */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Model 0: campus-lenz-ai Category & Post Analyzer */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                          campus-lenz-ai
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">Topic & Policy</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 truncate">
+                          {aiUnifiedResult.classification?.category || 'General'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-600">
+                          {Math.round((aiUnifiedResult.classification?.confidence || 0.8) * 100)}%
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 pt-1 space-y-0.5">
+                        <div>Moderation: <strong className={aiUnifiedResult.postAnalysis?.moderation === 'normal' ? 'text-emerald-600' : 'text-amber-600'}>{aiUnifiedResult.postAnalysis?.moderation || 'normal'}</strong></div>
+                        <div>College Related: <strong>{aiUnifiedResult.postAnalysis?.college_related ? 'Yes' : 'No'}</strong></div>
+                        <div>Policy Action: <strong className={aiUnifiedResult.postAnalysis?.action === 'publish' ? 'text-emerald-600' : 'text-rose-600'}>{aiUnifiedResult.postAnalysis?.action?.toUpperCase() || 'PUBLISH'}</strong></div>
+                      </div>
+                    </div>
+
                     {/* Model 1: distilbert-sst2 */}
                     <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between text-xs">

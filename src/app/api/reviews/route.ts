@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase';
+import { analyzeReviewAspects } from '@/lib/aiModerationModels';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -104,6 +105,42 @@ export async function POST(request: Request) {
       if (pCheck) resolvedUserId = pCheck.id;
     }
 
+    // Run AI review aspect analysis via campus-lenz-ai
+    const combinedReviewText = `${title}. ${experience}. ${Array.isArray(pros) ? pros.join('. ') : ''}. ${Array.isArray(cons) ? cons.join('. ') : ''}`;
+    const aiReviewAnalysis = analyzeReviewAspects(combinedReviewText);
+
+    const mergedDimensions = {
+      academics: 4,
+      faculty: 4,
+      placements: 4,
+      infrastructure: 4,
+      hostel: 4,
+      campusLife: 4,
+      valueForMoney: 4,
+      studentExperience: 4,
+      ...(dimensions || {})
+    };
+
+    // Fine-tune dimension scores based on detected aspect sentiments
+    for (const aspect of aiReviewAnalysis.aspects) {
+      const keyMap: Record<string, keyof typeof mergedDimensions> = {
+        'Academics': 'academics',
+        'Faculty': 'faculty',
+        'Placements': 'placements',
+        'Infrastructure': 'infrastructure',
+        'Hostel': 'hostel',
+        'Campus Life': 'campusLife',
+        'Value for Money': 'valueForMoney',
+        'Student Experience': 'studentExperience'
+      };
+      const dimKey = keyMap[aspect.name];
+      if (dimKey && !dimensions?.[dimKey]) {
+        if (aspect.sentiment === 'positive') mergedDimensions[dimKey] = 5;
+        else if (aspect.sentiment === 'negative') mergedDimensions[dimKey] = 2;
+        else mergedDimensions[dimKey] = 3;
+      }
+    }
+
     const reviewPayload: Record<string, any> = {
       college_id: resolvedCollegeId,
       user_id: resolvedUserId,
@@ -112,7 +149,7 @@ export async function POST(request: Request) {
       author_username: authorUsername,
       is_anonymous: isAnonymous,
       overall_rating: overallRating,
-      dimensions: dimensions || {},
+      dimensions: mergedDimensions,
       title: title.trim(),
       experience: experience.trim(),
       pros,

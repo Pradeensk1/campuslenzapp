@@ -31,10 +31,16 @@ import {
   EmergencyBroadcast,
   AuditLogEntry,
   AIModelSettings,
-  UnifiedAIModerationResult
+  UnifiedAIModerationResult,
+  PostAnalysisResult,
+  CampusLenzCategoryClassification,
+  ReviewAnalysisResult
 } from '@/types';
 import {
   runUnifiedAIModeration,
+  analyzeCampusLenzPost,
+  classifyCampusLenzCategory,
+  analyzeReviewAspects,
   DEFAULT_AI_MODEL_SETTINGS
 } from './aiModerationModels';
 import { supabase, isSupabaseConfigured } from './supabase';
@@ -238,6 +244,9 @@ interface AppContextType {
   aiModelSettings: AIModelSettings;
   updateAIModelSettings: (settings: Partial<AIModelSettings>) => void;
   runOpenSourceAIModeration: (content: string, imageUrl?: string) => UnifiedAIModerationResult;
+  analyzePostWithAI: (postContent: string, authorId?: string, collegeId?: string) => PostAnalysisResult;
+  classifyTextCategory: (text: string) => CampusLenzCategoryClassification;
+  analyzeReviewWithAI: (reviewText: string) => ReviewAnalysisResult;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -360,6 +369,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const runOpenSourceAIModeration = (content: string, imageUrl?: string) => {
     return runUnifiedAIModeration(content, imageUrl, aiModelSettings);
+  };
+
+  const analyzePostWithAI = (postContent: string, authorId?: string, collegeId?: string) => {
+    return analyzeCampusLenzPost(postContent, authorId, collegeId);
+  };
+
+  const classifyTextCategory = (text: string) => {
+    return classifyCampusLenzCategory(text);
+  };
+
+  const analyzeReviewWithAI = (reviewText: string) => {
+    return analyzeReviewAspects(reviewText);
   };
 
   // Dynamic Live Feed & Real-Time Engine State
@@ -1387,6 +1408,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Role Limitation: STUDENT (Full social capabilities + anonymous toggle)
     const isAnonymous = currentUser.role === 'student' ? Boolean(newPost.isAnonymous) : false;
 
+    // Topic & Category classification via campus-lenz-ai
+    if (!finalTopic || finalTopic === 'Campus Discussion' || finalTopic === 'Campus Update') {
+      if (aiResult.classification?.category && aiResult.classification.category !== 'General') {
+        finalTopic = aiResult.classification.category;
+      }
+    }
+
     const generatedPostId = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
       : 'post-' + Math.random().toString(36).substring(2, 15);
@@ -1410,7 +1438,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isSensitive: aiResult.isSensitive,
       sensitiveReason: aiResult.actionReason,
       imageSafety: aiResult.imageSafety,
-      aiModelMetadata: `${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
+      aiModelMetadata: `campus-lenz-ai + ${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
       isQuarantined
     };
     setPosts(prev => [post, ...prev]);
@@ -3099,7 +3127,10 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         toggleSensitiveContentShield,
         aiModelSettings,
         updateAIModelSettings,
-        runOpenSourceAIModeration
+        runOpenSourceAIModeration,
+        analyzePostWithAI,
+        classifyTextCategory,
+        analyzeReviewWithAI
       }}
     >
       {children}

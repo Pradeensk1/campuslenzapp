@@ -12,14 +12,18 @@ import {
   TextToxicityAnalysis,
   ImageSafetyClassification,
   UnifiedAIModerationResult,
-  AIModelSettings
+  AIModelSettings,
+  CampusLenzCategoryClassification,
+  PostAnalysisResult,
+  ReviewAspectAnalysis,
+  ReviewAnalysisResult
 } from '@/types';
 
 export const DEFAULT_AI_MODEL_SETTINGS: AIModelSettings = {
   autoBanThreshold: 80,
   blurThreshold: 35,
   autoBanEnabled: true,
-  activeTextModel: 'unitary/toxic-bert + distilbert-sst2',
+  activeTextModel: 'campus-lenz-ai + unitary/toxic-bert + distilbert-sst2',
   activeVisionModel: 'nsfwjs-mobilenet-v2'
 };
 
@@ -266,7 +270,325 @@ export function classifyImageSafety(imageUrl?: string, fileName?: string): Image
 }
 
 // ============================================================================
-// 4. Unified AI Moderation Pipeline (Master Evaluator)
+// 4. Campus Lenz AI Category & Topic Classifier (campus-lenz-ai)
+// ============================================================================
+
+export const CAMPUS_LENZ_ALLOWED_CATEGORIES = [
+  'Academics',
+  'Faculty',
+  'Placements',
+  'Infrastructure',
+  'Hostel',
+  'Campus Life',
+  'Events',
+  'Fees',
+  'Student Experience',
+  'General',
+] as const;
+
+export type CampusLenzAllowedCategory = typeof CAMPUS_LENZ_ALLOWED_CATEGORIES[number];
+
+const CATEGORY_LEXICON: Record<CampusLenzAllowedCategory, string[]> = {
+  Academics: [
+    'course', 'courses', 'curriculum', 'syllabus', 'exam', 'exams', 'subjects', 'subject',
+    'lecture', 'lectures', 'assignment', 'assignments', 'grade', 'grades', 'gpa', 'study',
+    'studying', 'learning', 'semester', 'semesters', 'test', 'tests', 'gate', 'notes', 'credits'
+  ],
+  Faculty: [
+    'professor', 'professors', 'prof', 'teacher', 'teachers', 'faculty', 'teaching staff',
+    'dean', 'hod', 'mentor', 'instructor', 'lecturer', 'advisor', 'guidance', 'phd guide'
+  ],
+  Placements: [
+    'placement', 'placements', 'job', 'jobs', 'internship', 'internships', 'campus recruitment',
+    'package', 'lpa', 'ppo', 'interview', 'interviews', 'recruiter', 'recruiters', 'hiring',
+    'job opportunities', 'placement support', 'companies visiting', 'offer letter', 'referral'
+  ],
+  Infrastructure: [
+    'building', 'buildings', 'lab', 'labs', 'classroom', 'classrooms', 'library building',
+    'campus facilities', 'wifi', 'internet', 'ac', 'projector', 'computer lab', 'bench', 'auditorium',
+    'ground', 'sports complex', 'canteen'
+  ],
+  Hostel: [
+    'hostel', 'hostel room', 'hostel rooms', 'hostel food', 'mess', 'mess food', 'dormitory',
+    'curfew', 'warden', 'roommate', 'hostel fee', 'mess bill', 'stay', 'accommodation'
+  ],
+  'Campus Life': [
+    'club', 'clubs', 'fest', 'festival', 'festivals', 'culture', 'sports', 'campus vibes',
+    'student life', 'friends', 'hangout', 'activities', 'society', 'celebration', 'canteen banter'
+  ],
+  Events: [
+    'hackathon', 'symposium', 'conference', 'workshop', 'seminar', 'guest lecture',
+    'annual fest', 'webinar', 'tech fest', 'competition', 'meetup', 'stage event'
+  ],
+  Fees: [
+    'fee', 'fees', 'tuition', 'tuition fee', 'cost', 'expensive', 'worth the money',
+    'scholarship', 'refund', 'installment', 'financial aid', 'roi', 'value for money', 'fine'
+  ],
+  'Student Experience': [
+    'overall student experience', 'student satisfaction', 'college experience', 'campus journey',
+    'memory', 'memories', 'recommendation', 'freshers', 'graduates', 'batchmate', 'peer'
+  ],
+  General: [
+    'college', 'campus', 'institution', 'university', 'update', 'notice', 'announcement', 'student'
+  ]
+};
+
+const NON_COLLEGE_INDICATORS = [
+  'crypto', 'bitcoin', 'forex', 'casino', 'betting', 'weight loss', 'buy cheap',
+  'telegram link', 'whatsapp group link', 'discount code', 'earn 1000 daily', 'adult video'
+];
+
+export function classifyCampusLenzCategory(text: string): CampusLenzCategoryClassification {
+  if (!text || !text.trim()) {
+    return {
+      category: 'General',
+      confidence: 0.5,
+      isCollegeRelated: true,
+      model: 'campus-lenz-ai'
+    };
+  }
+
+  const lower = text.toLowerCase();
+  const words = lower.split(/[\s,.;:!?()"-]+/).filter(Boolean);
+
+  // Check if spam / irrelevant commercial message
+  for (const spamkw of NON_COLLEGE_INDICATORS) {
+    if (lower.includes(spamkw)) {
+      return {
+        category: 'General',
+        confidence: 0.95,
+        isCollegeRelated: false,
+        model: 'campus-lenz-ai'
+      };
+    }
+  }
+
+  const scores: Record<CampusLenzAllowedCategory, number> = {
+    Academics: 0,
+    Faculty: 0,
+    Placements: 0,
+    Infrastructure: 0,
+    Hostel: 0,
+    'Campus Life': 0,
+    Events: 0,
+    Fees: 0,
+    'Student Experience': 0,
+    General: 0,
+  };
+
+  for (const [cat, keywords] of Object.entries(CATEGORY_LEXICON) as [CampusLenzAllowedCategory, string[]][]) {
+    for (const kw of keywords) {
+      if (kw.includes(' ')) {
+        if (lower.includes(kw)) {
+          scores[cat] += 4;
+        }
+      } else if (words.includes(kw)) {
+        scores[cat] += 2;
+      }
+    }
+  }
+
+  let topCat: CampusLenzAllowedCategory = 'General';
+  let maxScore = 0;
+
+  for (const [cat, sc] of Object.entries(scores) as [CampusLenzAllowedCategory, number][]) {
+    if (sc > maxScore) {
+      maxScore = sc;
+      topCat = cat;
+    }
+  }
+
+  const confidence = maxScore === 0 ? 0.65 : Math.min(0.98, 0.70 + maxScore * 0.04);
+  const isCollegeRelated = maxScore > 0 || lower.includes('college') || lower.includes('campus') || lower.includes('student');
+
+  return {
+    category: topCat,
+    confidence: parseFloat(confidence.toFixed(2)),
+    isCollegeRelated,
+    model: 'campus-lenz-ai'
+  };
+}
+
+// ============================================================================
+// 5. Post Analyzer (Unified Decision Engine: Analysis + Policy Filter)
+// ============================================================================
+
+export function analyzeCampusLenzPost(
+  postContent: string,
+  authorId: string = 'unknown_author',
+  collegeId: string = 'unknown_college'
+): PostAnalysisResult {
+  const text = (postContent || '').trim();
+  const lower = text.toLowerCase();
+
+  const sentimentRes = analyzeTextSentiment(text);
+  const toxicityRes = analyzeTextToxicity(text);
+  const catRes = classifyCampusLenzCategory(text);
+
+  // 1. Map sentiment: positive, negative, neutral, mixed
+  let sentiment: PostAnalysisResult['sentiment'] = 'neutral';
+  if (sentimentRes.label === 'positive') sentiment = 'positive';
+  else if (sentimentRes.label === 'negative' || sentimentRes.label === 'ragebait' || sentimentRes.label === 'toxic') {
+    // Check if mixed: contains positive words along with criticism
+    const hasPositive = POSITIVE_LEXICON.some(w => lower.includes(w));
+    const hasNegative = NEGATIVE_LEXICON.some(w => lower.includes(w));
+    sentiment = (hasPositive && hasNegative) ? 'mixed' : 'negative';
+  } else {
+    sentiment = 'neutral';
+  }
+
+  // 2. Map moderation status: normal | sensitive | spam | potentially_harmful
+  // Rules:
+  // - Legitimate negative college feedback is NOT harmful
+  // - Complaints about hostel, faculty, placements, fees, infrastructure can still be normal
+  // - Spam includes advertisements, repeated promotional content, scams
+  // - Sensitive includes serious personal accusations or requiring additional review
+  // - Potentially harmful includes threats, serious harassment, violence
+  let moderation: PostAnalysisResult['moderation'] = 'normal';
+  let flagReason: string | undefined = undefined;
+
+  const hasSpam = NON_COLLEGE_INDICATORS.some(kw => lower.includes(kw)) ||
+    lower.includes('buy now') || lower.includes('click here') || lower.includes('free money');
+
+  if (hasSpam || (!catRes.isCollegeRelated && toxicityRes.score > 20)) {
+    moderation = 'spam';
+    flagReason = 'Spam/unsolicited commercial content detected.';
+  } else if (toxicityRes.categories.threat > 80 || toxicityRes.categories.identityHate > 85 || toxicityRes.score >= 85) {
+    moderation = 'potentially_harmful';
+    flagReason = 'Potentially harmful content: Severe harassment or threat detected.';
+  } else if (toxicityRes.score >= 40 || sentimentRes.label === 'ragebait' || lower.includes('scam') || lower.includes('fraud')) {
+    moderation = 'sensitive';
+    flagReason = 'Sensitive campus content: Requires constructive decorum or review.';
+  } else {
+    moderation = 'normal';
+  }
+
+  // Deterministic correction: Spam is treated as non-college-related
+  const college_related = moderation === 'spam' ? false : catRes.isCollegeRelated;
+
+  // 3. Determine final policy action
+  let action: PostAnalysisResult['action'] = 'publish';
+  if (moderation === 'potentially_harmful') {
+    action = 'safety_review';
+  } else if (moderation === 'spam') {
+    action = 'reject';
+  } else {
+    // Normal & sensitive are published (sensitive can be masked/notified)
+    action = 'publish';
+  }
+
+  return {
+    sentiment,
+    category: catRes.category,
+    moderation,
+    college_related,
+    action,
+    confidence: catRes.confidence,
+    model: 'campus-lenz-ai',
+    flagReason
+  };
+}
+
+// ============================================================================
+// 6. Student Review Aspect Analyzer (Aspect-Based Sentiment Extraction)
+// ============================================================================
+
+export const REVIEW_ASPECT_RULES: Record<ReviewAspectAnalysis['name'], string[]> = {
+  Faculty: [
+    'teachers', 'teacher', 'professors', 'professor', 'faculty', 'teaching staff',
+  ],
+  Academics: [
+    'subjects', 'courses', 'course', 'curriculum', 'syllabus', 'exams', 'learning',
+  ],
+  Placements: [
+    'job opportunities', 'placement support', 'placements', 'placement', 'campus recruitment', 'companies visiting',
+  ],
+  Infrastructure: [
+    'buildings', 'building', 'labs', 'lab', 'classrooms', 'classroom', 'library building', 'campus facilities',
+  ],
+  Hostel: [
+    'hostel', 'hostel food', 'hostel rooms', 'hostel room', 'mess', 'dormitory',
+  ],
+  'Campus Life': [
+    'events', 'clubs', 'festivals', 'student activities',
+  ],
+  'Value for Money': [
+    'fees', 'cost', 'worth the money', 'tuition value',
+  ],
+  'Student Experience': [
+    'overall student experience', 'student satisfaction', 'college experience',
+  ],
+};
+
+export function analyzeReviewAspects(reviewText: string): ReviewAnalysisResult {
+  const lower = (reviewText || '').toLowerCase();
+  const aspects: ReviewAspectAnalysis[] = [];
+
+  for (const [aspectName, phrases] of Object.entries(REVIEW_ASPECT_RULES) as [ReviewAspectAnalysis['name'], string[]][]) {
+    const matchedPhrase = phrases.find(p => lower.includes(p));
+    if (matchedPhrase) {
+      // Find sentence or snippet around the phrase
+      const sentences = lower.split(/[.!?;]+/).map(s => s.trim()).filter(Boolean);
+      const relevantSentence = sentences.find(s => s.includes(matchedPhrase)) || lower;
+
+      const sentAnalysis = analyzeTextSentiment(relevantSentence);
+      let aspectSentiment: ReviewAspectAnalysis['sentiment'] = 'neutral';
+      if (sentAnalysis.label === 'positive') aspectSentiment = 'positive';
+      else if (sentAnalysis.label === 'negative' || sentAnalysis.label === 'ragebait' || sentAnalysis.label === 'toxic') aspectSentiment = 'negative';
+      else aspectSentiment = 'neutral';
+
+      aspects.push({
+        name: aspectName,
+        sentiment: aspectSentiment
+      });
+    }
+  }
+
+  // Explicit deterministic phrase corrections
+  for (const [phrase, correctAspect] of [
+    ['classrooms', 'Infrastructure'],
+    ['classroom', 'Infrastructure'],
+    ['professors', 'Faculty'],
+    ['professor', 'Faculty'],
+    ['teachers', 'Faculty'],
+    ['teacher', 'Faculty'],
+    ['hostel rooms', 'Hostel'],
+    ['hostel room', 'Hostel'],
+    ['hostel food', 'Hostel'],
+    ['placement support', 'Placements']
+  ] as [string, ReviewAspectAnalysis['name']][]) {
+    if (lower.includes(phrase)) {
+      const existing = aspects.find(a => a.name === correctAspect || a.name === 'Academics');
+      if (existing && existing.name !== correctAspect) {
+        existing.name = correctAspect;
+      }
+    }
+  }
+
+  const overallSentimentAnalysis = analyzeTextSentiment(reviewText);
+  let overall_sentiment: ReviewAnalysisResult['overall_sentiment'] = 'neutral';
+  const hasPosAspect = aspects.some(a => a.sentiment === 'positive');
+  const hasNegAspect = aspects.some(a => a.sentiment === 'negative');
+
+  if (hasPosAspect && hasNegAspect) {
+    overall_sentiment = 'mixed';
+  } else if (overallSentimentAnalysis.label === 'positive') {
+    overall_sentiment = 'positive';
+  } else if (overallSentimentAnalysis.label === 'negative' || overallSentimentAnalysis.label === 'ragebait') {
+    overall_sentiment = 'negative';
+  } else {
+    overall_sentiment = 'neutral';
+  }
+
+  return {
+    overall_sentiment,
+    aspects,
+    model: 'campus-lenz-ai'
+  };
+}
+
+// ============================================================================
+// 7. Unified AI Moderation Pipeline (Master Evaluator with campus-lenz-ai)
 // ============================================================================
 
 export function runUnifiedAIModeration(
@@ -280,37 +602,41 @@ export function runUnifiedAIModeration(
   const sentiment = analyzeTextSentiment(content);
   const toxicity = analyzeTextToxicity(content);
   const imageSafety = imageUrl ? classifyImageSafety(imageUrl) : undefined;
+  const classification = classifyCampusLenzCategory(content);
+  const postAnalysis = analyzeCampusLenzPost(content);
 
   let isHarmful = false;
   let isSensitive = false;
   let actionRecommended: UnifiedAIModerationResult['actionRecommended'] = 'allow';
   let actionReason: string | undefined = undefined;
 
-  // 1. Critical Toxicity / Hate Speech -> Automatic Ban Trigger
-  if (toxicity.score >= autoBanThreshold || toxicity.categories.threat > 85 || toxicity.categories.identityHate > 85) {
+  // 1. Critical Toxicity / Potentially Harmful -> Safety Review / Auto-Ban Trigger
+  if (postAnalysis.moderation === 'potentially_harmful' || toxicity.score >= autoBanThreshold || toxicity.categories.threat > 85 || toxicity.categories.identityHate > 85) {
     isHarmful = true;
     isSensitive = true;
     actionRecommended = 'auto_ban';
-    actionReason = `Severe policy violation: ${toxicity.categories.threat > 85 ? 'Violent Threat' : toxicity.categories.identityHate > 85 ? 'Hate Speech' : 'Severe Toxicity'} detected by unitary/toxic-bert (${toxicity.score}%).`;
+    actionReason = postAnalysis.flagReason || `Severe policy violation: ${toxicity.categories.threat > 85 ? 'Violent Threat' : toxicity.categories.identityHate > 85 ? 'Hate Speech' : 'Severe Toxicity'} detected (${toxicity.score}%).`;
   }
-  // 2. High Toxicity or Graphic Visuals -> Quarantine
-  else if (toxicity.score >= 65 || imageSafety?.status === 'graphic') {
+  // 2. High Toxicity, Spam, or Graphic Visuals -> Quarantine
+  else if (postAnalysis.moderation === 'spam' || toxicity.score >= 65 || imageSafety?.status === 'graphic') {
     isHarmful = true;
     isSensitive = true;
     actionRecommended = 'quarantine';
     actionReason = imageSafety?.status === 'graphic'
       ? `Graphic or explicit imagery detected by nsfwjs (${imageSafety.detectedLabels.join(', ')})`
+      : postAnalysis.moderation === 'spam'
+      ? `Promotional or spam content flagged by campus-lenz-ai.`
       : `Elevated hostility and abusive language (${toxicity.score}%) detected by toxic-bert.`;
   }
-  // 3. Elevated Toxicity or Suggestive Content -> Sensitive Content Blur Shield
-  else if (toxicity.score >= blurThreshold || sentiment.label === 'ragebait' || imageSafety?.status === 'suggestive') {
+  // 3. Elevated Toxicity, Sensitive Moderation, or Suggestive Content -> Sensitive Content Blur Shield
+  else if (postAnalysis.moderation === 'sensitive' || toxicity.score >= blurThreshold || sentiment.label === 'ragebait' || imageSafety?.status === 'suggestive') {
     isSensitive = true;
     actionRecommended = 'blur_sensitive';
-    actionReason = sentiment.label === 'ragebait'
+    actionReason = postAnalysis.flagReason || (sentiment.label === 'ragebait'
       ? 'Sensationalist ragebait discourse detected'
       : imageSafety?.status === 'suggestive'
       ? 'Suggestive or non-academic imagery detected'
-      : `Moderate hostility pattern (${toxicity.score}%) detected`;
+      : `Moderate hostility pattern (${toxicity.score}%) detected`);
   }
   // 4. Clean content
   else {
@@ -324,6 +650,8 @@ export function runUnifiedAIModeration(
     isSensitive,
     isHarmful,
     actionRecommended,
-    actionReason
+    actionReason,
+    classification,
+    postAnalysis
   };
 }

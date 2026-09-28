@@ -726,6 +726,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         const ai = runOpenSourceAIModeration(postContent, postImageUrl);
                         const isSevere = ai.toxicity.score >= 80;
                         const isSens = ai.isSensitive;
+                        const category = ai.classification?.category || 'General';
                         return (
                           <div className={`p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between transition-all ${
                             isSevere
@@ -738,16 +739,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               <Sparkles className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">
                                 {isSevere ? (
-                                  <>🚨 <strong>Critical Toxicity ({ai.toxicity.score}%):</strong> Submission will be rejected & user auto-banned!</>
+                                  <>🚨 <strong>Critical Toxicity ({ai.toxicity.score}%):</strong> Submission rejected by policy</>
                                 ) : isSens ? (
-                                  <>⚠️ <strong>Sensitive ({ai.toxicity.score}% tox):</strong> Post will be masked behind AI feed blur shield.</>
+                                  <>⚠️ <strong>Sensitive ({category}):</strong> Post will be masked behind AI feed blur shield.</>
                                 ) : (
-                                  <>✨ <strong>Clean ({ai.sentiment.label}):</strong> Toxicity {ai.toxicity.score}% • Sentiment +{ai.sentiment.polarity}</>
+                                  <>✨ <strong>Clean • {category}:</strong> Toxicity {ai.toxicity.score}% • {ai.sentiment.label} ({Math.round(ai.sentiment.score * 100)}%)</>
                                 )}
                               </span>
                             </div>
                             <span className="text-[10px] text-slate-400 font-mono hidden sm:inline shrink-0 ml-2">
-                              unitary/toxic-bert + distilbert-sst2
+                              campus-lenz-ai • toxic-bert
                             </span>
                           </div>
                         );

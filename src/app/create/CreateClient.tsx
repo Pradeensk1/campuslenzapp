@@ -343,15 +343,26 @@ export default function CreateClient({
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-blue-600" />
                     <span className="text-xs font-bold text-slate-900">
-                      Open-Source AI Pre-Flight Telemetry
+                      Campus Lenz AI Pre-Flight Telemetry & Post Analyzer
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-400">
-                    distilbert-sst2 • toxic-bert • nsfwjs
+                    campus-lenz-ai • toxic-bert • distilbert-sst2
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  {/* Category Classifier */}
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                      Topic Classification
+                    </span>
+                    <div className="font-bold text-blue-700 flex items-center gap-1 truncate">
+                      <span className="truncate">{ai.classification?.category || 'General'}</span>
+                      <span className="text-[10px] text-slate-400">({Math.round((ai.classification?.confidence || 0.8) * 100)}%)</span>
+                    </div>
+                  </div>
+
                   {/* Sentiment */}
                   <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
@@ -376,13 +387,17 @@ export default function CreateClient({
                     </div>
                   </div>
 
-                  {/* Image Safety */}
+                  {/* Moderation Recommendation */}
                   <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                      Visual Classifier
+                      Moderation Status
                     </span>
-                    <div className="font-bold text-slate-800 capitalize">
-                      {postImageUrl ? (ai.imageSafety?.status || 'safe') : 'No Media Attached'}
+                    <div className={`font-bold capitalize truncate ${
+                      ai.postAnalysis?.moderation === 'potentially_harmful' ? 'text-rose-600' :
+                      ai.postAnalysis?.moderation === 'sensitive' ? 'text-amber-600' :
+                      ai.postAnalysis?.moderation === 'spam' ? 'text-orange-600' : 'text-emerald-600'
+                    }`}>
+                      {ai.postAnalysis?.moderation || 'normal'}
                     </div>
                   </div>
                 </div>
@@ -390,17 +405,17 @@ export default function CreateClient({
                 {isSevere ? (
                   <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>⚠️ Policy Alert: Severe toxicity will trigger an automatic 48h account suspension and audit log.</span>
+                    <span>🚨 Policy Alert: Potentially harmful content or severe toxicity ({ai.toxicity.score}%). Submission will be rejected with account suspension.</span>
                   </div>
                 ) : isSens ? (
                   <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>⚠️ Sensitivity Notice: Post will be masked behind the frosted AI content shield on the feed.</span>
+                    <span>⚠️ Sensitivity Notice: Legitimate student discussion flagged as sensitive. Will be published under the AI frosted shield.</span>
                   </div>
                 ) : (
                   <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>✨ Content Approved: Verified clean for campus-wide distribution.</span>
+                    <span>✨ Content Approved: Verified clean for campus-wide distribution in {ai.classification?.category || 'General'}.</span>
                   </div>
                 )}
               </div>

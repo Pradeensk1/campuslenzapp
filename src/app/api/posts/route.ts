@@ -170,6 +170,10 @@ export async function POST(request: Request) {
     const isSensitive = aiResult.isSensitive || aiResult.toxicity.score >= DEFAULT_AI_MODEL_SETTINGS.blurThreshold;
     const isQuarantined = aiResult.actionRecommended === 'quarantine';
 
+    const resolvedTopic = topic || (aiResult.classification?.category && aiResult.classification.category !== 'General'
+      ? aiResult.classification.category
+      : (authorRole === 'faculty' ? 'Academic Guidance' : 'Campus Discussion'));
+
     const postPayload: Record<string, any> = {
       author_id: resolvedAuthorId,
       author_username: authorUsername,
@@ -181,7 +185,7 @@ export async function POST(request: Request) {
       college_id: resolvedCollegeId,
       college_name: collegeName,
       content: content.trim(),
-      topic: topic || (authorRole === 'faculty' ? 'Academic Guidance' : 'Campus Discussion'),
+      topic: resolvedTopic,
       image_url: imageUrl || null,
       likes: [],
       likes_count: 0,
@@ -193,7 +197,7 @@ export async function POST(request: Request) {
       is_sensitive: isSensitive,
       sensitive_reason: aiResult.actionReason,
       is_quarantined: isQuarantined,
-      ai_model_metadata: `${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
+      ai_model_metadata: `campus-lenz-ai + ${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
       moderation_status: isSensitive ? 'sensitive' : 'normal',
     };
 
