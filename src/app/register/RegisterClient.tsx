@@ -376,28 +376,28 @@ function RegistrationFormContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center space-x-2.5">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2563EB] text-white font-black text-xl shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 text-white font-black text-xl shadow-md shadow-sky-500/25">
               CL
             </span>
             <div className="text-left">
-              <span className="text-xl font-extrabold tracking-tight text-[#0F172A]">
-                CAMPUS<span className="text-[#2563EB]">LENZ</span>
+              <span className="text-xl font-black tracking-tight text-sky-950">
+                CAMPUS<span className="text-sky-600">LENZ</span>
               </span>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-sky-800/70">
                 Tamil Nadu Higher Education Network
               </span>
             </div>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-sky-950 tracking-tight">
             Create Your Dedicated Campus Account
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
+          <p className="text-xs sm:text-sm text-sky-800/80 max-w-xl mx-auto font-medium">
             Select your role below. Each registration form is strictly customized with only the credentials and details required for your specific profile.
           </p>
         </div>
@@ -405,11 +405,11 @@ function RegistrationFormContent() {
         {/* Step 1: 4 Separated Role Selection Cards (No Admin) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <label className="text-xs font-bold uppercase tracking-wider text-sky-800/70 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
               Step 1: Select Your Campus Role
             </label>
-            <span className="text-[11px] text-slate-400">Tailors registration fields to your role</span>
+            <span className="text-[11px] text-sky-700/60 font-medium">Tailors registration fields to your role</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -426,26 +426,27 @@ function RegistrationFormContent() {
                   }}
                   className={`p-4 rounded-2xl border text-left transition-all ${
                     isSelected
-                      ? opt.bgSelectedClass + ' shadow-sm'
-                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      ? 'ocean-glass-card border-2 border-sky-400 bg-sky-500/15 shadow-md text-sky-950 scale-[1.02]'
+                      : 'bg-white/70 backdrop-blur-md border border-white/80 hover:border-sky-300 hover:bg-white/90 text-sky-900'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                        isSelected ? 'bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-xs' : 'bg-sky-100/80 text-sky-700'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                    {isSelected && (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-white shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </div>
-                  <h3 className="font-bold text-slate-900 text-sm">{opt.title}</h3>
-                  <span className="inline-block text-[10px] font-semibold text-slate-500 mt-0.5">
+                  <h3 className="font-bold text-xs sm:text-sm text-sky-950">{opt.title}</h3>
+                  <p className="text-[10px] text-sky-800/70 line-clamp-1 mt-0.5 font-medium">
                     {opt.badge}
-                  </span>
-                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-snug">
-                    {opt.summary}
                   </p>
                 </button>
               );
@@ -454,19 +455,19 @@ function RegistrationFormContent() {
         </div>
 
         {/* Registration Form Container */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="ocean-glass-card touch-over-glass border border-white/80 rounded-[32px] p-6 sm:p-8 shadow-xl space-y-6">
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-4 border-b border-sky-100/80">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-black text-sky-950">
                   {activeOption.title} Registration
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-100/90 text-sky-800 font-semibold border border-sky-200">
                   Directs to: {activeOption.destinationPage}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-sky-800/70 mt-0.5 font-medium">
                 Displaying only fields relevant to verified {activeOption.title.toLowerCase()} accounts.
               </p>
             </div>

@@ -98,7 +98,7 @@ export default function UserProfileClient({
       </Link>
 
       {/* INSTAGRAM-STYLE PROFILE HEADER CARD */}
-      <div className="apple-card p-6 sm:p-8 space-y-6">
+      <div className="ocean-glass-card touch-over-glass p-6 sm:p-8 space-y-6 rounded-[32px] border border-white/80 shadow-xl">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           {/* Instagram Circular Avatar */}
           <div className="relative shrink-0">
@@ -106,15 +106,15 @@ export default function UserProfileClient({
               <img
                 src={profileUser.avatarUrl}
                 alt={profileUser.fullName}
-                className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-[#EFF6FF] object-cover shadow-md"
+                className="h-24 w-24 sm:h-28 sm:w-28 rounded-full ring-4 ring-white/90 border-2 border-sky-400 object-cover shadow-lg"
               />
             ) : (
-              <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 border-[#EFF6FF] bg-gradient-to-tr from-[#2563EB] to-indigo-600 text-white flex items-center justify-center text-3xl font-black shadow-md">
+              <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-full ring-4 ring-white/90 border-2 border-sky-400 bg-gradient-to-tr from-sky-500 via-sky-600 to-sky-800 text-white flex items-center justify-center text-3xl font-black shadow-lg">
                 {profileUser.fullName[0]}
               </div>
             )}
             {profileUser.isVerified && (
-              <span className="absolute bottom-1 right-1 rounded-full bg-[#059669] p-1 text-white border-2 border-white shadow-xs">
+              <span className="absolute bottom-1 right-1 rounded-full bg-sky-500 p-1 text-white border-2 border-white shadow-md">
                 <UserCheck className="h-4 w-4" />
               </span>
             )}
@@ -125,20 +125,20 @@ export default function UserProfileClient({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center justify-center sm:justify-start space-x-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-black text-sky-950 tracking-tight">
                     {profileUser.fullName}
                   </h1>
-                  <span className="rounded-md bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-bold text-[#2563EB] capitalize">
+                  <span className="rounded-full bg-sky-100/90 px-3 py-0.5 text-xs font-bold text-sky-800 capitalize border border-sky-200/80">
                     {profileUser.role}
                   </span>
                   {profileUser.role === 'institution' && profileUser.accreditationGrade && (
-                    <span className="flex items-center space-x-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">
+                    <span className="flex items-center space-x-1 rounded-full bg-cyan-50 px-2.5 py-0.5 text-xs font-bold text-cyan-800 border border-cyan-200">
                       <Award className="h-3.5 w-3.5" />
                       <span>{profileUser.accreditationGrade}</span>
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#64748B] mt-0.5">@{profileUser.username}</p>
+                <p className="text-xs text-sky-800/70 font-semibold mt-0.5">@{profileUser.username}</p>
               </div>
 
               {/* Action Buttons (Follow / Message / Admin Delete User) */}
@@ -180,9 +180,9 @@ export default function UserProfileClient({
                 ) : (
                   <button
                     onClick={() => setIsEditingProfile(true)}
-                    className="apple-button-secondary text-xs !py-1.5 !px-3 font-semibold flex items-center space-x-1.5 hover:border-[#2563EB]"
+                    className="ocean-glossy-pill-subtle text-xs !py-1.5 !px-4 font-bold flex items-center space-x-1.5 hover:border-sky-400"
                   >
-                    <Edit3 className="h-3.5 w-3.5 text-[#2563EB]" />
+                    <Edit3 className="h-3.5 w-3.5 text-sky-600" />
                     <span>Edit Profile</span>
                   </button>
                 )}
@@ -190,54 +190,54 @@ export default function UserProfileClient({
             </div>
 
             {/* INSTAGRAM 5-STAT GRID (Posts, Reposts, Followers, Following, Likes) */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 border-y border-[#F1F5F9] py-3 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 border-y border-sky-100/80 py-3 text-center">
               <button
                 onClick={() => setActiveTab('posts')}
-                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className="hover:bg-sky-500/10 rounded-2xl p-1 transition cursor-pointer group"
               >
-                <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:text-blue-600">
+                <p className="text-base sm:text-lg font-black text-sky-950 group-hover:text-sky-600">
                   {userPosts.length}
                 </p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                <p className="text-[10px] uppercase font-bold text-sky-800/70 group-hover:text-sky-600">
                   Posts
                 </p>
               </button>
               <button
                 onClick={() => setActiveTab('reposts')}
-                className="hover:bg-purple-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className="hover:bg-sky-500/10 rounded-2xl p-1 transition cursor-pointer group"
               >
-                <p className="text-base sm:text-lg font-black text-purple-600 group-hover:text-purple-700">
+                <p className="text-base sm:text-lg font-black text-cyan-600 group-hover:text-cyan-700">
                   {userReposts.length}
                 </p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-purple-600">
+                <p className="text-[10px] uppercase font-bold text-sky-800/70 group-hover:text-cyan-600">
                   Reposts
                 </p>
               </button>
               <button
                 onClick={() => setFollowersModalTitle('Followers')}
-                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className="hover:bg-sky-500/10 rounded-2xl p-1 transition cursor-pointer group"
               >
-                <p className="text-base sm:text-lg font-black text-[#2563EB] group-hover:underline">
+                <p className="text-base sm:text-lg font-black text-sky-600 group-hover:underline">
                   {profileUser.followersCount || (profileUser.followers || []).length}
                 </p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                <p className="text-[10px] uppercase font-bold text-sky-800/70 group-hover:text-sky-600">
                   Followers
                 </p>
               </button>
               <button
                 onClick={() => setFollowersModalTitle('Following')}
-                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className="hover:bg-sky-500/10 rounded-2xl p-1 transition cursor-pointer group"
               >
-                <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:underline">
+                <p className="text-base sm:text-lg font-black text-sky-600 group-hover:underline">
                   {profileUser.followingCount || (profileUser.following || []).length}
                 </p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
+                <p className="text-[10px] uppercase font-bold text-sky-800/70 group-hover:text-sky-600">
                   Following
                 </p>
               </button>
               <div className="p-1">
-                <p className="text-base sm:text-lg font-black text-[#D97706]">{totalLikesReceived}</p>
-                <p className="text-[10px] uppercase font-semibold text-[#64748B]">Likes</p>
+                <p className="text-base sm:text-lg font-black text-sky-950">{totalLikesReceived}</p>
+                <p className="text-[10px] uppercase font-bold text-sky-800/70">Likes</p>
               </div>
             </div>
 
@@ -266,13 +266,13 @@ export default function UserProfileClient({
         </div>
 
         {/* Profile Tabs */}
-        <div className="flex border-t border-[#F1F5F9] pt-2 text-xs">
+        <div className="flex border-t border-sky-100/80 pt-2 text-xs">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 py-2.5 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
               activeTab === 'posts'
-                ? 'border-[#2563EB] text-[#2563EB]'
-                : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
+                ? 'border-sky-500 text-sky-600'
+                : 'border-transparent text-sky-800/70 hover:text-sky-950'
             }`}
           >
             <Grid className="h-4 w-4" />
@@ -280,10 +280,10 @@ export default function UserProfileClient({
           </button>
           <button
             onClick={() => setActiveTab('reposts')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 py-2.5 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
               activeTab === 'reposts'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-[#64748B] hover:text-purple-600'
+                ? 'border-cyan-500 text-cyan-600'
+                : 'border-transparent text-sky-800/70 hover:text-cyan-600'
             }`}
           >
             <Repeat className="h-4 w-4" />
@@ -291,10 +291,10 @@ export default function UserProfileClient({
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 py-2.5 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
               activeTab === 'about'
-                ? 'border-[#2563EB] text-[#2563EB]'
-                : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
+                ? 'border-sky-500 text-sky-600'
+                : 'border-transparent text-sky-800/70 hover:text-sky-950'
             }`}
           >
             <GraduationCap className="h-4 w-4" />

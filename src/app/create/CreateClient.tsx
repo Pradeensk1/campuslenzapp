@@ -169,23 +169,23 @@ export default function CreateClient({
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Segmented Control */}
-      <div className="flex rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9] p-1.5 text-xs shadow-xs">
+      <div className="ocean-glass-card rounded-full p-1.5 flex text-xs shadow-md border border-white/80">
         <button
           onClick={() => setActiveTab('post')}
-          className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
+          className={`flex-1 rounded-full py-2.5 font-bold transition-all duration-300 ${
             activeTab === 'post'
-              ? 'bg-white text-[#0F172A] shadow-xs'
-              : 'text-[#64748B] hover:text-[#0F172A]'
+              ? 'ocean-glossy-button text-white shadow-sm'
+              : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/40'
           }`}
         >
           Share Campus Post
         </button>
         <button
           onClick={() => setActiveTab('review')}
-          className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
+          className={`flex-1 rounded-full py-2.5 font-bold transition-all duration-300 ${
             activeTab === 'review'
-              ? 'bg-white text-[#0F172A] shadow-xs'
-              : 'text-[#64748B] hover:text-[#0F172A]'
+              ? 'ocean-glossy-button text-white shadow-sm'
+              : 'text-sky-800/80 hover:text-sky-950 hover:bg-white/40'
           }`}
         >
           Write Structured Review
@@ -193,22 +193,22 @@ export default function CreateClient({
       </div>
 
       {activeTab === 'post' ? (
-        <form onSubmit={handlePostSubmit} className="apple-card p-6 sm:p-8 space-y-5">
+        <form onSubmit={handlePostSubmit} className="ocean-glass-card touch-over-glass p-6 sm:p-8 space-y-5 rounded-[28px] border border-white/80 shadow-xl">
           <div>
-            <h2 className="text-lg font-bold text-[#0F172A]">Create a Community Post</h2>
-            <p className="mt-1 text-xs text-[#64748B]">
+            <h2 className="text-xl font-black text-sky-950 tracking-tight">Create a Community Post</h2>
+            <p className="mt-1 text-xs text-sky-800/80">
               Connect with students and alumni across campuses on placements, hostel realities, and academics.
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">
               College Association
             </label>
             <select
               value={postCollegeId}
               onChange={(e) => setPostCollegeId(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
+              className="mt-1.5 w-full ocean-glass-input rounded-2xl p-3 text-xs text-sky-950 font-semibold focus:outline-none transition-colors"
             >
               {colleges.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -217,13 +217,13 @@ export default function CreateClient({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">
               Discussion Topic
             </label>
             <select
               value={postTopic}
               onChange={(e) => setPostTopic(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
+              className="mt-1.5 w-full ocean-glass-input rounded-2xl p-3 text-xs text-sky-950 font-semibold focus:outline-none transition-colors"
             >
               <option value="Campus Life">Campus Life & Hostels</option>
               <option value="Placements & Prep">Placements & Company Drives</option>
@@ -233,7 +233,7 @@ export default function CreateClient({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">
               Your Message
             </label>
             <textarea
@@ -241,41 +241,41 @@ export default function CreateClient({
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
               placeholder="What questions or experiences would you like to share?"
-              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#2563EB] focus:outline-none transition-colors"
+              className="mt-1.5 w-full ocean-glass-input rounded-2xl p-3.5 text-xs sm:text-sm text-sky-950 placeholder-sky-800/40 focus:outline-none transition-colors font-medium"
               required
             />
           </div>
 
           {/* High-Resolution Photo or Video Attachment Support */}
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider mb-1.5">
               Attach Photo or Video Media (Lossless Quality)
             </label>
             
             {postImageUrl ? (
-              <div className="relative rounded-xl border border-[#E2E8F0] bg-slate-950 p-2 overflow-hidden">
+              <div className="relative rounded-2xl border border-sky-200/80 bg-slate-950/90 p-2 overflow-hidden shadow-inner">
                 {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? (
                   <video
                     src={postImageUrl}
                     controls
-                    className="w-full max-h-72 object-contain rounded-lg bg-black"
+                    className="w-full max-h-72 object-contain rounded-xl bg-black"
                   />
                 ) : (
                   <img
                     src={postImageUrl}
                     alt="Post media attachment"
-                    className="w-full max-h-72 object-cover rounded-lg"
+                    className="w-full max-h-72 object-cover rounded-xl"
                   />
                 )}
                 <button
                   type="button"
                   onClick={removeMedia}
-                  className="absolute top-4 right-4 bg-[#0F172A]/90 hover:bg-black text-white rounded-full p-1.5 transition shadow-md"
+                  className="absolute top-4 right-4 bg-sky-950/90 hover:bg-black text-white rounded-full p-2 transition shadow-lg"
                   title="Remove media"
                 >
                   <X className="h-4 w-4" />
                 </button>
-                <div className="mt-2 text-[11px] text-slate-300 px-1 flex items-center justify-between">
+                <div className="mt-2 text-[11px] text-sky-200 px-1 flex items-center justify-between font-medium">
                   <span className="truncate max-w-[320px]">
                     Attached: <strong>{mediaFileName || 'Media Upload'}</strong>
                   </span>
@@ -286,15 +286,15 @@ export default function CreateClient({
                 </div>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-5 cursor-pointer hover:border-[#2563EB] hover:bg-[#EFF6FF]/40 transition">
-                <div className="flex flex-col items-center justify-center text-center space-y-1">
-                  <div className="h-10 w-10 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center mb-1">
+              <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sky-300/80 bg-sky-500/5 hover:bg-sky-500/10 hover:border-sky-400 p-6 cursor-pointer transition-all group">
+                <div className="flex flex-col items-center justify-center text-center space-y-1.5">
+                  <div className="h-11 w-11 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform shadow-xs">
                     <ImageIcon className="h-5 w-5" />
                   </div>
-                  <p className="text-xs font-bold text-[#0F172A]">
+                  <p className="text-xs font-bold text-sky-950">
                     Click to upload or drag & drop photo or video
                   </p>
-                  <p className="text-[10px] text-[#64748B]">
+                  <p className="text-[10px] text-sky-700/80 font-medium">
                     Images (PNG, JPG, WebP, GIF) & Videos (MP4, WebM, MOV) up to 50MB
                   </p>
                 </div>
@@ -309,27 +309,27 @@ export default function CreateClient({
           </div>
 
           {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
+          <div className="flex items-center space-x-3 rounded-2xl border border-sky-200/70 bg-sky-50/60 p-4 text-xs">
             <input
               type="checkbox"
               id="anonPost"
               checked={postAnonymous}
               onChange={(e) => setPostAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
+              className="h-4 w-4 rounded accent-sky-600 cursor-pointer"
             />
-            <label htmlFor="anonPost" className="text-[#64748B] cursor-pointer font-medium">
-              Post as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
+            <label htmlFor="anonPost" className="text-sky-800/90 cursor-pointer font-medium">
+              Post as <strong className="text-sky-950">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
             </label>
           </div>
 
           {/* Post Submission Error Alert */}
           {postError && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
               <div className="font-bold flex items-center gap-1.5 text-rose-800">
                 <AlertTriangle className="w-4 h-4 text-rose-600" />
                 Submission Blocked by Moderation Policy
               </div>
-              <p className="text-rose-700 leading-relaxed">{postError}</p>
+              <p className="text-rose-700 leading-relaxed font-medium">{postError}</p>
             </div>
           )}
 
@@ -339,58 +339,58 @@ export default function CreateClient({
             const isSevere = ai.toxicity.score >= 80;
             const isSens = ai.isSensitive;
             return (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+              <div className="rounded-2xl border border-sky-200/80 bg-sky-100/60 backdrop-blur-xl p-4 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between border-b border-sky-200/80 pb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs font-bold text-slate-900">
+                    <Sparkles className="w-4 h-4 text-sky-600" />
+                    <span className="text-xs font-bold text-sky-950">
                       Campus Lenz AI Pre-Flight Telemetry & Post Analyzer
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-sky-600/70 font-semibold">
                     campus-lenz-ai • toxic-bert • distilbert-sst2
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   {/* Category Classifier */}
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  <div className="bg-white/80 backdrop-blur-md p-2.5 rounded-xl border border-white/90 shadow-xs space-y-1">
+                    <span className="text-[10px] text-sky-700/70 uppercase font-bold tracking-wider">
                       Topic Classification
                     </span>
-                    <div className="font-bold text-blue-700 flex items-center gap-1 truncate">
+                    <div className="font-bold text-sky-700 flex items-center gap-1 truncate">
                       <span className="truncate">{ai.classification?.category || 'General'}</span>
-                      <span className="text-[10px] text-slate-400">({Math.round((ai.classification?.confidence || 0.8) * 100)}%)</span>
+                      <span className="text-[10px] text-sky-600/70">({Math.round((ai.classification?.confidence || 0.8) * 100)}%)</span>
                     </div>
                   </div>
 
                   {/* Sentiment */}
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  <div className="bg-white/80 backdrop-blur-md p-2.5 rounded-xl border border-white/90 shadow-xs space-y-1">
+                    <span className="text-[10px] text-sky-700/70 uppercase font-bold tracking-wider">
                       Sentiment Analysis
                     </span>
-                    <div className="font-bold text-slate-800 capitalize flex items-center gap-1">
+                    <div className="font-bold text-sky-950 capitalize flex items-center gap-1">
                       <span>{ai.sentiment.label}</span>
-                      <span className="text-[10px] text-slate-400">({Math.round(ai.sentiment.score * 100)}%)</span>
+                      <span className="text-[10px] text-sky-600/70">({Math.round(ai.sentiment.score * 100)}%)</span>
                     </div>
                   </div>
 
                   {/* Toxicity */}
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  <div className="bg-white/80 backdrop-blur-md p-2.5 rounded-xl border border-white/90 shadow-xs space-y-1">
+                    <span className="text-[10px] text-sky-700/70 uppercase font-bold tracking-wider">
                       Toxicity Rating
                     </span>
                     <div className={`font-bold flex items-center gap-1 ${
                       isSevere ? 'text-rose-600' : isSens ? 'text-amber-600' : 'text-emerald-600'
                     }`}>
                       <span>{ai.toxicity.score}%</span>
-                      <span className="text-[10px] font-normal text-slate-400 capitalize">({ai.toxicity.severity})</span>
+                      <span className="text-[10px] font-normal text-sky-700/70 capitalize">({ai.toxicity.severity})</span>
                     </div>
                   </div>
 
                   {/* Moderation Recommendation */}
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                  <div className="bg-white/80 backdrop-blur-md p-2.5 rounded-xl border border-white/90 shadow-xs space-y-1">
+                    <span className="text-[10px] text-sky-700/70 uppercase font-bold tracking-wider">
                       Moderation Status
                     </span>
                     <div className={`font-bold capitalize truncate ${
@@ -404,17 +404,17 @@ export default function CreateClient({
                 </div>
 
                 {isSevere ? (
-                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-rose-50/90 border border-rose-200 text-rose-800 text-[11px] font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                     <span>🚨 Policy Alert: Potentially harmful content or severe toxicity ({ai.toxicity.score}%). Submission will be rejected with account suspension.</span>
                   </div>
                 ) : isSens ? (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-amber-50/90 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>⚠️ Sensitivity Notice: Legitimate student discussion flagged as sensitive. Will be published under the AI frosted shield.</span>
                   </div>
                 ) : (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>✨ Content Approved: Verified clean for campus-wide distribution in {ai.classification?.category || 'General'}.</span>
                   </div>
@@ -425,27 +425,27 @@ export default function CreateClient({
 
           <button
             type="submit"
-            className="apple-button-primary w-full text-xs font-bold py-3"
+            className="ocean-glossy-button w-full text-xs font-bold py-3.5 rounded-2xl text-white shadow-lg shadow-sky-500/25"
           >
             Publish to Campus Feed
           </button>
         </form>
       ) : (
-        <form onSubmit={handleReviewSubmit} className="apple-card p-6 sm:p-8 space-y-5">
-          <div className="border-b border-[#F1F5F9] pb-4">
-            <h2 className="text-lg font-bold text-[#0F172A]">Structured College Review</h2>
-            <p className="mt-1 text-xs text-[#64748B]">
+        <form onSubmit={handleReviewSubmit} className="ocean-glass-card touch-over-glass p-6 sm:p-8 space-y-5 rounded-[28px] border border-white/80 shadow-xl">
+          <div className="border-b border-sky-100 pb-4">
+            <h2 className="text-xl font-black text-sky-950 tracking-tight">Structured College Review</h2>
+            <p className="mt-1 text-xs text-sky-800/80">
               Multi-dimensional evaluation. Honest criticism is protected from institutional deletion.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Institution</label>
+              <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">Institution</label>
               <select
                 value={reviewCollegeId}
                 onChange={(e) => setReviewCollegeId(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A] focus:outline-none"
+                className="mt-1.5 w-full ocean-glass-input rounded-2xl p-2.5 text-xs text-sky-950 font-semibold focus:outline-none"
               >
                 {colleges.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -454,21 +454,21 @@ export default function CreateClient({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Course & Batch</label>
+              <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">Course & Batch</label>
               <div className="mt-1.5 flex space-x-2">
                 <input
                   type="text"
                   value={reviewCourse}
                   onChange={(e) => setReviewCourse(e.target.value)}
                   placeholder="Course (e.g. MCA)"
-                  className="w-1/2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
+                  className="w-1/2 ocean-glass-input rounded-2xl p-2.5 text-xs text-sky-950 font-medium"
                 />
                 <input
                   type="text"
                   value={reviewBatch}
                   onChange={(e) => setReviewBatch(e.target.value)}
                   placeholder="Batch (2025)"
-                  className="w-1/2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
+                  className="w-1/2 ocean-glass-input rounded-2xl p-2.5 text-xs text-sky-950 font-medium"
                 />
               </div>
             </div>
@@ -476,17 +476,17 @@ export default function CreateClient({
 
           {/* Dimension ratings */}
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider mb-2">
               Evaluation Dimensions (1 to 5 Stars)
             </label>
-            <div className="grid grid-cols-2 gap-3 text-xs bg-[#F8FAFC] p-4 rounded-xl border border-[#E2E8F0]">
+            <div className="grid grid-cols-2 gap-3 text-xs bg-sky-50/60 p-4 rounded-2xl border border-sky-200/70">
               {Object.entries(ratings).map(([key, val]) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="capitalize text-[#0F172A] font-semibold">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="capitalize text-sky-950 font-bold">{key.replace(/([A-Z])/g, ' $1')}</span>
                   <select
                     value={val}
                     onChange={(e) => setRatings({ ...ratings, [key]: Number(e.target.value) })}
-                    className="rounded-lg bg-white border border-[#CBD5E1] px-2.5 py-1 text-xs text-[#D97706] font-bold"
+                    className="rounded-xl bg-white border border-sky-200 px-2.5 py-1 text-xs text-amber-600 font-bold shadow-xs"
                   >
                     {[5, 4, 3, 2, 1].map((s) => (
                       <option key={s} value={s}>{s} ★</option>
@@ -498,69 +498,69 @@ export default function CreateClient({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Review Title</label>
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">Review Title</label>
             <input
               type="text"
               value={reviewTitle}
               onChange={(e) => setReviewTitle(e.target.value)}
               placeholder="e.g. Excellent placement records, but hostel facilities need overhaul"
-              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs sm:text-sm text-[#0F172A]"
+              className="mt-1.5 w-full ocean-glass-input rounded-2xl p-3 text-xs sm:text-sm text-sky-950 font-medium placeholder-sky-800/40"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">Detailed Experience</label>
+            <label className="block text-xs font-bold text-sky-900/80 uppercase tracking-wider">Detailed Experience</label>
             <textarea
               rows={3}
               value={reviewExperience}
               onChange={(e) => setReviewExperience(e.target.value)}
               placeholder="Provide realistic, honest insights on faculty teaching, syllabus, and campus life..."
-              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs sm:text-sm text-[#0F172A]"
+              className="mt-1.5 w-full ocean-glass-input rounded-2xl p-3 text-xs sm:text-sm text-sky-950 font-medium placeholder-sky-800/40"
               required
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold text-[#059669]">Pros (Comma separated)</label>
+              <label className="block text-xs font-bold text-emerald-700">Pros (Comma separated)</label>
               <input
                 type="text"
                 value={reviewPros}
                 onChange={(e) => setReviewPros(e.target.value)}
                 placeholder="High placements, top faculty"
-                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
+                className="mt-1.5 w-full ocean-glass-input rounded-2xl p-2.5 text-xs text-sky-950 font-medium"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#D97706]">Cons (Comma separated)</label>
+              <label className="block text-xs font-bold text-amber-700">Cons (Comma separated)</label>
               <input
                 type="text"
                 value={reviewCons}
                 onChange={(e) => setReviewCons(e.target.value)}
                 placeholder="Strict attendance, mess food"
-                className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-2.5 text-xs text-[#0F172A]"
+                className="mt-1.5 w-full ocean-glass-input rounded-2xl p-2.5 text-xs text-sky-950 font-medium"
               />
             </div>
           </div>
 
           {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
+          <div className="flex items-center space-x-3 rounded-2xl border border-sky-200/70 bg-sky-50/60 p-4 text-xs">
             <input
               type="checkbox"
               id="anonRev"
               checked={reviewAnonymous}
               onChange={(e) => setReviewAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
+              className="h-4 w-4 rounded accent-sky-600 cursor-pointer"
             />
-            <label htmlFor="anonRev" className="text-[#64748B] cursor-pointer font-medium">
-              Publish as <strong className="text-[#0F172A]">Anonymous Contributor</strong>
+            <label htmlFor="anonRev" className="text-sky-800/90 cursor-pointer font-medium">
+              Publish as <strong className="text-sky-950">Anonymous Contributor</strong>
             </label>
           </div>
 
           <button
             type="submit"
-            className="apple-button-primary w-full text-xs font-bold py-3"
+            className="ocean-glossy-button w-full text-xs font-bold py-3.5 rounded-2xl text-white shadow-lg shadow-sky-500/25"
           >
             Submit Review
           </button>
