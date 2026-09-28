@@ -1,0 +1,202 @@
+[
+  {
+    "id": "dup_01",
+    "topic": "hostel",
+    "text_a": "The hostel rooms are very small and poorly maintained.",
+    "text_b": "Hostel accommodation is cramped and the rooms aren't maintained properly.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_02",
+    "topic": "placements",
+    "text_a": "Placement opportunities are outstanding with many multinational tech companies hiring.",
+    "text_b": "The college has top-tier campus placements and excellent visits from major global IT firms.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_03",
+    "topic": "faculty",
+    "text_a": "The professors are approachable and clarify complex concepts with great patience.",
+    "text_b": "Faculty members are helpful, friendly, and always ready to explain difficult topics.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_04",
+    "topic": "academics",
+    "text_a": "The semester curriculum is rigorous and thoroughly covers all practical computer science topics.",
+    "text_b": "Our academic syllabus is demanding and provides comprehensive coverage of key CS practicals.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_05",
+    "topic": "campus_life",
+    "text_a": "Campus life is vibrant with numerous student clubs and cultural festivals organized every term.",
+    "text_b": "There is an active student culture here with lots of society events and campus fests throughout the year.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_06",
+    "topic": "fees",
+    "text_a": "Tuition fees are exorbitant and not worth the return on investment.",
+    "text_b": "The college charges very expensive fees that fail to justify the academic return.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_07",
+    "topic": "infrastructure",
+    "text_a": "The library is spacious, air-conditioned, and stocked with updated reference materials.",
+    "text_b": "Our campus library offers plenty of room, good cooling, and a rich collection of modern textbooks.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_08",
+    "topic": "events",
+    "text_a": "The annual robotics hackathon will be hosted this Saturday in the main seminar hall.",
+    "text_b": "A robotics coding competition is taking place in the central seminar hall this coming Saturday.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_09",
+    "topic": "hostel",
+    "text_a": "The mess food is repetitive, unhygienic, and lacks proper nutritional value.",
+    "text_b": "Hostel dining serves monotonous and unhealthy meals that taste substandard.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "dup_10",
+    "topic": "infrastructure",
+    "text_a": "The mechanical workshop equipment is outdated and several machines are out of order.",
+    "text_b": "Many workshop machines in the mechanical lab are broken and the tools are obsolete.",
+    "expected": {
+      "likely_duplicate": true,
+      "relationship": "paraphrase"
+    }
+  },
+  {
+    "id": "non_dup_01",
+    "topic": "hostel",
+    "text_a": "The hostel food is excellent and very tasty.",
+    "text_b": "The hostel food is terrible and completely unpalatable.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "opposite_sentiment"
+    }
+  },
+  {
+    "id": "non_dup_02",
+    "topic": "placements",
+    "text_a": "Campus placements were highly successful with record high packages.",
+    "text_b": "Campus placements were a total disaster with almost no companies visiting.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "opposite_sentiment"
+    }
+  },
+  {
+    "id": "non_dup_03",
+    "topic": "faculty",
+    "text_a": "Professors in our department are extremely friendly and supportive to students.",
+    "text_b": "Professors in our department publish papers in high-impact international conferences.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_aspect"
+    }
+  },
+  {
+    "id": "non_dup_04",
+    "topic": "infrastructure",
+    "text_a": "The library has an extensive collection of rare research journals.",
+    "text_b": "The library wifi connection has been dropping constantly since Monday.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_aspect"
+    }
+  },
+  {
+    "id": "non_dup_05",
+    "topic": "events",
+    "text_a": "The inter-college cricket tournament starts this Friday on the south ground.",
+    "text_b": "The artificial intelligence research symposium starts this Friday in auditorium 2.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_event"
+    }
+  },
+  {
+    "id": "non_dup_06",
+    "topic": "different_topics",
+    "text_a": "Semester tuition fees increased by twenty percent this year.",
+    "text_b": "The football team won the regional championship trophy yesterday.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_topics"
+    }
+  },
+  {
+    "id": "non_dup_07",
+    "topic": "different_topics",
+    "text_a": "Hostel gates are locked strictly at 9 PM for all first-year students.",
+    "text_b": "Students must maintain a 7.5 CGPA to be eligible for placement drives.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_topics"
+    }
+  },
+  {
+    "id": "non_dup_08",
+    "topic": "different_topics",
+    "text_a": "The computer center installed sixty new high-performance workstations.",
+    "text_b": "The college campus shuttle runs every twenty minutes from the metro station.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_topics"
+    }
+  },
+  {
+    "id": "non_dup_09",
+    "topic": "academics",
+    "text_a": "Mid-term examinations have been postponed by two weeks due to the local elections.",
+    "text_b": "The operating systems mid-term was extremely tricky and full of theoretical proofs.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_aspect"
+    }
+  },
+  {
+    "id": "non_dup_10",
+    "topic": "events",
+    "text_a": "The evening musical concert during the cultural fest had great celebrity performances.",
+    "text_b": "Students presented their blockchain prototypes to industry judges in the technical contest.",
+    "expected": {
+      "likely_duplicate": false,
+      "relationship": "different_event"
+    }
+  }
+]

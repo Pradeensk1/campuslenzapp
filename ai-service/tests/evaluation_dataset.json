@@ -1,0 +1,620 @@
+[
+  {
+    "id": "rev_01",
+    "type": "review",
+    "text": "The professors explain concepts with great clarity and the computer labs have modern equipment.",
+    "expected": {
+      "overall_sentiment": "positive",
+      "aspects": [
+        {"name": "Faculty", "sentiment": "positive"},
+        {"name": "Infrastructure", "sentiment": "positive"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_02",
+    "type": "review",
+    "text": "The hostel rooms are cramped, ventilation is poor, and hot water is rarely available.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "aspects": [
+        {"name": "Hostel", "sentiment": "negative"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_03",
+    "type": "review",
+    "text": "Placement support was disappointing with very few core companies visiting, and the fees are too high for what they offer.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "aspects": [
+        {"name": "Placements", "sentiment": "negative"},
+        {"name": "Value for Money", "sentiment": "negative"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_04",
+    "type": "review",
+    "text": "The campus is average and clubs organize standard events throughout the semester.",
+    "expected": {
+      "overall_sentiment": "neutral",
+      "aspects": [
+        {"name": "Campus Life", "sentiment": "neutral"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_05",
+    "type": "review",
+    "text": "The professors are helpful and placement opportunities are excellent, but the hostel rooms are poorly maintained and expensive.",
+    "expected": {
+      "overall_sentiment": "mixed",
+      "aspects": [
+        {"name": "Faculty", "sentiment": "positive"},
+        {"name": "Placements", "sentiment": "positive"},
+        {"name": "Hostel", "sentiment": "negative"},
+        {"name": "Value for Money", "sentiment": "negative"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_06",
+    "type": "review",
+    "text": "The academic curriculum is rigorous and thoroughly covers all essential topics.",
+    "expected": {
+      "overall_sentiment": "positive",
+      "aspects": [
+        {"name": "Academics", "sentiment": "positive"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_07",
+    "type": "review",
+    "text": "Overall student experience here has been wonderful with great peer learning.",
+    "expected": {
+      "overall_sentiment": "positive",
+      "aspects": [
+        {"name": "Student Experience", "sentiment": "positive"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_08",
+    "type": "review",
+    "text": "This college is an absolute bullshit institution run by incompetent administrators.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "moderation": "normal",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "rev_09",
+    "type": "review",
+    "text": "I will bring a weapon to campus and attack the department head tomorrow.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "rev_10",
+    "type": "review",
+    "text": "Looking for cheap assignments? Visit http://buy-college-essays.net for 50% discount!",
+    "expected": {
+      "overall_sentiment": "neutral",
+      "moderation": "spam",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "rev_11",
+    "type": "review",
+    "text": "The semester exams were difficult as hell, but the grading was fair.",
+    "expected": {
+      "overall_sentiment": "neutral",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_12",
+    "type": "review",
+    "text": "Some senior students acted cocky during the orientation session.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_13",
+    "type": "review",
+    "text": "The machine learning lab session was damn interesting and insightful.",
+    "expected": {
+      "overall_sentiment": "positive",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_14",
+    "type": "review",
+    "text": "A bloody nose happened during football practice on the campus field.",
+    "expected": {
+      "overall_sentiment": "neutral",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_15",
+    "type": "review",
+    "text": "Professor Smith is a criminal who steals research papers and should be harassed until he quits.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "moderation": "sensitive",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_16",
+    "type": "review",
+    "text": "The hostel mess food is oily, cold, and repetitive every single week.",
+    "expected": {
+      "overall_sentiment": "negative",
+      "aspects": [
+        {"name": "Hostel", "sentiment": "negative"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_17",
+    "type": "review",
+    "text": "Top tech companies visited for campus recruitment and offer letters were delivered promptly.",
+    "expected": {
+      "overall_sentiment": "positive",
+      "aspects": [
+        {"name": "Placements", "sentiment": "positive"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "rev_18",
+    "type": "review",
+    "text": "The library and sports facilities are outstanding, but the course curriculum is completely outdated.",
+    "expected": {
+      "overall_sentiment": "mixed",
+      "aspects": [
+        {"name": "Infrastructure", "sentiment": "positive"},
+        {"name": "Academics", "sentiment": "negative"}
+      ],
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_01",
+    "type": "post",
+    "text": "The annual coding hackathon will take place this Saturday in the main seminar hall.",
+    "expected": {
+      "sentiment": "positive",
+      "category": "Events",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_02",
+    "type": "post",
+    "text": "Does anyone have lecture notes or slides for the Advanced Algorithms mid-term?",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "Academics",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_03",
+    "type": "post",
+    "text": "The campus wifi in the mechanical building has been disconnected since yesterday morning.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Infrastructure",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_04",
+    "type": "post",
+    "text": "The water purifier on the second floor of Hostel Block B has stopped working.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Hostel",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_05",
+    "type": "post",
+    "text": "Lost a blue scientific calculator near the cafeteria bench around 2 PM.",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "Campus Life",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_06",
+    "type": "post",
+    "text": "Work from home and earn $500 daily! Join our telegram channel now: t.me/fastcashcollege",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "General",
+      "moderation": "spam",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "post_07",
+    "type": "post",
+    "text": "I am going to plant explosives in the science block tomorrow morning.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Campus Life",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "post_08",
+    "type": "post",
+    "text": "A professor in the chemistry department has been privately blackmailing two girls for grades.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Faculty",
+      "moderation": "sensitive",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_09",
+    "type": "post",
+    "text": "This administrative staff is full of assholes who refuse to sign our clearance forms.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "General",
+      "moderation": "normal",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "post_10",
+    "type": "post",
+    "text": "Tuition fees were raised by fifteen percent this year without any improvement in laboratory resources.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Fees",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_11",
+    "type": "post",
+    "text": "Congratulations to our batchmates who received internship offers from international firms today!",
+    "expected": {
+      "sentiment": "positive",
+      "category": "Placements",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_12",
+    "type": "post",
+    "text": "Traffic outside the campus gate during rush hour is pure hell.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Campus Life",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_13",
+    "type": "post",
+    "text": "That guest lecture on quantum computing was damn good and inspiring.",
+    "expected": {
+      "sentiment": "positive",
+      "category": "Academics",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_14",
+    "type": "post",
+    "text": "The debate team from the visiting college was cocky during the opening remarks.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Events",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_15",
+    "type": "post",
+    "text": "I am extremely angry about the sudden reschedule of the mid-semester exam.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Academics",
+      "moderation": "normal",
+      "action": "publish",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "post_16",
+    "type": "post",
+    "text": "I will beat up the student council president in the parking lot after exams.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "Campus Life",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "msg_01",
+    "type": "message",
+    "text": "Hey, do you want to form a team for the upcoming machine learning contest?",
+    "expected": {
+      "sentiment": "positive",
+      "category": "academic",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_02",
+    "type": "message",
+    "text": "I don't agree with your calculations for the lab report, check step four again.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "academic",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_03",
+    "type": "message",
+    "text": "Your presentation slides were poorly prepared and you arrived late to our team meeting.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_04",
+    "type": "message",
+    "text": "Stop messaging me, I asked you three times to leave me alone.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_05",
+    "type": "message",
+    "text": "I am furious with you for losing my textbook before the exam.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_06",
+    "type": "message",
+    "text": "I am going to hurt you tomorrow if you show up to class.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "threat",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "msg_07",
+    "type": "message",
+    "text": "I am bringing a knife to the campus hostel tonight to settle this dispute.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "threat",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "msg_08",
+    "type": "message",
+    "text": "You are an absolute bastard for lying about the assignment submission.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "msg_09",
+    "type": "message",
+    "text": "Get instant cash loans with 0% interest for college students at http://quick-loans-india.xyz",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "spam",
+      "moderation": "spam",
+      "action": "reject",
+      "policy_result": "reject"
+    }
+  },
+  {
+    "id": "msg_10",
+    "type": "message",
+    "text": "You are stupid and nobody in the project group wants to work with you.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_11",
+    "type": "message",
+    "text": "I studied for ten hours and it was damn exhausting.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_12",
+    "type": "message",
+    "text": "My morning commute to college was absolute hell today because of the rain.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "general",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_13",
+    "type": "message",
+    "text": "I accidentally cut my finger during workshop and got a bloody bandage.",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "general",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_14",
+    "type": "message",
+    "text": "I will wait outside your hostel room and attack you when you step out.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "threat",
+      "moderation": "potentially_harmful",
+      "action": "safety_review",
+      "policy_result": "safety_review"
+    }
+  },
+  {
+    "id": "msg_15",
+    "type": "message",
+    "text": "The cultural fest rehearsal starts at 6 PM sharp in the auditorium.",
+    "expected": {
+      "sentiment": "neutral",
+      "category": "event",
+      "moderation": "normal",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  },
+  {
+    "id": "msg_16",
+    "type": "message",
+    "text": "If you share my private personal photos with others I will report you to the police.",
+    "expected": {
+      "sentiment": "negative",
+      "category": "personal",
+      "moderation": "sensitive",
+      "action": "allow",
+      "policy_result": "publish"
+    }
+  }
+]
