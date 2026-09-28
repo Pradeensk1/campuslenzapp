@@ -154,14 +154,14 @@ export async function POST(request: Request) {
     // Run Automated Open-Source AI Moderation
     const aiResult = runUnifiedAIModeration(content, imageUrl, DEFAULT_AI_MODEL_SETTINGS);
 
-    // Severe toxicity check (Automatic rejection)
-    if (aiResult.actionRecommended === 'auto_ban' || aiResult.toxicity.score >= DEFAULT_AI_MODEL_SETTINGS.autoBanThreshold) {
+    // Severe violence/threat check (Only extreme threats are rejected)
+    if (aiResult.toxicity.categories.threat > 90 || aiResult.toxicity.categories.identityHate > 95) {
       return NextResponse.json(
         {
           success: false,
           policyViolation: true,
           actionRecommended: 'auto_ban',
-          message: `🚨 Post rejected by unitary/toxic-bert model due to severe toxicity violation (Toxicity: ${aiResult.toxicity.score}%). Account cooldown enforced.`,
+          message: `🚨 Post could not be published due to severe safety policy violation (Violence Threat/Hate Speech detected).`,
         },
         { status: 422 }
       );

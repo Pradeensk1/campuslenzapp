@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import HomePageClient from './HomePageClient';
+import { INITIAL_POSTS } from '@/lib/mockData';
 
 export default async function Page() {
   const cookieStore = await cookies();
@@ -80,5 +81,5 @@ export default async function Page() {
     .select('*')
     .order('rating_average', { ascending: false });
 
-  return <HomePageClient initialPosts={posts} initialColleges={colleges || []} />;
+  return <HomePageClient initialPosts={posts.length > 0 ? posts : INITIAL_POSTS} initialColleges={colleges || []} />;
 }

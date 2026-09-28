@@ -330,7 +330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [colleges, setColleges] = useState<College[]>(INITIAL_COLLEGES);
   const [reviews, setReviews] = useState<CollegeReview[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [servers, setServers] = useState<DiscordServer[]>(INITIAL_DISCORD_SERVERS);
   const [serverMessages, setServerMessages] = useState<ServerMessage[]>([]);
@@ -401,8 +401,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
             setPosts(prev => {
               const cloudPosts: Post[] = data.posts;
-              // Preserve any posts that may be in transition
-              const combined = [...cloudPosts];
+              // Preserve any posts that may be in transition, and preserve local media attachments if cloud has null
+              const combined = cloudPosts.map(cp => {
+                const localMatch = prev.find(p => p.id === cp.id || (p.content === cp.content && p.authorUsername === cp.authorUsername));
+                if (localMatch && localMatch.imageUrl && !cp.imageUrl) {
+                  return { ...cp, imageUrl: localMatch.imageUrl };
+                }
+                return cp;
+              });
               prev.forEach(localP => {
                 if (!combined.some(c => c.id === localP.id || c.content === localP.content)) {
                   combined.push(localP);
@@ -491,8 +497,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(parsed.currentUser);
           setIsAuthenticated(true);
         }
-        if (parsed.posts && Array.isArray(parsed.posts)) {
-          setPosts(parsed.posts);
+        if (parsed.posts && Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+          const existingIds = new Set(parsed.posts.map((p: any) => p.id));
+          const merged = [...parsed.posts];
+          INITIAL_POSTS.forEach(ip => {
+            if (!existingIds.has(ip.id)) {
+              merged.push(ip);
+              existingIds.add(ip.id);
+            }
+          });
+          setPosts(merged);
+        } else {
+          setPosts(INITIAL_POSTS);
         }
         if (parsed.reviews && Array.isArray(parsed.reviews)) {
           setReviews(parsed.reviews);
@@ -538,7 +554,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) setAuditLogs(parsed.auditLogs);
       } else {
         setAllUsers([]);
-        setPosts([]);
+        setPosts(INITIAL_POSTS);
         setReviews([]);
         setCommunities([]);
         setServers(INITIAL_DISCORD_SERVERS);
@@ -1363,8 +1379,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // AUTOMATED OPEN-SOURCE AI MODERATION SCAN (toxic-bert + distilbert + nsfwjs)
     const aiResult = runUnifiedAIModeration(newPost.content, newPost.imageUrl, aiModelSettings);
 
-    // 1. Critical Toxicity / Severe Hate Speech / Threat -> AUTOMATED TOXICITY BAN
-    if (aiModelSettings.autoBanEnabled && (aiResult.actionRecommended === 'auto_ban' || aiResult.toxicity.score >= aiModelSettings.autoBanThreshold)) {
+    // 1. Critical Threats / Severe Hate Speech -> AUTOMATED TOXICITY BAN (Only for severe threats)
+    if (aiModelSettings.autoBanEnabled && (aiResult.toxicity.categories.threat > 90 || aiResult.toxicity.categories.identityHate > 95)) {
       const nextStrikes = (currentUser.strikesCount || 0) + 1;
       const bannedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
       const updatedUser: UserProfile = {

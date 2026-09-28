@@ -20,9 +20,9 @@ import {
 } from '@/types';
 
 export const DEFAULT_AI_MODEL_SETTINGS: AIModelSettings = {
-  autoBanThreshold: 80,
+  autoBanThreshold: 90,
   blurThreshold: 35,
-  autoBanEnabled: true,
+  autoBanEnabled: false,
   activeTextModel: 'campus-lenz-ai + unitary/toxic-bert + distilbert-sst2',
   activeVisionModel: 'nsfwjs-mobilenet-v2'
 };
@@ -115,12 +115,27 @@ export function analyzeTextSentiment(text: string): TextSentimentAnalysis {
 // ============================================================================
 
 const TOXIC_PATTERNS = {
-  insult: ['idiot', 'stupid', 'loser', 'dumb', 'clown', 'trash', 'moron', 'pathetic', 'shut up', 'bastard', 'bitch', 'retard'],
-  threat: ['kill', 'die', 'murder', 'destroy', 'beat up', 'punch', 'slap', 'shoot', 'bomb', 'stab', 'eliminate', 'hang yourself'],
+  insult: ['idiot', 'stupid', 'loser', 'moron', 'shut up', 'bastard', 'bitch', 'retard'],
+  threat: ['kill you', 'kill him', 'kill her', 'kill them', 'kill everyone', 'murder you', 'murder him', 'beat you up', 'punch you', 'shoot you', 'shoot up', 'bomb the', 'stab you', 'hang yourself'],
   identityHate: ['fag', 'nigger', 'cunt', 'chink', 'slut', 'whore', 'raghead', 'subhuman'],
-  obscene: ['fuck', 'f***', 'shit', 'asshole', 'dick', 'pussy', 'cock', 'bullshit', 'prick'],
-  ragebait: ['worst college', 'scam', 'fraud', 'cheat', 'scammed', 'liars', 'corrupt', 'boycott']
+  obscene: ['fuck', 'f***', 'shit', 'asshole', 'dick', 'pussy', 'bullshit', 'prick'],
+  ragebait: ['worst college', 'scam college', 'fraud degree', 'scam administration', 'boycott classes']
 };
+
+/**
+ * Robust word boundary matcher that prevents false substring matches
+ * (e.g. 'studied' won't match 'die', 'skills' won't match 'kill', 'pass' won't match 'ass').
+ */
+function matchesWordPattern(text: string, pattern: string): boolean {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (pattern.includes(' ') || pattern.includes('-')) {
+    const phrasePattern = escaped.replace(/\s+/g, '\\s+');
+    const regex = new RegExp(`(^|[^a-zA-Z0-9_])${phrasePattern}([^a-zA-Z0-9_]|$)`, 'i');
+    return regex.test(text);
+  }
+  const regex = new RegExp(`(^|[^a-zA-Z0-9_])${escaped}([^a-zA-Z0-9_]|$)`, 'i');
+  return regex.test(text);
+}
 
 export function analyzeTextToxicity(text: string): TextToxicityAnalysis {
   if (!text || !text.trim()) {
@@ -145,23 +160,28 @@ export function analyzeTextToxicity(text: string): TextToxicityAnalysis {
 
   // Check insults
   for (const word of TOXIC_PATTERNS.insult) {
-    if (lower.includes(word)) {
+    if (matchesWordPattern(lower, word)) {
       flaggedKeywords.push(word);
-      insultScore = Math.max(insultScore, 75);
+      // Differentiate harsh slurs from mild insults
+      if (word === 'retard' || word === 'bitch' || word === 'bastard') {
+        insultScore = Math.max(insultScore, 58);
+      } else {
+        insultScore = Math.max(insultScore, 35);
+      }
     }
   }
 
   // Check threats
-  for (const word of TOXIC_PATTERNS.threat) {
-    if (lower.includes(word)) {
-      flaggedKeywords.push(word);
+  for (const phrase of TOXIC_PATTERNS.threat) {
+    if (matchesWordPattern(lower, phrase)) {
+      flaggedKeywords.push(phrase);
       threatScore = Math.max(threatScore, 92);
     }
   }
 
   // Check identity hate
   for (const word of TOXIC_PATTERNS.identityHate) {
-    if (lower.includes(word)) {
+    if (matchesWordPattern(lower, word)) {
       flaggedKeywords.push(word);
       identityScore = Math.max(identityScore, 96);
     }
@@ -169,40 +189,38 @@ export function analyzeTextToxicity(text: string): TextToxicityAnalysis {
 
   // Check obscenities
   for (const word of TOXIC_PATTERNS.obscene) {
-    if (lower.includes(word)) {
+    if (matchesWordPattern(lower, word)) {
       flaggedKeywords.push(word);
-      obsceneScore = Math.max(obsceneScore, 70);
+      if (word === 'fuck' || word === 'f***' || word === 'asshole') {
+        obsceneScore = Math.max(obsceneScore, 52);
+      } else {
+        obsceneScore = Math.max(obsceneScore, 30);
+      }
     }
   }
 
   // Check ragebait
-  for (const word of TOXIC_PATTERNS.ragebait) {
-    if (word === 'cheat') {
-      // Exclude academic 'cheat sheet', 'cheat sheets', or 'cheat-sheet'
-      if (lower.includes('cheat sheet') || lower.includes('cheat sheets') || lower.includes('cheat-sheet')) {
-        continue;
-      }
-    }
-    if (lower.includes(word)) {
-      flaggedKeywords.push(word);
-      ragebaitScore = Math.max(ragebaitScore, 68);
+  for (const phrase of TOXIC_PATTERNS.ragebait) {
+    if (matchesWordPattern(lower, phrase)) {
+      flaggedKeywords.push(phrase);
+      ragebaitScore = Math.max(ragebaitScore, 48);
     }
   }
 
   // Calculate composite toxicity score
   const maxCategory = Math.max(insultScore, threatScore, identityScore, obsceneScore, ragebaitScore);
   const compositeScore = flaggedKeywords.length === 0
-    ? 4
+    ? 3
     : Math.min(99, maxCategory + (flaggedKeywords.length - 1) * 3);
 
   let severity: TextToxicityAnalysis['severity'] = 'clean';
   if (compositeScore >= 80) severity = 'severe';
-  else if (compositeScore >= 50) severity = 'moderate';
-  else if (compositeScore >= 25) severity = 'mild';
+  else if (compositeScore >= 45) severity = 'moderate';
+  else if (compositeScore >= 20) severity = 'mild';
 
   return {
     score: compositeScore,
-    isToxic: compositeScore >= 40,
+    isToxic: compositeScore >= 45,
     severity,
     flaggedKeywords: Array.from(new Set(flaggedKeywords)),
     categories: {
@@ -457,15 +475,15 @@ export function analyzeCampusLenzPost(
   const hasSpam = NON_COLLEGE_INDICATORS.some(kw => lower.includes(kw)) ||
     lower.includes('buy now') || lower.includes('click here') || lower.includes('free money');
 
-  if (toxicityRes.categories.threat > 80 || toxicityRes.categories.identityHate > 85 || toxicityRes.score >= 85) {
+  if (toxicityRes.categories.threat > 90 || toxicityRes.categories.identityHate > 95) {
     moderation = 'potentially_harmful';
-    flagReason = 'Potentially harmful content: Severe harassment or threat detected.';
-  } else if (hasSpam || (!catRes.isCollegeRelated && toxicityRes.score > 20 && !catRes.isCollegeRelated)) {
+    flagReason = 'Potentially harmful content: Severe threat or hate speech detected.';
+  } else if (hasSpam) {
     moderation = 'spam';
     flagReason = 'Spam/unsolicited commercial content detected.';
-  } else if (toxicityRes.score >= 40 || sentimentRes.label === 'ragebait' || lower.includes('scam') || lower.includes('fraud')) {
+  } else if (toxicityRes.score >= 35 || sentimentRes.label === 'ragebait' || lower.includes('scam college') || lower.includes('fraud administration')) {
     moderation = 'sensitive';
-    flagReason = 'Sensitive campus content: Requires constructive decorum or review.';
+    flagReason = 'Sensitive campus discussion: Shielded for community review.';
   } else {
     moderation = 'normal';
   }
@@ -480,7 +498,7 @@ export function analyzeCampusLenzPost(
   } else if (moderation === 'spam') {
     action = 'reject';
   } else {
-    // Normal & sensitive are published (sensitive can be masked/notified)
+    // Normal & sensitive are always published (sensitive is displayed under frosted shield)
     action = 'publish';
   }
 
@@ -617,36 +635,37 @@ export function runUnifiedAIModeration(
   let actionRecommended: UnifiedAIModerationResult['actionRecommended'] = 'allow';
   let actionReason: string | undefined = undefined;
 
-  // 1. Critical Toxicity / Potentially Harmful -> Safety Review / Auto-Ban Trigger
-  if (postAnalysis.moderation === 'potentially_harmful' || toxicity.score >= autoBanThreshold || toxicity.categories.threat > 85 || toxicity.categories.identityHate > 85) {
+  // 1. Critical Physical Threats or Extreme Hate Speech -> Safety Review / Auto-Ban Trigger
+  if (postAnalysis.moderation === 'potentially_harmful' || toxicity.categories.threat > 90 || toxicity.categories.identityHate > 95) {
     isHarmful = true;
     isSensitive = true;
     actionRecommended = 'auto_ban';
-    actionReason = postAnalysis.flagReason || `Severe policy violation: ${toxicity.categories.threat > 85 ? 'Violent Threat' : toxicity.categories.identityHate > 85 ? 'Hate Speech' : 'Severe Toxicity'} detected (${toxicity.score}%).`;
+    actionReason = postAnalysis.flagReason || `Severe policy violation: ${toxicity.categories.threat > 90 ? 'Violent Threat' : 'Hate Speech'} detected.`;
   }
-  // 2. High Toxicity, Spam, or Graphic Visuals -> Quarantine
-  else if (postAnalysis.moderation === 'spam' || toxicity.score >= 65 || imageSafety?.status === 'graphic') {
+  // 2. Unsolicited Commercial Spam or Graphic Visuals -> Quarantine
+  else if (postAnalysis.moderation === 'spam' || imageSafety?.status === 'graphic') {
     isHarmful = true;
     isSensitive = true;
     actionRecommended = 'quarantine';
     actionReason = imageSafety?.status === 'graphic'
       ? `Graphic or explicit imagery detected by nsfwjs (${imageSafety.detectedLabels.join(', ')})`
-      : postAnalysis.moderation === 'spam'
-      ? `Promotional or spam content flagged by campus-lenz-ai.`
-      : `Elevated hostility and abusive language (${toxicity.score}%) detected by toxic-bert.`;
+      : 'Promotional or spam content flagged by campus-lenz-ai.';
   }
-  // 3. Elevated Toxicity, Sensitive Moderation, or Suggestive Content -> Sensitive Content Blur Shield
+  // 3. Sensitive Discussion, Student Grievance, or Suggestive Imagery -> Sensitive Content Frosted Shield (Published & Visible)
   else if (postAnalysis.moderation === 'sensitive' || toxicity.score >= blurThreshold || sentiment.label === 'ragebait' || imageSafety?.status === 'suggestive') {
     isSensitive = true;
+    isHarmful = false;
     actionRecommended = 'blur_sensitive';
     actionReason = postAnalysis.flagReason || (sentiment.label === 'ragebait'
-      ? 'Sensationalist ragebait discourse detected'
+      ? 'Controversial or heightened campus discourse'
       : imageSafety?.status === 'suggestive'
       ? 'Suggestive or non-academic imagery detected'
       : `Moderate hostility pattern (${toxicity.score}%) detected`);
   }
-  // 4. Clean content
+  // 4. Normal Clean content -> Allow
   else {
+    isSensitive = false;
+    isHarmful = false;
     actionRecommended = 'allow';
   }
 
