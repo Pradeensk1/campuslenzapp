@@ -177,6 +177,12 @@ export function analyzeTextToxicity(text: string): TextToxicityAnalysis {
 
   // Check ragebait
   for (const word of TOXIC_PATTERNS.ragebait) {
+    if (word === 'cheat') {
+      // Exclude academic 'cheat sheet', 'cheat sheets', or 'cheat-sheet'
+      if (lower.includes('cheat sheet') || lower.includes('cheat sheets') || lower.includes('cheat-sheet')) {
+        continue;
+      }
+    }
     if (lower.includes(word)) {
       flaggedKeywords.push(word);
       ragebaitScore = Math.max(ragebaitScore, 68);
@@ -292,7 +298,8 @@ const CATEGORY_LEXICON: Record<CampusLenzAllowedCategory, string[]> = {
   Academics: [
     'course', 'courses', 'curriculum', 'syllabus', 'exam', 'exams', 'subjects', 'subject',
     'lecture', 'lectures', 'assignment', 'assignments', 'grade', 'grades', 'gpa', 'study',
-    'studying', 'learning', 'semester', 'semesters', 'test', 'tests', 'gate', 'notes', 'credits'
+    'studying', 'learning', 'semester', 'semesters', 'test', 'tests', 'gate', 'notes', 'credits',
+    'midterm', 'midterms', 'roadmap', 'problem set', 'problem sets', 'cheat sheet', 'algorithms', 'data structures'
   ],
   Faculty: [
     'professor', 'professors', 'prof', 'teacher', 'teachers', 'faculty', 'teaching staff',
@@ -382,7 +389,7 @@ export function classifyCampusLenzCategory(text: string): CampusLenzCategoryClas
         if (lower.includes(kw)) {
           scores[cat] += 4;
         }
-      } else if (words.includes(kw)) {
+      } else if (words.includes(kw) || lower.includes(` ${kw} `) || lower.startsWith(`${kw} `) || lower.endsWith(` ${kw}`) || lower.includes(kw)) {
         scores[cat] += 2;
       }
     }
@@ -450,12 +457,12 @@ export function analyzeCampusLenzPost(
   const hasSpam = NON_COLLEGE_INDICATORS.some(kw => lower.includes(kw)) ||
     lower.includes('buy now') || lower.includes('click here') || lower.includes('free money');
 
-  if (hasSpam || (!catRes.isCollegeRelated && toxicityRes.score > 20)) {
-    moderation = 'spam';
-    flagReason = 'Spam/unsolicited commercial content detected.';
-  } else if (toxicityRes.categories.threat > 80 || toxicityRes.categories.identityHate > 85 || toxicityRes.score >= 85) {
+  if (toxicityRes.categories.threat > 80 || toxicityRes.categories.identityHate > 85 || toxicityRes.score >= 85) {
     moderation = 'potentially_harmful';
     flagReason = 'Potentially harmful content: Severe harassment or threat detected.';
+  } else if (hasSpam || (!catRes.isCollegeRelated && toxicityRes.score > 20 && !catRes.isCollegeRelated)) {
+    moderation = 'spam';
+    flagReason = 'Spam/unsolicited commercial content detected.';
   } else if (toxicityRes.score >= 40 || sentimentRes.label === 'ragebait' || lower.includes('scam') || lower.includes('fraud')) {
     moderation = 'sensitive';
     flagReason = 'Sensitive campus content: Requires constructive decorum or review.';
