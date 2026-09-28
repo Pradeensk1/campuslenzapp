@@ -583,68 +583,73 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           
           {/* User Profile Card or Guest Welcome Card */}
           {currentUser ? (
-            <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 overflow-hidden shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] transition-all duration-200">
-              <div className="h-16 bg-gradient-to-r from-[#1687D4] via-[#0875BD] to-[#075080] relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.4),transparent_60%)]" />
-              </div>
-              <div className="px-4 pb-4 text-center">
-                <div className="-mt-8 mb-2 flex justify-center">
-                  <Link href={`/user/${currentUser.username}`}>
-                    <div className="h-16 w-16 rounded-2xl border-3 border-white bg-white/90 shadow-md flex items-center justify-center text-xl font-bold text-[#1687D4] hover:scale-105 transition-transform duration-200">
-                      {currentUser.fullName[0] || 'U'}
+            <div className="rounded-3xl liquid-glass p-5 text-center transition-all duration-200 relative overflow-hidden group">
+              {/* Liquid Water Ripple Glow */}
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-white/20 rounded-full blur-xl pointer-events-none" />
+
+              {/* Glowing Liquid Water Ring Avatar */}
+              <div className="mb-3 flex justify-center">
+                <Link href={`/user/${currentUser.username}`}>
+                  <div className="relative">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] p-0.5 shadow-[0_8px_24px_rgba(22,135,212,0.35)] ring-4 ring-white/50 group-hover:scale-105 transition-all duration-300">
+                      <div className="w-full h-full rounded-[14px] bg-gradient-to-tr from-[#1687D4] to-[#075080] flex items-center justify-center text-xl font-extrabold text-white">
+                        {currentUser.fullName[0] || 'U'}
+                      </div>
                     </div>
-                  </Link>
-                </div>
-
-                <Link href={`/user/${currentUser.username}`} className="group block">
-                  <h2 className="text-sm font-bold text-[#075080] group-hover:text-[#1687D4] transition-colors truncate">
-                    {currentUser.fullName}
-                  </h2>
+                    {currentUser.isVerified && (
+                      <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#1687D4]" />
+                      </div>
+                    )}
+                  </div>
                 </Link>
-                
-                <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#E8F5FF] text-[#0875BD] border border-[#CFEAFF]">
-                    {currentUser.role}
-                  </span>
-                  {currentUser.isVerified && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#1687D4]" />
-                  )}
-                </div>
+              </div>
 
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[#4A708B] line-clamp-2">
-                  {currentUser.headline || `${currentUser.collegeName || 'Campus Lenz'}`}
-                </p>
+              <Link href={`/user/${currentUser.username}`} className="group block">
+                <h2 className="text-base font-extrabold text-[#05233b] group-hover:text-[#1687D4] transition-colors truncate">
+                  {currentUser.fullName}
+                </h2>
+              </Link>
+              
+              <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/50 text-[#0875BD] border border-white/70 shadow-xs">
+                  {currentUser.role}
+                </span>
+              </div>
 
-                <div className="mt-3 pt-3 border-t border-[#CFEAFF]/60 grid grid-cols-2 text-center text-xs">
-                  <div>
-                    <div className="font-bold text-[#075080]">{currentUser.followersCount}</div>
-                    <div className="text-[10px] text-[#628CA8]">Followers</div>
-                  </div>
-                  <div className="border-l border-[#CFEAFF]/60">
-                    <div className="font-bold text-[#075080]">{currentUser.followingCount}</div>
-                    <div className="text-[10px] text-[#628CA8]">Following</div>
-                  </div>
-                </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-[#2d5a7d] line-clamp-2 font-medium">
+                {currentUser.headline || `${currentUser.collegeName || 'Campus Lenz'}`}
+              </p>
 
-                <div className="mt-3 pt-3 border-t border-[#CFEAFF]/60">
-                  <Link
-                    href={`/user/${currentUser.username}`}
-                    className="w-full py-1.5 px-3 rounded-2xl border border-[#CFEAFF] hover:border-[#8CCCF5] bg-white/70 hover:bg-[#E8F5FF] text-xs font-semibold text-[#075080] transition-all flex items-center justify-center gap-1 shadow-2xs"
-                  >
-                    <span>My Profile</span>
-                    <ArrowRight className="w-3 h-3 text-[#1687D4]" />
-                  </Link>
+              <div className="mt-4 pt-3 border-t border-white/40 grid grid-cols-2 text-center text-xs">
+                <div>
+                  <div className="font-extrabold text-[#05233b]">{currentUser.followersCount}</div>
+                  <div className="text-[10px] font-semibold text-[#2d5a7d]">Followers</div>
                 </div>
+                <div className="border-l border-white/40">
+                  <div className="font-extrabold text-[#05233b]">{currentUser.followingCount}</div>
+                  <div className="text-[10px] font-semibold text-[#2d5a7d]">Following</div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-white/40">
+                <Link
+                  href={`/user/${currentUser.username}`}
+                  className="w-full py-2 px-3 rounded-2xl border border-white/60 hover:border-white bg-white/40 hover:bg-white/60 text-xs font-bold text-[#05233b] transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+                >
+                  <span>My Profile</span>
+                  <ArrowRight className="w-3 h-3 text-[#1687D4]" />
+                </Link>
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-5 text-center shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-3">
+            <div className="rounded-3xl liquid-glass p-5 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-lg flex items-center justify-center mx-auto shadow-md">
                 CL
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#075080]">Campus Lenz Ecosystem</h3>
-                <p className="text-[11px] text-[#628CA8] mt-0.5">Verified digital collegiate network</p>
+                <h3 className="text-sm font-bold text-[#05233b]">Campus Lenz Ecosystem</h3>
+                <p className="text-[11px] text-[#2d5a7d] mt-0.5">Verified digital collegiate network</p>
               </div>
               <div className="pt-1 flex flex-col gap-2">
                 <Link
@@ -655,7 +660,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 </Link>
                 <Link
                   href="/login"
-                  className="w-full py-2 px-3 rounded-2xl border border-[#CFEAFF] hover:bg-[#E8F5FF] text-[#075080] font-semibold text-xs transition text-center"
+                  className="w-full py-2 px-3 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/60 text-[#05233b] font-bold text-xs transition text-center"
                 >
                   Sign In
                 </Link>
@@ -664,23 +669,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           )}
 
           {/* Quick Shortcuts & Navigation Hub */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8] px-1">
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Campus Shortcuts
             </h3>
             
             <div className="space-y-1">
               <Link
                 href="/connect?tab=messages"
-                className="w-full p-2 px-2.5 rounded-2xl hover:bg-[#E8F5FF]/80 transition-colors flex items-center justify-between group"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-2.5 text-xs text-[#075080] font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-[#E8F5FF] text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
                     <MessageSquare className="w-3.5 h-3.5" />
                   </div>
                   <span>Direct Messages</span>
                 </div>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#1687D4] text-white font-bold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#1687D4] text-white font-bold shadow-xs">
                   Chat
                 </span>
               </Link>
@@ -689,17 +694,17 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 type="button"
                 onClick={() => setShowSavedOnly(!showSavedOnly)}
                 className={`w-full p-2 px-2.5 rounded-2xl transition-all flex items-center justify-between group text-left ${
-                  showSavedOnly ? 'bg-[#CFEAFF] font-bold text-[#0875BD]' : 'hover:bg-[#E8F5FF]/80 text-[#075080]'
+                  showSavedOnly ? 'bg-white/60 font-bold text-[#0875BD] border border-white/70' : 'hover:bg-white/40 text-[#05233b]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 text-xs font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-[#E8F5FF] text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
                     <Bookmark className="w-3.5 h-3.5" />
                   </div>
                   <span>Saved Bookmarks</span>
                 </div>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  showSavedOnly ? 'bg-white text-[#0875BD]' : 'bg-[#E8F5FF] text-[#628CA8]'
+                  showSavedOnly ? 'bg-white text-[#0875BD]' : 'bg-white/50 text-[#2d5a7d]'
                 }`}>
                   {savedPosts.length}
                 </span>
@@ -707,38 +712,38 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
               <Link
                 href="/explore"
-                className="w-full p-2 px-2.5 rounded-2xl hover:bg-[#E8F5FF]/80 transition-colors flex items-center justify-between group"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-2.5 text-xs text-[#075080] font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-[#E8F5FF] text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
                     <Building2 className="w-3.5 h-3.5" />
                   </div>
                   <span>College Reviews</span>
                 </div>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/50 text-[#0875BD] font-bold">
                   {colleges.length}
                 </span>
               </Link>
 
               <Link
                 href="/compare"
-                className="w-full p-2 px-2.5 rounded-2xl hover:bg-[#E8F5FF]/80 transition-colors flex items-center justify-between group"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-2.5 text-xs text-[#075080] font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-[#E8F5FF] text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
                     <Scale className="w-3.5 h-3.5" />
                   </div>
                   <span>Compare Campuses</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-[#628CA8] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#2d5a7d] group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               <Link
                 href="/connect?tab=grievance"
-                className="w-full p-2 px-2.5 rounded-2xl hover:bg-[#E8F5FF]/80 transition-colors flex items-center justify-between group"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
               >
-                <div className="flex items-center gap-2.5 text-xs text-[#075080] font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-[#E8F5FF] text-[#0875BD] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#0875BD] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
                     <Shield className="w-3.5 h-3.5" />
                   </div>
                   <span>Protected Grievance</span>
@@ -749,9 +754,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Trending Campus Topics Cloud */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-2.5">
+          <div className="rounded-3xl liquid-glass p-4 space-y-2.5">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8]">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d]">
                 Trending Topics
               </h3>
               {activeTagFilter && (
@@ -783,7 +788,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     className={`text-xs px-2.5 py-1 rounded-full font-semibold transition-all duration-200 ${
                       isSelected
                         ? 'bg-[#1687D4] text-white shadow-xs font-bold scale-105'
-                        : 'bg-[#E8F5FF]/80 text-[#075080] hover:bg-[#CFEAFF] hover:text-[#0875BD] border border-[#CFEAFF]'
+                        : 'bg-white/40 text-[#05233b] hover:bg-white/60 hover:text-[#0875BD] border border-white/50'
                     }`}
                   >
                     #{tag}
@@ -794,7 +799,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Protected Campus Lenz Verified Badge */}
-          <div className="rounded-2xl p-3 bg-gradient-to-r from-[#E8F5FF]/70 to-white/70 border border-[#CFEAFF] text-[#075080] text-[11px] flex items-center gap-2 shadow-2xs">
+          <div className="rounded-2xl p-3 liquid-glass text-[#05233b] text-[11px] flex items-center gap-2 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span className="font-semibold truncate">
               Ragebait Shield Active • Fast Synced
@@ -849,20 +854,20 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           )}
 
           {/* Feed Stream Switcher: Campus Social Stream vs Students Social Stream */}
-          <div className="flex items-center justify-between p-2 rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)]">
-            <div className="flex items-center gap-1.5 p-1 bg-[#E8F5FF]/70 rounded-2xl text-xs font-semibold w-full">
+          <div className="flex items-center justify-between p-1.5 rounded-3xl liquid-glass">
+            <div className="flex items-center gap-1.5 p-1 bg-white/20 rounded-2xl text-xs font-semibold w-full">
               <button
                 type="button"
                 onClick={() => setFeedStream('campus')}
                 className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
                   feedStream === 'campus'
-                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
-                    : 'text-[#075080]/70 hover:text-[#075080]'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 <Building2 className="w-4 h-4 text-[#1687D4]" />
                 <span>Campus Social Stream</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/50 text-[#0875BD] font-bold">
                   {posts.length}
                 </span>
               </button>
@@ -871,13 +876,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 onClick={() => setFeedStream('students')}
                 className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
                   feedStream === 'students'
-                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
-                    : 'text-[#075080]/70 hover:text-[#075080]'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 <GraduationCap className="w-4 h-4 text-[#1687D4]" />
                 <span>Students Social Stream</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/50 text-[#0875BD] font-bold">
                   {posts.filter(p => p.authorRole === 'student').length}
                 </span>
               </button>
@@ -886,7 +891,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
           {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
-            <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-3">
+            <div className="rounded-3xl liquid-glass p-4 space-y-3">
               {/* Role Context & Quota Banners */}
               {currentUser.role === 'alumni' && (() => {
                 const elig = checkAlumniPostEligibility(currentUser);
@@ -961,7 +966,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   {!isComposing ? (
                     <button
                       onClick={() => setIsComposing(true)}
-                      className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition"
+                      className="w-full text-left rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-xs text-[#2d5a7d] hover:bg-white/60 hover:text-[#05233b] transition shadow-xs backdrop-blur-md"
                     >
                       {currentUser.role === 'faculty'
                         ? 'Publish academic research, curriculum notes, or lecture slides...'
@@ -986,7 +991,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             ? 'Share mentorship advice, career insights, or industry interview tips...'
                             : "What's happening on campus? Share interview tips, symposium invites, or milestones..."
                         }
-                        className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden resize-none"
+                        className="w-full p-3 rounded-xl border border-white/60 bg-white/40 text-xs text-[#05233b] placeholder:text-[#2d5a7d] focus:bg-white/65 focus:ring-2 focus:ring-[#1687D4]/30 focus:outline-hidden resize-none backdrop-blur-md"
                         autoFocus
                       />
 
@@ -1384,44 +1389,44 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           )}
 
           {/* 3. Feed Filter & Content Safety Controls */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-xs flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl text-xs font-semibold">
+          <div className="rounded-3xl liquid-glass p-2.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1 bg-white/20 p-1 rounded-2xl text-xs font-semibold">
               <button
                 onClick={() => setFeedFilter('all')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`px-3 py-1 rounded-xl transition-all ${
                   feedFilter === 'all'
-                    ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 All
               </button>
               <button
                 onClick={() => setFeedFilter('students')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`px-3 py-1 rounded-xl transition-all ${
                   feedFilter === 'students'
-                    ? 'bg-white text-[#1687D4] shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white/60 text-[#1687D4] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 Students
               </button>
               <button
                 onClick={() => setFeedFilter('alumni')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`px-3 py-1 rounded-xl transition-all ${
                   feedFilter === 'alumni'
-                    ? 'bg-white text-emerald-600 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white/60 text-[#0875BD] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 Alumni
               </button>
               <button
                 onClick={() => setFeedFilter('institution')}
-                className={`px-3 py-1 rounded-lg transition-all ${
+                className={`px-3 py-1 rounded-xl transition-all ${
                   feedFilter === 'institution'
-                    ? 'bg-white text-purple-600 shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white/60 text-[#1687D4] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 Circulars
@@ -1433,13 +1438,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               type="button"
               onClick={toggleSensitiveContentShield}
               title={sensitiveContentShieldActive ? 'Content Shield is Active' : 'Content Shield is Off'}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all shadow-xs border ${
                 sensitiveContentShieldActive
-                  ? 'bg-[#E8F5FF] text-[#0875BD] border border-[#CFEAFF] hover:bg-[#CFEAFF]'
-                  : 'bg-slate-100 text-[#075080] border border-slate-200 hover:bg-slate-200'
+                  ? 'bg-white/50 text-[#0875BD] border-white/70 hover:bg-white/70'
+                  : 'bg-white/20 text-[#2d5a7d] border-white/40 hover:bg-white/40'
               }`}
             >
-              <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-[#1687D4]' : 'text-[#628CA8]'}`} />
+              <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-[#1687D4]' : 'text-[#2d5a7d]'}`} />
               <span>Safety Shield: {sensitiveContentShieldActive ? 'On' : 'Off'}</span>
             </button>
           </div>
@@ -1465,11 +1470,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     key={post.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 overflow-hidden shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] hover:shadow-[0_16px_44px_rgba(7,80,128,0.12)] transition-all duration-200"
+                    className="rounded-3xl liquid-glass overflow-hidden hover:shadow-[0_20px_48px_rgba(0,0,0,0.32)] transition-all duration-200"
                   >
                     {/* Top Micro-Banner for Institution Repost */}
                     {post.repostedByInstitution && (
-                      <div className="bg-purple-50/60 border-b border-purple-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-purple-900">
+                      <div className="bg-purple-500/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
                         <Repeat className="w-3.5 h-3.5 text-purple-600" />
                         <span>Reposted by {post.repostedByInstitution.institutionName}</span>
                       </div>
@@ -1477,7 +1482,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                     {/* Top Micro-Banner for Faculty Repost */}
                     {post.repostedByFaculty && (
-                      <div className="bg-indigo-50/60 border-b border-indigo-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-900">
+                      <div className="bg-indigo-500/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
                         <Repeat className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Recommended by Faculty ({post.repostedByFaculty.facultyName})</span>
                       </div>
@@ -1485,15 +1490,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                     {/* Top Micro-Banner for Knowledge-Based Post */}
                     {post.isKnowledgeBased && (
-                      <div className="bg-blue-50/50 border-b border-blue-100/60 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-900">
-                        <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="bg-[#1687D4]/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
+                        <BookOpen className="w-3.5 h-3.5 text-[#1687D4]" />
                         <span>Academic & Peer-Reviewed Resource</span>
                       </div>
                     )}
 
                     {/* Top Micro-Banner for Flagged Posts */}
                     {post.reportedByInstitution && (
-                      <div className="bg-rose-50 border-b border-rose-100 px-4 py-1.5 flex items-center gap-1.5 text-[11px] text-rose-800">
+                      <div className="bg-rose-500/20 border-b border-rose-300/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] text-rose-900 font-bold">
                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                         <span>Flagged by institution: <em>"{post.reportedByInstitution.reason}"</em></span>
                       </div>
@@ -1504,40 +1509,40 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <Link href={post.isAnonymous ? '#' : `/user/${post.authorUsername}`}>
-                            <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 shrink-0 hover:border-blue-500 transition-colors">
+                            <div className="h-10 w-10 rounded-xl bg-white/40 border border-white/60 flex items-center justify-center text-sm font-bold text-[#05233b] shrink-0 hover:border-white shadow-xs transition-colors">
                               {post.isAnonymous ? '?' : post.authorName[0]}
                             </div>
                           </Link>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {post.isAnonymous ? (
-                                <span className="text-sm font-bold text-slate-900">Anonymous Student</span>
+                                <span className="text-sm font-bold text-[#05233b]">Anonymous Student</span>
                               ) : (
                                 <Link
                                   href={`/user/${post.authorUsername}`}
-                                  className="text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors truncate"
+                                  className="text-sm font-bold text-[#05233b] hover:text-[#1687D4] transition-colors truncate"
                                 >
                                   {post.authorName}
                                 </Link>
                               )}
 
                               {post.isVerifiedAuthor && !post.isAnonymous && (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#1687D4] flex-shrink-0" />
                               )}
 
-                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/40 border border-white/50 text-[#0875BD]">
                                 {post.authorRole}
                               </span>
                             </div>
 
-                            <p className="text-[11px] text-slate-500 truncate mt-0.5 max-w-sm">
+                            <p className="text-[11px] text-[#2d5a7d] truncate mt-0.5 max-w-sm">
                               {post.authorHeadline}
                             </p>
 
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#487394] mt-0.5">
                               <span suppressHydrationWarning>{formatTimeAgo(post.createdAt)}</span>
                               <span>•</span>
-                              <span className="text-blue-600 font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
+                              <span className="text-[#0875BD] font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
                             </div>
                           </div>
                         </div>
@@ -1547,10 +1552,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                           {!isAuthorSelf && !post.isAnonymous && currentUser && currentUser.role !== 'institution' && (
                             <button
                               onClick={() => toggleFollowUser(post.authorId || post.authorUsername)}
-                              className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 ${
+                              className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 border ${
                                 isFollowingAuthor
-                                  ? 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                  ? 'border-white/60 bg-white/40 text-[#2d5a7d] hover:bg-white/60'
+                                  : 'bg-[#1687D4] text-white hover:bg-[#0875BD] shadow-xs'
                               }`}
                             >
                               {isFollowingAuthor ? 'Following' : '+ Follow'}
@@ -1737,23 +1742,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Reactions & Engagement Summary Bar */}
-                    <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                    <div className="px-4 py-2 flex items-center justify-between text-xs text-[#2d5a7d] border-t border-white/40">
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center">
                           👍
                         </span>
-                        <span>{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
+                        <span className="font-semibold">{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
                         {post.sharesCount > 0 && (
-                          <span className="text-purple-600 font-semibold">• {post.sharesCount} reposts</span>
+                          <span className="text-[#0875BD] font-bold">• {post.sharesCount} reposts</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-[#487394]">
                           👁 {post.likesCount * 14 + 115} views
                         </span>
                         <button
                           onClick={() => handleToggleComments(post.id)}
-                          className="hover:text-slate-900 transition-colors font-medium"
+                          className="hover:text-[#05233b] transition-colors font-semibold"
                         >
                           {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
                         </button>
@@ -1761,10 +1766,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
-                    <div className="grid grid-cols-5 border-t border-[#CFEAFF]/60 text-xs font-semibold text-[#075080]">
+                    <div className="grid grid-cols-5 border-t border-white/40 text-xs font-semibold text-[#05233b]">
                       <button
                         onClick={() => toggleLikePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-[#E8F5FF]/70 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
                           isLiked ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
@@ -1774,7 +1779,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleToggleComments(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-[#E8F5FF]/70 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
                           isCommentsOpen ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
@@ -1784,7 +1789,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleRepost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-[#E8F5FF]/70 hover:text-[#1687D4] active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150 ${
                           post.repostedByInstitution || post.repostedByFaculty || post.repostedByStudent
                             ? 'text-[#1687D4] font-bold'
                             : ''
@@ -1811,7 +1816,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => toggleSavePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-[#E8F5FF]/70 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
                           isSaved ? 'text-[#0875BD] font-bold' : ''
                         }`}
                       >
@@ -1821,7 +1826,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleSharePost(post.id)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-[#E8F5FF]/70 hover:text-[#1687D4] active:scale-90 transition-all duration-150"
+                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Share</span>
@@ -2015,8 +2020,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
           
           {/* Quick Search Card with Instant Live Filter */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8] px-1">
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Instant Campus Search
             </h3>
             <div className="relative">
@@ -2026,13 +2031,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 value={sidebarSearchQuery}
                 onChange={(e) => setSidebarSearchQuery(e.target.value)}
                 placeholder="Filter by student, topic, keyword..."
-                className="w-full pl-9 pr-8 py-2 rounded-2xl border border-[#CFEAFF] bg-white/80 text-xs text-[#075080] placeholder:text-[#628CA8] focus:outline-none focus:border-[#1687D4] transition-all"
+                className="w-full pl-9 pr-8 py-2 rounded-2xl border border-white/60 bg-white/40 text-xs text-[#05233b] placeholder:text-[#2d5a7d] focus:outline-none focus:bg-white/65 focus:border-white transition-all shadow-xs"
               />
               {sidebarSearchQuery ? (
                 <button
                   type="button"
                   onClick={() => setSidebarSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#628CA8] hover:text-[#075080]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#2d5a7d] hover:text-[#05233b]"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -2040,7 +2045,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 <Link
                   href="/search"
                   title="Advanced search page"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#628CA8] hover:text-[#1687D4]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#2d5a7d] hover:text-[#1687D4]"
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
@@ -2049,12 +2054,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Active Campus Channels (Populated from servers with pulse status) */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-3">
+          <div className="rounded-3xl liquid-glass p-4 space-y-3">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8]">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d]">
                 Campus Channels
               </h3>
-              <Link href="/connect" className="text-xs text-[#1687D4] font-semibold hover:underline">
+              <Link href="/connect" className="text-xs text-[#1687D4] font-bold hover:underline">
                 View All →
               </Link>
             </div>
@@ -2064,10 +2069,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 <Link
                   key={channel.id}
                   href="/connect"
-                  className="block p-2.5 rounded-2xl bg-white/70 hover:bg-[#E8F5FF]/80 border border-[#CFEAFF]/80 transition-all duration-200 group"
+                  className="block p-2.5 rounded-2xl bg-white/40 hover:bg-white/65 border border-white/50 transition-all duration-200 group shadow-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-bold text-xs text-[#075080] group-hover:text-[#1687D4] truncate">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-[#05233b] group-hover:text-[#1687D4] truncate">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       <span className="truncate">#{channel.name}</span>
                     </div>
@@ -2075,12 +2080,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       Open →
                     </span>
                   </div>
-                  <div className="text-[11px] text-[#4A708B] truncate mt-0.5">
+                  <div className="text-[11px] text-[#2d5a7d] truncate mt-0.5">
                     {channel.description}
                   </div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-[#628CA8]">
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-[#487394]">
                     <span>{channel.memberCount} members</span>
-                    <span className="text-[#0875BD] font-medium">{channel.serverName}</span>
+                    <span className="text-[#0875BD] font-semibold">{channel.serverName}</span>
                   </div>
                 </Link>
               ))}
@@ -2088,8 +2093,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Trending Discussions & Topic Analytics */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-2.5">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8] px-1">
+          <div className="rounded-3xl liquid-glass p-4 space-y-2.5">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Active Discussions
             </h3>
             
@@ -2106,15 +2111,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   onClick={() => setActiveTagFilter(activeTagFilter === disc.tag ? null : disc.tag)}
                   className={`w-full p-2 rounded-2xl text-left transition-colors flex items-center justify-between group ${
                     activeTagFilter === disc.tag
-                      ? 'bg-[#CFEAFF] font-bold text-[#0875BD]'
-                      : 'hover:bg-[#E8F5FF]/80 text-[#075080]'
+                      ? 'bg-white/60 font-bold text-[#0875BD] border border-white/70 shadow-xs'
+                      : 'hover:bg-white/40 text-[#05233b]'
                   }`}
                 >
                   <div className="truncate">
                     <p className="font-bold truncate">#{disc.tag}</p>
-                    <p className="text-[10px] text-[#628CA8] truncate">{disc.desc}</p>
+                    <p className="text-[10px] text-[#487394] truncate">{disc.desc}</p>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/80 text-[#1687D4] font-bold shrink-0 border border-[#CFEAFF]">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/60 text-[#1687D4] font-bold shrink-0 border border-white/60 shadow-xs">
                     {disc.count}
                   </span>
                 </button>
@@ -2123,15 +2128,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Suggested Peers to Connect */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-3">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8] px-1">
+          <div className="rounded-3xl liquid-glass p-4 space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Peers to Connect
             </h3>
             <div className="space-y-2">
               {allUsers.filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni')).length === 0 ? (
-                <div className="text-center py-4 px-2 bg-[#E8F5FF]/50 rounded-2xl border border-[#CFEAFF]">
-                  <p className="text-xs font-semibold text-[#075080]">No other users registered yet</p>
-                  <p className="text-[10px] text-[#628CA8] mt-0.5">Invite batchmates or register a test account.</p>
+                <div className="text-center py-4 px-2 bg-white/30 rounded-2xl border border-white/50">
+                  <p className="text-xs font-semibold text-[#05233b]">No other users registered yet</p>
+                  <p className="text-[10px] text-[#487394] mt-0.5">Invite batchmates or register a test account.</p>
                 </div>
               ) : (
                 allUsers
@@ -2140,23 +2145,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   .map(peer => {
                     const isFollowing = currentUser ? currentUser.following.includes(peer.id) : false;
                     return (
-                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs p-1.5 rounded-2xl hover:bg-[#E8F5FF]/60 transition-colors">
+                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs p-1.5 rounded-2xl hover:bg-white/40 transition-colors">
                         <Link href={`/user/${peer.username}`} className="flex items-center gap-2 min-w-0">
-                          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                             {peer.fullName[0] || 'U'}
                           </div>
                           <div className="truncate">
-                            <p className="font-bold text-[#075080] truncate hover:text-[#1687D4]">{peer.fullName}</p>
-                            <p className="text-[10px] text-[#628CA8] truncate">{peer.course || peer.role}</p>
+                            <p className="font-bold text-[#05233b] truncate hover:text-[#1687D4]">{peer.fullName}</p>
+                            <p className="text-[10px] text-[#487394] truncate">{peer.course || peer.role}</p>
                           </div>
                         </Link>
                         <button
                           type="button"
                           onClick={() => toggleFollowUser(peer.id)}
-                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all shrink-0 ${
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all shrink-0 border ${
                             isFollowing
-                              ? 'bg-[#E8F5FF] text-[#075080] border border-[#CFEAFF]'
-                              : 'bg-[#1687D4] text-white hover:bg-[#0875BD] shadow-2xs'
+                              ? 'bg-white/40 text-[#2d5a7d] border-white/60'
+                              : 'bg-[#1687D4] text-white hover:bg-[#0875BD] shadow-xs border-transparent'
                           }`}
                         >
                           {isFollowing ? 'Following' : '+ Follow'}
@@ -2169,24 +2174,24 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           </div>
 
           {/* Upcoming Campus Milestones Card */}
-          <div className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/80 p-4 shadow-[0_10px_35px_rgba(7,80,128,0.06),inset_0_1px_2px_rgba(255,255,255,0.9)] space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#628CA8] px-1">
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Campus Spotlight
             </h3>
             <div className="space-y-2 text-xs">
-              <div className="p-2.5 rounded-2xl bg-[#E8F5FF]/60 border border-[#CFEAFF]">
-                <div className="flex items-center gap-1.5 font-bold text-[#075080]">
+              <div className="p-2.5 rounded-2xl bg-white/35 border border-white/50 shadow-xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#05233b]">
                   <Sparkles className="w-3.5 h-3.5 text-[#1687D4]" />
                   <span>Campus Placement Season</span>
                 </div>
-                <p className="text-[10px] text-[#4A708B] mt-0.5">Top tech tier-1 recruitment drives live</p>
+                <p className="text-[10px] text-[#2d5a7d] mt-0.5">Top tech tier-1 recruitment drives live</p>
               </div>
-              <div className="p-2.5 rounded-2xl bg-[#E8F5FF]/60 border border-[#CFEAFF]">
-                <div className="flex items-center gap-1.5 font-bold text-[#075080]">
+              <div className="p-2.5 rounded-2xl bg-white/35 border border-white/50 shadow-xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#05233b]">
                   <Calendar className="w-3.5 h-3.5 text-[#0875BD]" />
                   <span>Inter-Collegiate Hackathon</span>
                 </div>
-                <p className="text-[10px] text-[#4A708B] mt-0.5">Registrations open in Connect Hub</p>
+                <p className="text-[10px] text-[#2d5a7d] mt-0.5">Registrations open in Connect Hub</p>
               </div>
             </div>
           </div>
