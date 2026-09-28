@@ -78,7 +78,7 @@ export default function Navigation() {
     <>
       {/* Apple-Styled Floating Island Navigation (Desktop) */}
       <header className="sticky top-3 z-50 w-full px-3 sm:px-6 pointer-events-none transition-all">
-        <div className="pointer-events-auto mx-auto max-w-6xl rounded-2xl sm:rounded-full bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
+        <div className="pointer-events-auto mx-auto max-w-7xl 2xl:max-w-[1480px] rounded-2xl sm:rounded-full bg-white/85 backdrop-blur-2xl border border-white/80 shadow-[0_12px_40px_rgba(7,80,128,0.08),0_1px_3px_rgba(255,255,255,0.9)_inset] px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
           
           {/* Apple Squircle Brand Glyph */}
           <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0">
