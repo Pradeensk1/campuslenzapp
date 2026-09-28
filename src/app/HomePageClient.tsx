@@ -43,7 +43,18 @@ import {
   PlusCircle,
   LogIn,
   Paperclip,
-  Video
+  Video,
+  Home,
+  Users,
+  Compass,
+  Crown,
+  Download,
+  ExternalLink,
+  Clock,
+  MapPin,
+  Award,
+  Zap,
+  Tag
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
@@ -104,6 +115,20 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   // Role-Specific Workspace vs Global Stream View
   const [roleWorkspaceMode, setRoleWorkspaceMode] = useState<boolean>(true);
   const [studentViewMode, setStudentViewMode] = useState<'feed' | 'hub'>('feed');
+
+  // New Navigation & Category State matching Reference Mockup
+  const [activeLeftNav, setActiveLeftNav] = useState<string>('home');
+  const [trendingTab, setTrendingTab] = useState<string>('All');
+  const [recommendedTab, setRecommendedTab] = useState<string>('Colleges');
+  const [resourcesTab, setResourcesTab] = useState<string>('Notes');
+  const [communityCategory, setCommunityCategory] = useState<string>('All Posts');
+  const [followedRecIds, setFollowedRecIds] = useState<string[]>(['rec-1']);
+
+  const toggleFollowRec = (id: string) => {
+    setFollowedRecIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   // Bookmarks
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -247,6 +272,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     if (feedSentimentFilter === 'positive' && p.sentiment !== 'positive') return false;
     if (feedSentimentFilter === 'academic' && !p.isKnowledgeBased && !p.topic?.includes('Academic') && !p.topic?.includes('Research') && !p.topic?.includes('Placement') && !p.topic?.includes('Notes')) return false;
     if (feedSentimentFilter === 'sensitive' && !p.isSensitive) return false;
+
+    // Community Category filter
+    if (communityCategory === 'Questions' && !p.content.includes('?') && !p.topic?.toLowerCase().includes('question') && !p.topic?.toLowerCase().includes('doubt')) return false;
+    if (communityCategory === 'Opportunities' && !p.topic?.toLowerCase().includes('job') && !p.topic?.toLowerCase().includes('intern') && !p.topic?.toLowerCase().includes('hiring') && !p.content.toLowerCase().includes('intern') && !p.content.toLowerCase().includes('job') && !p.content.toLowerCase().includes('hiring')) return false;
+    if (communityCategory === 'Projects' && !p.topic?.toLowerCase().includes('project') && !p.content.toLowerCase().includes('project') && !p.content.toLowerCase().includes('build')) return false;
+    if (communityCategory === 'Events' && !p.topic?.toLowerCase().includes('event') && !p.topic?.toLowerCase().includes('hackathon') && !p.content.toLowerCase().includes('hackathon') && !p.content.toLowerCase().includes('fest') && !p.content.toLowerCase().includes('webinar')) return false;
+    if (communityCategory === 'Achievements' && !p.topic?.toLowerCase().includes('achievement') && !p.topic?.toLowerCase().includes('won') && !p.content.toLowerCase().includes('winner') && !p.content.toLowerCase().includes('congrat') && !p.content.toLowerCase().includes('placed')) return false;
 
     return true;
   });
@@ -393,7 +425,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-[1560px] mx-auto px-3 sm:px-6 lg:px-8 py-6">
       {/* Role Workspace Return Banner if browsing feed */}
       {currentUser && (currentUser.role === 'alumni' || currentUser.role === 'faculty' || currentUser.role === 'institution') && (
         <div className="mb-6 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -435,150 +467,74 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         
         {/* ========================================================= */}
-        {/* LEFT COLUMN (Cols 1-3): Clean Profile & Shortcuts Hub */}
+        {/* LEFT COLUMN (Cols 1-2): 10-Item Nav Card + Premium Upgrade */}
         {/* ========================================================= */}
-        <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
+        <aside className="hidden xl:block xl:col-span-2 space-y-4 sticky top-20">
           
-          {/* User Profile Card or Guest Welcome Card */}
-          {currentUser ? (
-            <div className="ocean-glass-card overflow-hidden touch-over-glass">
-              <div className="h-18 bg-gradient-to-r from-[#0284C7] via-[#0EA5E9] to-[#38BDF8] relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/30 via-transparent to-transparent pointer-events-none" />
-              </div>
-              <div className="px-5 pb-5 text-center">
-                <div className="-mt-9 mb-2 flex justify-center">
-                  <Link href={`/user/${currentUser.username}`}>
-                    <div className="h-18 w-18 rounded-[22px] border-2 border-white/90 bg-gradient-to-tr from-sky-100 to-white flex items-center justify-center text-2xl font-black text-[#0284C7] shadow-[0_8px_20px_rgba(2,132,199,0.22),inset_0_1px_1px_#ffffff] hover:scale-105 transition-transform duration-300">
-                      {currentUser.fullName[0] || 'U'}
-                    </div>
-                  </Link>
-                </div>
-
-                <Link href={`/user/${currentUser.username}`} className="group block">
-                  <h2 className="text-sm font-extrabold text-[#0C2340] group-hover:text-[#0284C7] transition-colors truncate">
-                    {currentUser.fullName}
-                  </h2>
-                </Link>
-                
-                <div className="mt-1 flex items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100/70 text-[#0284C7] border border-sky-200/60 shadow-2xs">
-                    {currentUser.role}
-                  </span>
-                  {currentUser.isVerified && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#0284C7]" />
-                  )}
-                </div>
-
-                <p className="mt-2 text-[11px] leading-relaxed text-slate-600 line-clamp-2">
-                  {currentUser.headline}
-                </p>
-
-                <div className="mt-3.5 pt-3 border-t border-sky-100/80 grid grid-cols-2 text-center text-xs">
-                  <div>
-                    <div className="font-extrabold text-[#0C2340]">{currentUser.followersCount}</div>
-                    <div className="text-[10px] font-medium text-slate-400">Followers</div>
-                  </div>
-                  <div className="border-l border-sky-100/80">
-                    <div className="font-extrabold text-[#0C2340]">{currentUser.followingCount}</div>
-                    <div className="text-[10px] font-medium text-slate-400">Following</div>
-                  </div>
-                </div>
-
-                <div className="mt-3.5 pt-3 border-t border-sky-100/80">
-                  <Link
-                    href={`/user/${currentUser.username}`}
-                    className="ocean-glossy-pill-subtle w-full py-2 px-3 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <span>My Profile</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#0284C7]" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="ocean-glass-card p-6 text-center space-y-3 touch-over-glass">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0284C7] to-cyan-400 text-white font-black text-xl flex items-center justify-center mx-auto shadow-[0_6px_20px_rgba(2,132,199,0.3),inset_0_1px_1px_rgba(255,255,255,0.7)]">
-                CL
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-[#0C2340]">Welcome to Campus Lenz</h3>
-                <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                  Join verified college networks, connect with alumni mentors, and explore institutional analytics.
-                </p>
-              </div>
-              <div className="pt-1 flex flex-col gap-2">
+          {/* 10-Item Navigation Card matching reference mockup */}
+          <div className="ocean-glass-card p-3 space-y-1 touch-over-glass">
+            {[
+              { id: 'home', label: 'Home', icon: Home, href: '/' },
+              { id: 'colleges', label: 'Colleges', icon: Building2, href: '/colleges' },
+              { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase, href: '/jobs' },
+              { id: 'resources', label: 'Study Resources', icon: BookOpen, href: '/resources' },
+              { id: 'events', label: 'Events', icon: Calendar, href: '/events' },
+              { id: 'students', label: 'Students & Community', icon: Users, href: '/servers' },
+              { id: 'projects', label: 'Projects & Ideas', icon: Sparkles, href: '/projects' },
+              { id: 'explore', label: 'Explore', icon: Compass, href: '/search' },
+              { id: 'saved', label: 'Saved', icon: Bookmark, href: '/saved' },
+              { id: 'profile', label: 'My Profile', icon: UserCheck, href: currentUser ? `/user/${currentUser.username}` : '/login' },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeLeftNav === item.id;
+              return (
                 <Link
-                  href="/register"
-                  className="ocean-glossy-button w-full py-2.5 px-4 text-xs font-bold"
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setActiveLeftNav(item.id)}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-[0_4px_12px_rgba(5,150,105,0.3)]'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                  }`}
                 >
-                  Create Account
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="truncate">{item.label}</span>
                 </Link>
-                <Link
-                  href="/login"
-                  className="ocean-glossy-pill-subtle w-full py-2 px-4 text-xs font-bold text-center block"
-                >
-                  Sign In
-                </Link>
+              );
+            })}
+          </div>
+
+          {/* Upgrade to CampusLenz Premium Card */}
+          <div className="rounded-3xl p-4.5 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-emerald-500/10 border border-amber-300/40 backdrop-blur-md shadow-xs space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center shadow-[0_4px_10px_rgba(245,158,11,0.3)] shrink-0">
+                <Crown className="w-4 h-4" />
               </div>
+              <span className="text-xs font-black text-slate-900 leading-tight">
+                Upgrade to CampusLenz Premium
+              </span>
             </div>
-          )}
-
-          {/* Quick Hub Shortcuts */}
-          <div className="ocean-glass-card p-4 space-y-2.5 touch-over-glass">
-            <h3 className="text-[10px] font-black uppercase tracking-wider text-sky-800/60 px-1">
-              Campus Hub
-            </h3>
-            <div className="space-y-1.5 text-xs">
-              <Link
-                href="/servers"
-                className="flex items-center justify-between p-2.5 rounded-2xl text-slate-700 hover:bg-white/80 hover:text-[#0284C7] border border-transparent hover:border-white/80 transition-all group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-purple-100/70 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Discord Servers</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60">Live</span>
-              </Link>
-
-              <Link
-                href="/grievance"
-                className="flex items-center justify-between p-2.5 rounded-2xl text-slate-700 hover:bg-white/80 hover:text-[#0284C7] border border-transparent hover:border-white/80 transition-all group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-sky-100/70 flex items-center justify-center text-[#0284C7] group-hover:scale-105 transition-transform">
-                    <Shield className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Private Grievances</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-[#0284C7] border border-sky-200/60">Direct</span>
-              </Link>
-
-              <Link
-                href="/compare"
-                className="flex items-center justify-between p-2.5 rounded-2xl text-slate-700 hover:bg-white/80 hover:text-[#0284C7] border border-transparent hover:border-white/80 transition-all group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-xl bg-emerald-100/70 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                    <Scale className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold">Compare Colleges</span>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">Matrix</span>
-              </Link>
-            </div>
+            <p className="text-[11px] leading-relaxed text-slate-600">
+              Unlock AI Notes, verified alumni mentor badges & mock interviews.
+            </p>
+            <Link
+              href="/register"
+              className="w-full py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold text-center block shadow-[0_4px_12px_rgba(16,185,129,0.25)] transition-all"
+            >
+              Upgrade Now →
+            </Link>
           </div>
 
         </aside>
 
         {/* ========================================================= */}
-        {/* CENTER COLUMN (Cols 4-9): Live Dynamic Feed Stream        */}
+        {/* CENTER COLUMN (Cols 3-9): Live Dynamic Feed Stream        */}
         {/* ========================================================= */}
-        <main className="lg:col-span-6 space-y-4">
+        <main className="col-span-1 xl:col-span-7 space-y-6">
           
           {/* Action Feedback Banner if present */}
           {actionFeedback && (
@@ -626,9 +582,289 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             <StudentFeaturesHub />
           ) : (
             <>
-              {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
+              {/* 1. Hero Greeting Banner */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-sky-500/15 border border-emerald-200/70 p-6 sm:p-7 backdrop-blur-md shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
+                <div className="space-y-2.5 text-left z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/10 border border-emerald-300/40 text-emerald-800 text-[11px] font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Welcome back, {currentUser ? currentUser.fullName.split(' ')[0] : 'partha'} 👋</span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+                    Good morning, {currentUser ? currentUser.fullName.split(' ')[0] : 'partha'}!
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
+                    Explore opportunities, connect with peers, and prepare for your dream career today.
+                  </p>
+                  <div className="pt-1 flex items-center gap-4 flex-wrap">
+                    <button
+                      onClick={() => {
+                        setTrendingTab('Internships');
+                        const el = document.getElementById('trending-section');
+                        el?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5"
+                    >
+                      <span>Explore Opportunities</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="italic font-serif text-emerald-800 text-base sm:text-lg font-medium tracking-wide">
+                      For a Brighter Future!
+                    </span>
+                  </div>
+                </div>
+
+                {/* Student Portrait / Hero Illustration */}
+                <div className="relative shrink-0 hidden sm:block">
+                  <div className="w-36 h-36 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-white shadow-xl relative bg-gradient-to-tr from-emerald-400 to-sky-400">
+                    <img
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+                      alt="Student"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
+                  </div>
+                  <div className="absolute -bottom-2 -left-2 bg-white/95 backdrop-blur-md px-3 py-1 rounded-xl border border-emerald-200 shadow-md flex items-center gap-1.5 text-[10px] font-black text-emerald-800">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>CampusLenz Verified</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. 5 Vibrant Quick Action Cards in a Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {/* Find Colleges */}
+                <Link
+                  href="/colleges"
+                  className="group p-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-200/70 hover:border-emerald-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
+                    <Building2 className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-700 transition-colors">Find Colleges</h4>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">500+ Top Colleges</p>
+                  </div>
+                </Link>
+
+                {/* Jobs & Internships */}
+                <button
+                  onClick={() => {
+                    setTrendingTab('Internships');
+                    const el = document.getElementById('trending-section');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="group text-left p-3.5 rounded-2xl bg-orange-500/10 hover:bg-orange-500/15 border border-orange-200/70 hover:border-orange-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-orange-500/20 text-orange-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
+                    <Briefcase className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 group-hover:text-orange-700 transition-colors">Jobs & Internships</h4>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">1,200+ Openings</p>
+                  </div>
+                </button>
+
+                {/* Study Resources */}
+                <button
+                  onClick={() => {
+                    setTrendingTab('All');
+                    const el = document.getElementById('trending-section');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="group text-left p-3.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-200/70 hover:border-indigo-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
+                    <BookOpen className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 group-hover:text-indigo-700 transition-colors">Study Resources</h4>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Notes, PYQs & Books</p>
+                  </div>
+                </button>
+
+                {/* Campus Events */}
+                <button
+                  onClick={() => {
+                    setTrendingTab('Events');
+                    const el = document.getElementById('trending-section');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="group text-left p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-200/70 hover:border-amber-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
+                    <Calendar className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">Campus Events</h4>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Hackathons & Fests</p>
+                  </div>
+                </button>
+
+                {/* Find Students */}
+                <Link
+                  href="/search"
+                  className="group p-3.5 rounded-2xl bg-pink-500/10 hover:bg-pink-500/15 border border-pink-200/70 hover:border-pink-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
+                    <Users className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 group-hover:text-pink-700 transition-colors">Find Students</h4>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Connect Peers</p>
+                  </div>
+                </Link>
+              </div>
+
+              {/* 3. 🔥 Trending for Students */}
+              <div id="trending-section" className="ocean-glass-card p-5 space-y-4 touch-over-glass">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-black text-slate-900 flex items-center gap-1.5">
+                      🔥 Trending for Students
+                    </span>
+                  </div>
+                  {/* Tabs */}
+                  <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+                    {['All', 'Internships', 'Admissions', 'Projects', 'Events', 'Exams'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setTrendingTab(tab)}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          trendingTab === tab
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4 Opportunity Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {[
+                    {
+                      id: 'trend-1',
+                      category: 'Internships',
+                      title: 'Python Developer Intern',
+                      company: 'TechCorp India',
+                      location: 'Remote',
+                      stipend: '₹15,000/mo',
+                      actionLabel: 'Apply Now',
+                      tagColor: 'bg-orange-50 text-orange-700 border-orange-200',
+                    },
+                    {
+                      id: 'trend-2',
+                      category: 'Admissions',
+                      title: 'MCA Admissions 2026',
+                      company: 'Anna University, CEG',
+                      location: 'Chennai',
+                      stipend: 'Counselling Open',
+                      actionLabel: 'View Details',
+                      tagColor: 'bg-blue-50 text-blue-700 border-blue-200',
+                    },
+                    {
+                      id: 'trend-3',
+                      category: 'Events',
+                      title: 'Smart India Hackathon 2026',
+                      company: 'All India Inter-College',
+                      location: 'Hybrid',
+                      stipend: 'Prize: ₹1,00,000',
+                      actionLabel: 'Register',
+                      tagColor: 'bg-amber-50 text-amber-700 border-amber-200',
+                    },
+                    {
+                      id: 'trend-4',
+                      category: 'Projects',
+                      title: 'IoT Project Team Needed',
+                      company: 'Final Year CSE Project',
+                      location: 'Coimbatore',
+                      stipend: '2 Members Wanted',
+                      actionLabel: 'Join Team',
+                      tagColor: 'bg-purple-50 text-purple-700 border-purple-200',
+                    },
+                  ]
+                    .filter((item) => trendingTab === 'All' || item.category === trendingTab)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-4 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs hover:shadow-xs transition-all space-y-2.5 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.tagColor}`}>
+                              {item.category}
+                            </span>
+                            <span className="text-[11px] font-extrabold text-emerald-700">{item.stipend}</span>
+                          </div>
+                          <h4 className="font-extrabold text-xs text-slate-900 mt-2">{item.title}</h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{item.company} · {item.location}</p>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-medium">Verified by CampusLenz</span>
+                          <button
+                            onClick={() => {
+                              setActionFeedback(`✅ Opened application for ${item.title}`);
+                              setTimeout(() => setActionFeedback(null), 3000);
+                            }}
+                            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white text-[11px] font-bold transition shadow-2xs"
+                          >
+                            {item.actionLabel} →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* 4. 👥 Campus Community Header */}
+              <div id="community-feed-section" className="ocean-glass-card p-4 space-y-3 touch-over-glass">
+                <div className="flex items-center justify-between flex-wrap gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-600" />
+                    <h3 className="text-sm font-black text-slate-900">Campus Community</h3>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {filteredPosts.length} posts
+                    </span>
+                  </div>
+                  
+                  {/* + Create Post Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsComposing(true);
+                      const el = document.getElementById('post-composer-box');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>+ Create Post</span>
+                  </button>
+                </div>
+
+                {/* Sub-Category Filter Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                  {['All Posts', 'Questions', 'Opportunities', 'Projects', 'Events', 'Achievements'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setCommunityCategory(cat)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        communityCategory === cat
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
-            <div className="ocean-glass-card p-5 space-y-3.5 touch-over-glass">
+            <div id="post-composer-box" className="ocean-glass-card p-5 space-y-3.5 touch-over-glass">
               {/* Role Context & Quota Banners */}
               {currentUser.role === 'alumni' && (() => {
                 const elig = checkAlumniPostEligibility(currentUser);
@@ -1635,104 +1871,162 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </main>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN (Cols 10-12): Circles & Peer Suggestions */}
+        {/* RIGHT COLUMN (Cols 10-12): Events, Recommended, Resources */}
         {/* ========================================================= */}
-        <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
+        <aside className="hidden xl:block xl:col-span-3 space-y-5 sticky top-20">
           
-          {/* Quick Search Card */}
-          <div className="ocean-glass-card p-4 space-y-2.5 touch-over-glass">
-            <h3 className="text-[10px] font-black uppercase tracking-wider text-sky-800/60">
-              Campus Search
-            </h3>
-            <p className="text-xs text-slate-500">
-              Find classmates, seniors, professors, or colleges across Tamil Nadu.
-            </p>
-            <Link
-              href="/search"
-              className="mt-2 w-full py-2 px-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 text-xs font-bold text-slate-700 hover:text-[#0284C7] flex items-center justify-between shadow-2xs transition-all group"
-            >
-              <div className="flex items-center gap-2 text-slate-400 group-hover:text-[#0284C7]">
-                <Search className="w-3.5 h-3.5 text-[#0284C7]" />
-                <span className="text-slate-600">Search alumni, students...</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-[#0284C7]" />
-            </Link>
-          </div>
-
-          {/* Active Campus Circles */}
-          <div className="ocean-glass-card p-4 space-y-3 touch-over-glass">
+          {/* 1. 📅 Upcoming Events */}
+          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-black uppercase tracking-wider text-sky-800/60">
-                Campus Channels
-              </h3>
-              <Link href="/servers" className="text-xs text-[#0284C7] font-bold hover:underline">
-                View All
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-xs font-black text-slate-900">Upcoming Events</h3>
+              </div>
+              <Link href="/events" className="text-[11px] font-bold text-emerald-600 hover:underline">
+                View All →
               </Link>
             </div>
-            
-            <div className="space-y-2">
-              {communities.slice(0, 3).map((comm) => (
-                <div key={comm.id} className="p-3 rounded-2xl bg-white/60 hover:bg-white/90 border border-white/80 text-xs transition-all">
-                  <div className="font-extrabold text-[#0C2340] line-clamp-1">{comm.name}</div>
-                  <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{comm.description}</div>
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                    <span className="font-semibold">{comm.membersCount} members</span>
-                    <Link href="/servers" className="text-[#0284C7] font-bold hover:underline">
-                      Join →
-                    </Link>
+
+            <div className="space-y-2.5">
+              {[
+                { dateMonth: 'SEP', dateDay: '12', title: 'TN Engineering Cutoff Webinar', detail: 'Online · 6:00 PM', tag: 'Webinar' },
+                { dateMonth: 'SEP', dateDay: '18', title: 'HackMIT Inter-College Hackathon', detail: 'MIT Chennai · 24h', tag: 'Hackathon' },
+                { dateMonth: 'SEP', dateDay: '25', title: 'TCS National Qualifier Test 2026', detail: 'Online Assessment Exam', tag: 'Placement' },
+                { dateMonth: 'OCT', dateDay: '03', title: "PSG Tech Cultural Fest 'Vibrance'", detail: 'PSG Tech, Coimbatore', tag: 'Cultural' },
+              ].map((ev, idx) => (
+                <div key={idx} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center gap-3">
+                  {/* Date badge */}
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex flex-col items-center justify-center shrink-0 shadow-2xs">
+                    <span className="text-[9px] font-extrabold uppercase leading-none">{ev.dateMonth}</span>
+                    <span className="text-sm font-black leading-none mt-0.5">{ev.dateDay}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 truncate">{ev.title}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 truncate">{ev.detail}</p>
+                    <span className="inline-block mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {ev.tag}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Suggested Peers */}
-          <div className="ocean-glass-card p-4 space-y-3 touch-over-glass">
-            <h3 className="text-[10px] font-black uppercase tracking-wider text-sky-800/60">
-              Peers to Connect
-            </h3>
+          {/* 2. 👥 Recommended for You */}
+          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-xs font-black text-slate-900">Recommended for You</h3>
+              </div>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+              {['Colleges', 'Students', 'Internships', 'Communities'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setRecommendedTab(tab)}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all shrink-0 ${
+                    recommendedTab === tab
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Recommended List */}
             <div className="space-y-2.5">
-              {allUsers.filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni')).length === 0 ? (
-                <div className="text-center py-4 px-2 bg-white/50 rounded-2xl border border-white/80">
-                  <p className="text-xs font-bold text-[#0C2340]">No other users registered yet</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Invite batchmates or register a test account.</p>
-                  {!currentUser && (
-                    <Link href="/register" className="inline-block mt-2 text-xs font-bold text-[#0284C7] hover:underline">
-                      Register Now →
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                allUsers
-                  .filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni'))
-                  .slice(0, 3)
-                  .map(peer => {
-                    const isFollowing = currentUser ? currentUser.following.includes(peer.id) : false;
-                    return (
-                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs">
-                        <Link href={`/user/${peer.username}`} className="flex items-center gap-2 min-w-0">
-                          <div className="h-9 w-9 rounded-2xl bg-gradient-to-tr from-sky-200 to-white border border-white/90 shadow-2xs flex items-center justify-center font-black text-[#0284C7] shrink-0">
-                            {peer.fullName[0] || 'U'}
-                          </div>
-                          <div className="truncate">
-                            <p className="font-bold text-[#0C2340] truncate hover:text-[#0284C7]">{peer.fullName}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{peer.course || peer.role}</p>
-                          </div>
-                        </Link>
-                        <button
-                          onClick={() => toggleFollowUser(peer.id)}
-                          className={`ocean-glossy-pill-subtle text-[10px] font-bold px-2.5 py-1 shrink-0 ${
-                            isFollowing
-                              ? 'bg-white/80 text-slate-600'
-                              : 'text-[#0284C7]'
-                          }`}
-                        >
-                          {isFollowing ? 'Following' : '+ Follow'}
-                        </button>
+              {[
+                { id: 'rec-1', name: 'PSG College of Technology', location: 'Coimbatore · Top Engineering', iconLetter: 'P' },
+                { id: 'rec-2', name: 'Christ University', location: 'Bengaluru · Multi-Disciplinary', iconLetter: 'C' },
+                { id: 'rec-3', name: 'Amrita Vishwa Vidyapeetham', location: 'Coimbatore · Top Ranked', iconLetter: 'A' },
+                { id: 'rec-4', name: 'Anna University (CEG)', location: 'Chennai · Premier State Univ', iconLetter: 'A' },
+              ].map((item) => {
+                const isFollowed = followedRecIds.includes(item.id);
+                return (
+                  <div key={item.id} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-100 to-sky-100 border border-white/90 shadow-2xs flex items-center justify-center font-black text-emerald-700 text-xs shrink-0">
+                        {item.iconLetter}
                       </div>
-                    );
-                  })
-              )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate">{item.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{item.location}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFollowRec(item.id)}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-bold transition shrink-0 ${
+                        isFollowed
+                          ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                      }`}
+                    >
+                      {isFollowed ? 'Following' : '+ Follow'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. 📘 Study Resources */}
+          <div className="ocean-glass-card p-4.5 space-y-3.5 touch-over-glass">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-xs font-black text-slate-900">Study Resources</h3>
+              </div>
+              <Link href="/resources" className="text-[11px] font-bold text-emerald-600 hover:underline">
+                View Library →
+              </Link>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+              {['Notes', 'PYQs', 'Syllabus', 'Books', 'Videos'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setResourcesTab(tab)}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all shrink-0 ${
+                    resourcesTab === tab
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-white/70 hover:bg-white text-slate-600 border border-white/80'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Downloadable PDF Items */}
+            <div className="space-y-2.5">
+              {[
+                { title: 'Data Structures & Algorithms - Complete Notes', meta: 'PDF (4.2 MB) · Anna Univ R2021' },
+                { title: 'Digital Signal Processing - Solved PYQs (2019-2025)', meta: 'PDF (6.8 MB) · Dept of ECE' },
+                { title: 'Database Management Systems - Revision Cheatsheet', meta: 'PDF (2.1 MB) · CS / IT' },
+              ].map((res, idx) => (
+                <div key={idx} className="p-3 rounded-2xl bg-white/70 hover:bg-white/95 border border-white/90 shadow-2xs transition-all flex items-center justify-between gap-2.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 line-clamp-1">{res.title}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{res.meta}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setActionFeedback(`📥 Downloading ${res.title}...`);
+                      setTimeout(() => setActionFeedback(null), 3000);
+                    }}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 transition shrink-0"
+                    title="Download Resource"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

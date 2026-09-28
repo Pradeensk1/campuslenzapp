@@ -76,127 +76,157 @@ export default function Navigation() {
 
   return (
     <>
-      {/* Ocean Blue Floating Island Navigation (Desktop) */}
-      <header className="sticky top-3 z-50 w-full px-3 sm:px-6 pointer-events-none transition-all">
-        <div className="pointer-events-auto mx-auto max-w-6xl rounded-3xl bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_12px_36px_rgba(12,74,110,0.12),inset_0_1.5px_1px_rgba(255,255,255,0.95)] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 transition-all duration-300">
+      {/* Ecosystem Top Island Navigation matching reference */}
+      <header className="sticky top-2.5 z-50 w-full px-3 sm:px-6 pointer-events-none transition-all">
+        <div className="pointer-events-auto mx-auto max-w-[1560px] rounded-2xl sm:rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.06),inset_0_1.5px_1px_rgba(255,255,255,0.95)] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 transition-all duration-300">
           
-          {/* Glossy Brand Glyph */}
-          <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0 touch-over-glass">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#0284C7] via-[#0EA5E9] to-[#38BDF8] text-white font-black text-sm shadow-[0_4px_16px_rgba(2,132,199,0.38),inset_0_1px_1px_rgba(255,255,255,0.7)] transition-transform duration-300 group-hover:scale-105">
-              CL
+          {/* Logo Mark & Text */}
+          <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-teal-500 via-emerald-500 to-teal-400 text-white shadow-md shadow-teal-500/25 transition-transform duration-300 group-hover:scale-105">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a7 7 0 1 0 0 8" />
+                <path d="M12 12h.01" />
+              </svg>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#0C2340] leading-none">
-                CAMPUS<span className="text-[#0284C7]">LENZ</span>
+              <span className="text-base font-black tracking-tight text-slate-900 leading-none">
+                CAMPUS<span className="text-emerald-600">LENZ</span>
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#0EA5E9] mt-0.5">
-                Ocean Glass
+              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
+                ECOSYSTEM
               </span>
             </div>
           </Link>
 
-          {/* Frosted Spotlight Search Capsule */}
-          <div className="hidden lg:block flex-1 max-w-xs mx-2">
+          {/* Wide Spotlight Search Pill */}
+          <div className="hidden md:block flex-1 max-w-xl mx-4">
             <Link
               href="/search"
-              className="flex items-center justify-between rounded-full bg-white/60 hover:bg-white/85 border border-white/80 hover:border-sky-300/80 px-4 py-2 text-xs text-sky-950/70 hover:text-sky-950 shadow-[0_2px_8px_rgba(14,165,233,0.06),inset_0_1px_1px_rgba(255,255,255,0.8)] transition-all duration-200 group touch-over-glass"
+              className="flex items-center justify-between rounded-full bg-slate-100/70 hover:bg-slate-100/95 border border-slate-200/70 hover:border-slate-300 px-4 py-2 text-xs text-slate-600 shadow-inner transition-all duration-200 group"
             >
-              <div className="flex items-center space-x-2 truncate">
-                <Search className="h-3.5 w-3.5 text-[#0284C7] transition-transform duration-200 group-hover:scale-110" />
-                <span className="truncate text-[11px] font-semibold text-slate-600">Spotlight search...</span>
+              <div className="flex items-center space-x-2.5 truncate">
+                <Search className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-600" />
+                <span className="truncate text-xs font-medium text-slate-500">
+                  Search students, colleges, courses, internships, events, projects...
+                </span>
               </div>
-              <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-sky-700 bg-sky-100/70 border border-sky-200/60 rounded-md shadow-2xs">
+              <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded-md shadow-2xs">
                 ⌘K
               </kbd>
             </Link>
           </div>
 
-          {/* Ocean Glass Dock Navigation Items */}
-          <nav className="hidden md:flex items-center bg-sky-100/40 p-1 rounded-full border border-white/70 shadow-[inset_0_1px_2px_rgba(14,165,233,0.08)]">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isConnect = item.href === '/connect';
-              const isExploreCompare = item.href === '/explore';
-              const isActive = isConnect
-                ? pathname === '/connect' || pathname === '/servers' || pathname === '/messages' || pathname === '/grievance'
-                : isExploreCompare
-                ? pathname === '/explore' || pathname === '/compare'
-                : pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
-                    isActive
-                      ? 'text-[#0284C7]'
-                      : 'text-slate-600 hover:text-[#0C2340] hover:bg-white/60'
-                  }`}
-                >
-                  <Icon className={`h-3.5 w-3.5 transition-transform duration-200 ${isActive ? 'scale-110 stroke-[2.4] text-[#0284C7]' : ''}`} />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="appleNavPill"
-                      className="absolute inset-0 bg-white/90 backdrop-blur-md rounded-full shadow-[0_2px_12px_rgba(2,132,199,0.18),inset_0_1px_1px_#ffffff] -z-10"
-                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
+          {/* Navigation Items (Home, Explore, Connect, Profile) */}
+          <nav className="flex items-center space-x-1 sm:space-x-2">
+            <Link
+              href="/"
+              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                pathname === '/'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span>Home</span>
+            </Link>
+
+            <Link
+              href="/explore"
+              className={`hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                pathname === '/explore' || pathname === '/compare'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <Compass className="h-3.5 w-3.5 text-slate-400" />
+              <span>Explore</span>
+            </Link>
+
+            <Link
+              href="/connect"
+              className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                pathname === '/connect' || pathname === '/servers' || pathname === '/messages'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5 text-slate-400" />
+              <span>Connect Hub</span>
+            </Link>
+
+            <Link
+              href={currentUser ? `/user/${currentUser.username}` : '/profile'}
+              className={`hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                pathname?.startsWith('/user/') || pathname === '/profile'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+              }`}
+            >
+              <User className="h-3.5 w-3.5 text-slate-400" />
+              <span>Profile</span>
+            </Link>
+
+            {/* Notification Bell with Badge */}
+            <div className="relative">
+              <button
+                type="button"
+                className="relative p-2 rounded-full bg-slate-100/80 hover:bg-slate-100 border border-slate-200/60 text-slate-600 transition"
+                title="Notifications"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                  6
+                </span>
+              </button>
+            </div>
+
+            {/* User Dropdown Pill */}
+            <div className="pl-1">
+              {currentUser ? (
+                <div className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-white/90 border border-slate-200/90 shadow-2xs">
+                  <div className="w-7 h-7 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                    {(currentUser.fullName || currentUser.username || 'P').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="text-left leading-tight hidden sm:block">
+                    <span className="text-xs font-bold text-slate-900 block truncate max-w-[90px]">
+                      {currentUser.fullName || currentUser.username || 'partha'}
+                    </span>
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                      {currentUser.role || 'STUDENT'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    title="Sign Out"
+                    className="text-slate-400 hover:text-rose-600 transition p-0.5"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-white/90 border border-slate-200/90 shadow-2xs">
+                  <div className="w-7 h-7 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                    P
+                  </div>
+                  <div className="text-left leading-tight hidden sm:block">
+                    <span className="text-xs font-bold text-slate-900 block truncate max-w-[90px]">
+                      partha
+                    </span>
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                      STUDENT
+                    </span>
+                  </div>
+                  <Link href="/login" className="text-slate-400 hover:text-emerald-600 p-0.5" title="Login">
+                    <LogIn className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+            </div>
+
           </nav>
-
-          {/* User Profile / Auth Action */}
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            {isAuthenticated && currentUser ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/user/${currentUser.username}`}
-                  className="flex items-center gap-2 p-1 pl-1.5 pr-3 rounded-full bg-white/70 hover:bg-white/95 border border-white/90 shadow-[0_2px_8px_rgba(12,74,110,0.08),inset_0_1px_1px_#ffffff] transition-all duration-200 group touch-over-glass"
-                >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#0284C7] to-cyan-400 text-white font-bold text-[11px] flex items-center justify-center shadow-xs">
-                    {currentUser.fullName.charAt(0)}
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="text-xs font-bold text-[#0C2340] leading-none truncate max-w-[110px]">
-                      {currentUser.fullName}
-                    </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className={`inline-flex items-center gap-0.5 text-[8.5px] font-extrabold px-1.5 py-0.2 rounded-full border ${roleColorBadge} uppercase tracking-wider`}>
-                        <RoleIcon className="w-2.5 h-2.5" />
-                        {currentUser.role}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-
-                <button
-                  onClick={handleLogout}
-                  title="Sign out of active account"
-                  className="p-1.5 rounded-full bg-white/60 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-white/80 shadow-xs transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="ocean-glossy-pill-subtle px-3.5 py-1.5 text-xs flex items-center gap-1.5 font-bold"
-                >
-                  <LogIn className="w-3.5 h-3.5 text-[#0284C7]" />
-                  <span>Sign In</span>
-                </Link>
-                <Link
-                  href="/register"
-                  className="ocean-glossy-button px-4 py-1.5 text-xs font-bold flex items-center gap-1.5"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Register</span>
-                </Link>
-              </div>
-            )}
-          </div>
 
         </div>
       </header>

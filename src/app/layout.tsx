@@ -35,20 +35,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="text-[#0C2340] antialiased min-h-screen relative overflow-x-hidden selection:bg-sky-500/20 selection:text-sky-900">
-        {/* Ambient Oceanic Glass Glow Elements */}
+      <body className="text-[#0C2340] antialiased min-h-screen relative overflow-x-hidden selection:bg-teal-500/20 selection:text-teal-900 bg-[#EEF4F8]">
+        {/* Ambient Pearlescent Glass Glow Elements matching reference */}
         <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-sky-400/25 blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute top-1/3 -right-32 w-80 h-80 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="absolute bottom-20 left-1/4 w-96 h-96 rounded-full bg-blue-500/15 blur-3xl" />
-          <div className="absolute -bottom-20 right-10 w-72 h-72 rounded-full bg-teal-400/20 blur-3xl" />
+          {/* Top-Left Mint / Emerald Aura */}
+          <div className="absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-emerald-400/20 blur-[100px]" />
+          {/* Center-Right Warm Apricot / Amber Aura */}
+          <div className="absolute top-24 right-1/4 w-[36rem] h-[36rem] rounded-full bg-amber-300/18 blur-[120px]" />
+          {/* Top-Right Soft Coral / Rose Aura */}
+          <div className="absolute -top-20 -right-20 w-[28rem] h-[28rem] rounded-full bg-rose-300/15 blur-[100px]" />
+          {/* Center-Bottom Soft Sky & Cyan Aura */}
+          <div className="absolute bottom-20 left-1/3 w-[36rem] h-[36rem] rounded-full bg-sky-300/22 blur-[110px]" />
         </div>
 
         <AppProvider>
           <div className="flex min-h-screen flex-col pb-24 md:pb-0">
             <EmergencyBroadcastBanner />
             <Navigation />
-            <main className="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+            <main className="flex-1 w-full max-w-[1560px] mx-auto px-3 sm:px-6 py-3 sm:py-5">
               <PageTransition>
                 {children}
               </PageTransition>
