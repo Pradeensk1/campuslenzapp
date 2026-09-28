@@ -54,7 +54,15 @@ import {
   MapPin,
   Award,
   Zap,
-  Tag
+  Tag,
+  Circle,
+  CheckCircle,
+  ChevronRight,
+  Activity,
+  Scan,
+  Layers,
+  Cpu,
+  MoreHorizontal
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
@@ -123,6 +131,82 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [resourcesTab, setResourcesTab] = useState<string>('Notes');
   const [communityCategory, setCommunityCategory] = useState<string>('All Posts');
   const [followedRecIds, setFollowedRecIds] = useState<string[]>(['rec-1']);
+
+  // Apple Liquid Theme: Calendar Day & Daily Routine Steps State
+  const [selectedDay, setSelectedDay] = useState<string>('Wed');
+  const [todaySteps, setTodaySteps] = useState<Array<{
+    id: string;
+    title: string;
+    subtitle: string;
+    category: string;
+    time: string;
+    isCompleted: boolean;
+  }>>([
+    {
+      id: 'step-1',
+      title: 'Attend Data Structures & Algorithm Lab',
+      subtitle: 'Practical session on Graph Traversal & BFS/DFS',
+      category: 'Academic',
+      time: '09:30 AM · Lab 3',
+      isCompleted: true,
+    },
+    {
+      id: 'step-2',
+      title: 'AI Campus Review: Submit DBMS Assignment',
+      subtitle: 'Upload SQL queries & ER diagrams to portal',
+      category: 'Assignment',
+      time: 'Due 05:00 PM · Online',
+      isCompleted: false,
+    },
+    {
+      id: 'step-3',
+      title: 'Apply for Python Developer Internship',
+      subtitle: 'TechCorp India · Remote · ₹15,000/mo stipend',
+      category: 'Career',
+      time: 'Application Closing Today',
+      isCompleted: false,
+    },
+    {
+      id: 'step-4',
+      title: 'Smart India Hackathon Team Standup',
+      subtitle: 'Sync on IoT architecture & presentation slides',
+      category: 'Project',
+      time: '06:30 PM · Connect Hub',
+      isCompleted: false,
+    }
+  ]);
+
+  const toggleDailyStep = (id: string) => {
+    setTodaySteps(prev =>
+      prev.map(step =>
+        step.id === id ? { ...step, isCompleted: !step.isCompleted } : step
+      )
+    );
+    const step = todaySteps.find(s => s.id === id);
+    if (step) {
+      setActionFeedback(!step.isCompleted ? `🎉 Completed "${step.title}"!` : `Marked "${step.title}" as pending`);
+      setTimeout(() => setActionFeedback(null), 3000);
+    }
+  };
+
+  // Apple-Inspired Campus AI Scanner Drawer State
+  const [isScanDrawerOpen, setIsScanDrawerOpen] = useState(false);
+  const [activeScanTool, setActiveScanTool] = useState<string>('notes');
+  const [scanInputText, setScanInputText] = useState('');
+  const [scanAnalysisResult, setScanAnalysisResult] = useState<string | null>(null);
+
+  const handleRunScanTool = (tool: string) => {
+    setActiveScanTool(tool);
+    if (tool === 'notes') {
+      setScanAnalysisResult('✨ AI Note Summary generated: Extracted 3 Core Principles, 4 Formulas & 2 Practice Questions.');
+    } else if (tool === 'shield') {
+      setScanAnalysisResult('🛡️ AI Safety Shield: Content scored 98% safe with 0 ragebait triggers.');
+    } else if (tool === 'internship') {
+      setScanAnalysisResult('🎯 Career Match: Profile matches 92% with Python Developer Intern at TechCorp India.');
+    } else {
+      setScanAnalysisResult('📊 TNEA Cutoff Predictor: Aggregate Cutoff 192.5/200 — 96% chance for CEG Anna Univ.');
+    }
+  };
 
   const toggleFollowRec = (id: string) => {
     setFollowedRecIds(prev =>
@@ -582,137 +666,249 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             <StudentFeaturesHub />
           ) : (
             <>
-              {/* 1. Hero Greeting Banner */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-sky-500/15 border border-emerald-200/70 p-6 sm:p-7 backdrop-blur-md shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
-                <div className="space-y-2.5 text-left z-10">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/10 border border-emerald-300/40 text-emerald-800 text-[11px] font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Welcome back, {currentUser ? currentUser.fullName.split(' ')[0] : 'partha'} 👋</span>
+              {/* 1. Apple-Inspired Hero Greeting Banner with Floating Glass Metrics */}
+              <div className="relative overflow-hidden rounded-[32px] bg-white/60 backdrop-blur-3xl border border-white/80 p-6 sm:p-7 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.08),inset_0_1.5px_1px_rgba(255,255,255,0.95)] flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div className="space-y-4 text-left z-10 flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-sky-400 to-[#0284C7] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-md">
+                      {currentUser?.fullName?.[0] || 'P'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 font-semibold">Good morning 👋</span>
+                      </div>
+                      <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">
+                        {currentUser ? currentUser.fullName : 'Partha S.'}
+                      </h1>
+                    </div>
                   </div>
-                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                    Good morning, {currentUser ? currentUser.fullName.split(' ')[0] : 'partha'}!
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-600 max-w-md leading-relaxed">
-                    Explore opportunities, connect with peers, and prepare for your dream career today.
+
+                  <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-lg">
+                    Understand your campus journey better. Track daily lecture tasks, verified internship opportunities, and AI-powered study insights.
                   </p>
-                  <div className="pt-1 flex items-center gap-4 flex-wrap">
+
+                  {/* Calendar Day Selector Ribbon (Apple VisionOS / iOS 18 style) */}
+                  <div className="pt-1">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {[
+                        { day: 'Mon', date: '12', done: true },
+                        { day: 'Tue', date: '13', done: true },
+                        { day: 'Wed', date: '14', done: true, current: true },
+                        { day: 'Thu', date: '15', done: false },
+                        { day: 'Fri', date: '16', done: false },
+                        { day: 'Sat', date: '17', done: false },
+                      ].map((item) => {
+                        const isSelected = selectedDay === item.day;
+                        return (
+                          <button
+                            key={item.day}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDay(item.day);
+                              setActionFeedback(`📅 Viewed routine for ${item.day} ${item.date}`);
+                              setTimeout(() => setActionFeedback(null), 2500);
+                            }}
+                            className={`flex flex-col items-center justify-center py-2 px-3 sm:px-3.5 rounded-2xl transition-all duration-200 shrink-0 ${
+                              isSelected
+                                ? 'bg-slate-900 text-white shadow-md scale-105'
+                                : 'bg-white/60 hover:bg-white/90 text-slate-600 border border-white/80'
+                            }`}
+                          >
+                            <span className="text-[10px] font-semibold uppercase tracking-wider">{item.day}</span>
+                            <div className="flex items-center justify-center mt-1">
+                              {isSelected ? (
+                                <Check className="w-4 h-4 text-white" />
+                              ) : item.done ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <span className="text-xs font-bold">{item.date}</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      onClick={() => setIsScanDrawerOpen(true)}
+                      className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
+                    >
+                      <Scan className="w-3.5 h-3.5" />
+                      <span>Campus AI Scanner</span>
+                    </button>
                     <button
                       onClick={() => {
-                        setTrendingTab('Internships');
-                        const el = document.getElementById('trending-section');
+                        const el = document.getElementById('daily-steps-box');
                         el?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5"
+                      className="px-3.5 py-2 rounded-2xl bg-white/70 hover:bg-white text-slate-700 text-xs font-bold border border-white/90 shadow-2xs transition-all flex items-center gap-1.5"
                     >
-                      <span>Explore Opportunities</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Daily Steps ({todaySteps.filter(s => s.isCompleted).length}/{todaySteps.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                    <span className="italic font-serif text-emerald-800 text-base sm:text-lg font-medium tracking-wide">
-                      For a Brighter Future!
-                    </span>
                   </div>
                 </div>
 
-                {/* Student Portrait / Hero Illustration */}
-                <div className="relative shrink-0 hidden sm:block">
-                  <div className="w-36 h-36 md:w-40 md:h-40 rounded-3xl overflow-hidden border-4 border-white shadow-xl relative bg-gradient-to-tr from-emerald-400 to-sky-400">
+                {/* Right Side: Portrait with Floating Apple Glass Metric Badges */}
+                <div className="relative shrink-0 hidden md:block">
+                  <div className="w-48 h-48 md:w-56 md:h-56 rounded-[32px] overflow-hidden border-4 border-white/90 shadow-2xl relative bg-gradient-to-tr from-sky-200 via-teal-100 to-indigo-200">
                     <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=80"
                       alt="Student"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent pointer-events-none" />
                   </div>
-                  <div className="absolute -bottom-2 -left-2 bg-white/95 backdrop-blur-md px-3 py-1 rounded-xl border border-emerald-200 shadow-md flex items-center gap-1.5 text-[10px] font-black text-emerald-800">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>CampusLenz Verified</span>
+
+                  {/* Floating Metric 1: Campus Sentiment (Top-Left) */}
+                  <div className="apple-floating-metric absolute -top-3 -left-6 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Campus Pulse 87%</span>
+                  </div>
+
+                  {/* Floating Metric 2: Study Streak (Top-Right) */}
+                  <div className="apple-floating-metric absolute -top-2 -right-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
+                    <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span>5 Day Streak</span>
+                  </div>
+
+                  {/* Floating Metric 3: Overall Verified (Bottom-Left) */}
+                  <div className="apple-floating-metric absolute -bottom-3 -left-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#0284C7]" />
+                    <span>Verified 4.9★</span>
+                  </div>
+
+                  {/* Floating Metric 4: AI Shield (Bottom-Right) */}
+                  <div className="apple-floating-metric absolute -bottom-2 -right-4 py-1.5 px-3 flex items-center gap-1.5 text-[11px] font-bold text-emerald-800">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>AI Shield Active</span>
                   </div>
                 </div>
               </div>
 
-              {/* 2. 5 Vibrant Quick Action Cards in a Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {/* Find Colleges */}
-                <Link
-                  href="/colleges"
-                  className="group p-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-200/70 hover:border-emerald-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
-                    <Building2 className="w-4.5 h-4.5" />
-                  </div>
+              {/* 2. Apple VisionOS "Today's Steps & Routine" Interactive Hub */}
+              <div id="daily-steps-box" className="ocean-glass-card p-5 sm:p-6 space-y-4 touch-over-glass">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-700 transition-colors">Find Colleges</h4>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">500+ Top Colleges</p>
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                      <span>Today's Steps & Routine</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {todaySteps.filter(s => s.isCompleted).length} / {todaySteps.length} Completed
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Check off daily lecture sessions, academic submissions & internship applications
+                    </p>
                   </div>
-                </Link>
+                  <button
+                    onClick={() => setIsScanDrawerOpen(true)}
+                    className="p-2 rounded-xl bg-white/70 hover:bg-white text-slate-600 hover:text-slate-900 border border-white/90 transition shadow-2xs"
+                    title="Open Scanner Tools"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
 
-                {/* Jobs & Internships */}
-                <button
-                  onClick={() => {
-                    setTrendingTab('Internships');
-                    const el = document.getElementById('trending-section');
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="group text-left p-3.5 rounded-2xl bg-orange-500/10 hover:bg-orange-500/15 border border-orange-200/70 hover:border-orange-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-orange-500/20 text-orange-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
-                    <Briefcase className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 group-hover:text-orange-700 transition-colors">Jobs & Internships</h4>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">1,200+ Openings</p>
-                  </div>
-                </button>
+                {/* Steps List */}
+                <div className="space-y-2.5">
+                  {todaySteps.map((step) => {
+                    return (
+                      <div
+                        key={step.id}
+                        onClick={() => toggleDailyStep(step.id)}
+                        className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
+                          step.isCompleted
+                            ? 'bg-white/45 border-white/60 text-slate-500'
+                            : 'bg-white/80 hover:bg-white/95 border-white/90 text-slate-900 shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDailyStep(step.id);
+                            }}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                              step.isCompleted
+                                ? 'bg-emerald-600 text-white shadow-2xs'
+                                : 'border-2 border-slate-300 hover:border-emerald-600 bg-white'
+                            }`}
+                          >
+                            {step.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </button>
 
-                {/* Study Resources */}
-                <button
-                  onClick={() => {
-                    setTrendingTab('All');
-                    const el = document.getElementById('trending-section');
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="group text-left p-3.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-200/70 hover:border-indigo-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
-                    <BookOpen className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 group-hover:text-indigo-700 transition-colors">Study Resources</h4>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Notes, PYQs & Books</p>
-                  </div>
-                </button>
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold truncate ${step.isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                              {step.title}
+                            </p>
+                            <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                              {step.subtitle}
+                            </p>
+                          </div>
+                        </div>
 
-                {/* Campus Events */}
-                <button
-                  onClick={() => {
-                    setTrendingTab('Events');
-                    const el = document.getElementById('trending-section');
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="group text-left p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-200/70 hover:border-amber-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
-                    <Calendar className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 group-hover:text-amber-700 transition-colors">Campus Events</h4>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Hackathons & Fests</p>
-                  </div>
-                </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="hidden sm:inline-block text-[10px] font-semibold text-slate-500 bg-white/70 px-2 py-0.5 rounded-lg border border-slate-200/60">
+                            {step.time}
+                          </span>
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                            step.category === 'Academic'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : step.category === 'Assignment'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : step.category === 'Career'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-purple-50 text-purple-700 border-purple-200'
+                          }`}>
+                            {step.category}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                {/* Find Students */}
-                <Link
-                  href="/search"
-                  className="group p-3.5 rounded-2xl bg-pink-500/10 hover:bg-pink-500/15 border border-pink-200/70 hover:border-pink-300 transition-all duration-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-700 flex items-center justify-center font-bold mb-2.5 group-hover:scale-105 transition-transform">
-                    <Users className="w-4.5 h-4.5" />
+                {/* 2 Bottom Quick Diagnostic / Action Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div
+                    onClick={() => setIsScanDrawerOpen(true)}
+                    className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-200/60 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between shadow-2xs group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-[#0284C7] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Scan className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900">Campus AI Scanner</h4>
+                        <p className="text-[10px] text-slate-500">Scan notes, code & get AI feedback</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#0284C7] transition-colors" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 group-hover:text-pink-700 transition-colors">Find Students</h4>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Connect Peers</p>
+
+                  <div
+                    onClick={() => {
+                      setTrendingTab('Internships');
+                      const el = document.getElementById('trending-section');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-200/60 hover:border-emerald-300 cursor-pointer transition-all flex items-center justify-between shadow-2xs group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900">Career Roadmap</h4>
+                        <p className="text-[10px] text-slate-500">1,200+ Internships & Cutoffs</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
                   </div>
-                </Link>
+                </div>
               </div>
 
               {/* 3. 🔥 Trending for Students */}
@@ -2033,6 +2229,134 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </aside>
 
       </div>
+
+      {/* APPLE-INSPIRED CAMPUS AI SCANNER MODAL / DRAWER (Matching Right Mockup) */}
+      <AnimatePresence>
+        {isScanDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-lg rounded-[32px] bg-white/75 backdrop-blur-3xl border border-white/90 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.95)] p-6 space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
+                    <Scan className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Campus AI Scanner</h3>
+                    <p className="text-xs text-slate-500">Scan notes, code, or profile to get instant AI insights</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsScanDrawerOpen(false);
+                    setScanAnalysisResult(null);
+                  }}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* 4 Frosted Scan Tool Rows (Matching Right Mockup in media_1790577152316.png) */}
+              <div className="space-y-2.5">
+                {[
+                  {
+                    id: 'notes',
+                    icon: BookOpen,
+                    color: 'text-purple-600 bg-purple-100',
+                    title: 'Scan & Summarize Notes',
+                    desc: 'Analyze lecture PDFs, handouts & generate flashcards',
+                  },
+                  {
+                    id: 'shield',
+                    icon: ShieldCheck,
+                    color: 'text-emerald-600 bg-emerald-100',
+                    title: 'AI Safety & Toxicity Shield',
+                    desc: 'Scan posts & drafts with real-time sentiment analytics',
+                  },
+                  {
+                    id: 'internship',
+                    icon: Briefcase,
+                    color: 'text-orange-600 bg-orange-100',
+                    title: 'Career & Internship Radar',
+                    desc: 'Scan your skills against 1,200+ active company roles',
+                  },
+                  {
+                    id: 'cutoff',
+                    icon: GraduationCap,
+                    color: 'text-blue-600 bg-blue-100',
+                    title: 'TNEA Cutoff & Eligibility Scanner',
+                    desc: 'Calculate aggregate cutoff & top engineering rank',
+                  },
+                ].map((tool) => {
+                  const Icon = tool.icon;
+                  const isSelected = activeScanTool === tool.id;
+                  return (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      onClick={() => handleRunScanTool(tool.id)}
+                      className={`w-full p-3.5 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-white/95 border-emerald-500/80 shadow-md ring-2 ring-emerald-500/20'
+                          : 'bg-white/70 hover:bg-white/90 border-white/80 shadow-2xs'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tool.color}`}>
+                          <Icon className="w-4.5 h-4.5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">{tool.title}</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{tool.desc}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Live Scanner Output Result */}
+              {scanAnalysisResult && (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-300/60 backdrop-blur-md space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-900">AI Diagnostic Report</span>
+                  </div>
+                  <p className="text-xs text-emerald-950 leading-relaxed font-medium">
+                    {scanAnalysisResult}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsScanDrawerOpen(false);
+                    setScanAnalysisResult(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900"
+                >
+                  Done
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRunScanTool(activeScanTool)}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition"
+                >
+                  Run Deep AI Scan →
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* PINTEREST-STYLE ZOOM LIGHTBOX MODAL */}
       <PinterestImageModal

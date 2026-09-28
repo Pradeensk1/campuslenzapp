@@ -36,16 +36,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="text-[#0C2340] antialiased min-h-screen relative overflow-x-hidden selection:bg-teal-500/20 selection:text-teal-900 bg-[#EEF4F8]">
-        {/* Ambient Pearlescent Glass Glow Elements matching reference */}
-        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-          {/* Top-Left Mint / Emerald Aura */}
-          <div className="absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-emerald-400/20 blur-[100px]" />
-          {/* Center-Right Warm Apricot / Amber Aura */}
-          <div className="absolute top-24 right-1/4 w-[36rem] h-[36rem] rounded-full bg-amber-300/18 blur-[120px]" />
-          {/* Top-Right Soft Coral / Rose Aura */}
-          <div className="absolute -top-20 -right-20 w-[28rem] h-[28rem] rounded-full bg-rose-300/15 blur-[100px]" />
-          {/* Center-Bottom Soft Sky & Cyan Aura */}
-          <div className="absolute bottom-20 left-1/3 w-[36rem] h-[36rem] rounded-full bg-sky-300/22 blur-[110px]" />
+        {/* Apple-Inspired Liquid Glass Ambient Canvas */}
+        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#EDF3F8]">
+          {/* Liquid Base Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#E2EDF8] via-[#EBF4FA] to-[#F1EEF9]" />
+          
+          {/* Liquid Orb 1: Deep Ocean Cerulean & Cyan Wave */}
+          <div className="absolute -top-40 left-1/4 w-[45rem] h-[45rem] rounded-full bg-gradient-to-tr from-sky-400/35 via-cyan-400/30 to-blue-500/20 blur-[130px] animate-pulse" style={{ animationDuration: '8s' }} />
+          
+          {/* Liquid Orb 2: Soft Lilac & Rose Peach Caustic */}
+          <div className="absolute top-1/3 -right-20 w-[42rem] h-[42rem] rounded-full bg-gradient-to-bl from-pink-400/25 via-rose-300/20 to-purple-400/25 blur-[140px]" />
+          
+          {/* Liquid Orb 3: Fresh Emerald / Mint Oceanic Aura */}
+          <div className="absolute -bottom-32 -left-20 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tr from-teal-300/25 via-emerald-400/20 to-sky-300/25 blur-[140px]" />
+
+          {/* Liquid Orb 4: Center Specular Luster Glow */}
+          <div className="absolute top-1/2 left-1/3 w-[36rem] h-[36rem] rounded-full bg-gradient-to-r from-blue-300/20 via-indigo-200/15 to-transparent blur-[120px]" />
+
+          {/* Subtle Apple Liquid Mesh Noise / Specular Micro-Texture */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.7),transparent_70%)]" />
         </div>
 
         <AppProvider>
