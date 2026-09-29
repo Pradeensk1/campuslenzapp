@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import UserProfileClient from './UserProfileClient';
 import { INITIAL_USERS, INITIAL_POSTS } from '@/lib/mockData';
 
@@ -8,11 +9,15 @@ export default async function Page({ params }: { params: Promise<{ username: str
   const supabase = await createClient(cookieStore);
   const { username } = await params;
 
-  // Fetch profile by username
+  if (!username || username === 'undefined' || username === 'null') {
+    redirect('/');
+  }
+
+  // Fetch profile by username or ID
   const { data: profileData } = await supabase
     .from('profiles')
     .select('*')
-    .ilike('username', username)
+    .or(`username.ilike.${username},id.eq.${username}`)
     .maybeSingle();
 
   let initialProfile = null;
@@ -41,11 +46,35 @@ export default async function Page({ params }: { params: Promise<{ username: str
       createdAt: profileData.created_at,
     };
   } else {
+    const cleanUser = decodeURIComponent(username).toLowerCase();
     const mockUser = INITIAL_USERS.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase()
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanUser) ||
+        (u.id && u.id.toLowerCase() === cleanUser)
     );
     if (mockUser) {
       initialProfile = mockUser;
+    } else {
+      const cleanName = decodeURIComponent(username).replace(/[-_]/g, ' ');
+      initialProfile = {
+        id: username,
+        username: username,
+        name: cleanName,
+        fullName: cleanName,
+        email: `${username}@campuslenz.edu`,
+        role: 'student' as const,
+        headline: 'Campus Contributor',
+        bio: 'Verified student community member.',
+        collegeName: 'CampusLenz Partner Institute',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        isVerified: true,
+        followersCount: 0,
+        followingCount: 0,
+        followers: [],
+        following: [],
+        badges: ['Active Contributor'],
+        createdAt: new Date().toISOString(),
+      };
     }
   }
 

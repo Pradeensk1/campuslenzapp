@@ -52,7 +52,7 @@ export default function Navigation() {
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]
       : []),
     ...(currentUser && isAuthenticated
-      ? [{ label: 'Profile', href: `/user/${currentUser.username}`, icon: User }]
+      ? [{ label: 'Profile', href: currentUser.username ? `/user/${currentUser.username}` : '/profile', icon: User }]
       : []),
   ];
 
@@ -136,7 +136,7 @@ export default function Navigation() {
               <div className="flex items-center gap-2">
                 {/* User Info Capsule */}
                 <Link
-                  href={`/user/${currentUser.username}`}
+                  href={currentUser.username ? `/user/${currentUser.username}` : '/profile'}
                   className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-white/35 hover:bg-white/55 backdrop-blur-md border border-white/50 transition-all duration-200 group shadow-xs"
                 >
                   <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
@@ -197,7 +197,7 @@ export default function Navigation() {
             { label: 'Explore', href: '/explore', icon: Compass },
             { label: 'Connect', href: '/connect', icon: MessageSquare },
             isAuthenticated && currentUser
-              ? { label: 'Profile', href: `/user/${currentUser.username}`, icon: User }
+              ? { label: 'Profile', href: currentUser.username ? `/user/${currentUser.username}` : '/profile', icon: User }
               : { label: 'Sign In', href: '/login', icon: LogIn }
           ].map((item) => {
             const Icon = item.icon;

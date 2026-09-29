@@ -250,7 +250,7 @@ export default function CreateClient({
       });
 
       setIsSubmitting(false);
-      router.push(`/colleges/${chosenCollege?.slug || 'explore'}#reviews`);
+      router.push(chosenCollege?.slug ? `/colleges/${chosenCollege.slug}#reviews` : '/explore');
       return;
     }
 
@@ -303,7 +303,7 @@ export default function CreateClient({
     });
 
     const chosen = activeColleges.find(c => c.id === reviewCollegeId);
-    router.push(`/colleges/${chosen?.slug || 'explore'}#reviews`);
+    router.push(chosen?.slug ? `/colleges/${chosen.slug}#reviews` : '/explore');
   };
 
   return (

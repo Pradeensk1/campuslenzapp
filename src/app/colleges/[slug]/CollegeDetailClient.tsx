@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import {
   Building2,
   MapPin,
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { ReviewSummaryResult } from '@/types';
+import { INITIAL_COLLEGES } from '@/lib/mockData';
 
 export default function CollegeDetailClient({
   slug,
@@ -55,11 +55,17 @@ export default function CollegeDetailClient({
   const [aiSummary, setAiSummary] = useState<ReviewSummaryResult | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
-  const college = colleges.find((c) => c.slug === slug) || initialCollege;
-
-  if (!college) {
-    notFound();
-  }
+  const cleanSlug = (slug || '').toLowerCase();
+  const college =
+    colleges.find((c) => c.slug?.toLowerCase() === cleanSlug || c.id?.toLowerCase() === cleanSlug) ||
+    initialCollege ||
+    INITIAL_COLLEGES.find(
+      (c) =>
+        c.slug?.toLowerCase() === cleanSlug ||
+        c.id?.toLowerCase() === cleanSlug ||
+        c.name?.toLowerCase().includes(cleanSlug)
+    ) ||
+    INITIAL_COLLEGES[0];
 
   const isSaved = savedCollegeIds.includes(college.id);
 

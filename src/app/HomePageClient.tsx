@@ -1731,7 +1731,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             </div>
                           </div>
                           <Link
-                            href={`/colleges/${colleges.find(c => c.id === post.collegeId || c.name === post.collegeName)?.slug || 'explore'}#reviews`}
+                            href={(() => {
+                              const foundCol = colleges.find(c => c.id === post.collegeId || c.name === post.collegeName);
+                              return foundCol?.slug ? `/colleges/${foundCol.slug}#reviews` : '/explore';
+                            })()}
                             className="px-3 py-1.5 rounded-lg bg-[#1687D4] hover:bg-[#075080] text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
                           >
                             <span>Reviews & Ratings</span>

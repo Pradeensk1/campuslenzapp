@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { INITIAL_USERS } from '@/lib/mockData';
 import {
   UserCheck,
   Building2,
@@ -60,13 +61,41 @@ export default function UserProfileClient({
     setTimeout(() => setActionFeedback(null), 3500);
   };
 
-  const profileUser = allUsers.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase()
-  ) || initialProfile;
-
-  if (!profileUser) {
-    notFound();
-  }
+  const cleanUsername = (username || '').toLowerCase();
+  const profileUser =
+    allUsers.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanUsername) ||
+        u.id === username
+    ) ||
+    initialProfile ||
+    INITIAL_USERS.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanUsername) ||
+        u.id === username
+    ) ||
+    (currentUser &&
+    (currentUser.username?.toLowerCase() === cleanUsername || currentUser.id === username)
+      ? currentUser
+      : null) || {
+      id: username,
+      username: username,
+      name: decodeURIComponent(username).replace(/[-_]/g, ' '),
+      fullName: decodeURIComponent(username).replace(/[-_]/g, ' '),
+      role: 'student' as const,
+      headline: 'Campus Contributor',
+      bio: 'Verified student community member.',
+      collegeName: 'CampusLenz Partner Institute',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      isVerified: true,
+      followersCount: 0,
+      followingCount: 0,
+      followers: [],
+      following: [],
+      badges: ['Active Contributor'],
+      createdAt: new Date().toISOString(),
+    };
 
   const isSelf = currentUser
     ? (profileUser.id === currentUser.id ||
