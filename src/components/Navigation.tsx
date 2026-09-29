@@ -50,8 +50,8 @@ export default function Navigation() {
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Explore & Compare', href: '/explore', icon: Compass },
     { label: 'Connect Hub', href: '/connect', icon: MessageSquare },
-    ...(isStudent && isAuthenticated
-      ? [{ label: 'Career Copilot', href: '/copilot', icon: Sparkles }]
+    ...(currentUser && isAuthenticated
+      ? [{ label: 'Career Copilot', href: '/career', icon: Sparkles }]
       : []),
     ...(isAdmin
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]

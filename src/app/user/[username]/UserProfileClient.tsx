@@ -24,7 +24,11 @@ import {
   Award,
   Repeat,
   Send,
-  X
+  X,
+  Star,
+  Lightbulb,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,9 +49,9 @@ export default function UserProfileClient({
   initialPosts?: any[];
 }) {
   const router = useRouter();
-  const { allUsers, currentUser, toggleFollowUser, posts, toggleLikePost, addComment, updateProfile, deleteUser, repostPost, deletePost } = useApp();
+  const { allUsers, currentUser, toggleFollowUser, posts, reviews, colleges, toggleLikePost, addComment, updateProfile, deleteUser, repostPost, deletePost } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'about'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reviews' | 'feedback' | 'reposts' | 'about'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
   const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
@@ -119,6 +123,30 @@ export default function UserProfileClient({
     ));
     return matchesId || matchesUsername || matchesName;
   });
+  const userStandardPosts = userPosts.filter((p: any) => p.postType !== 'feedback');
+
+  const userReviews = (reviews || []).filter((r: any) => {
+    const matchesId = r.userId === profileUser.id || r.userId === `user-${profileUser.username}`;
+    const matchesUsername = Boolean(r.authorUsername && profileUser.username && r.authorUsername.toLowerCase() === profileUser.username.toLowerCase());
+    const matchesName = Boolean(r.authorName && (
+      (profileUser.fullName && r.authorName.toLowerCase() === profileUser.fullName.toLowerCase()) ||
+      (profileUser.name && r.authorName.toLowerCase() === profileUser.name.toLowerCase())
+    ));
+    return matchesId || matchesUsername || matchesName;
+  });
+
+  const userFeedbacks = activePosts.filter((p: any) => {
+    const isFeedback = p.postType === 'feedback' || p.topic?.toLowerCase().includes('feedback') || p.topic?.toLowerCase().includes('grievance');
+    if (!isFeedback) return false;
+    const matchesId = p.authorId === profileUser.id || p.authorId === `user-${profileUser.username}`;
+    const matchesUsername = Boolean(p.authorUsername && profileUser.username && p.authorUsername.toLowerCase() === profileUser.username.toLowerCase());
+    const matchesName = Boolean(p.authorName && (
+      (profileUser.fullName && p.authorName.toLowerCase() === profileUser.fullName.toLowerCase()) ||
+      (profileUser.name && p.authorName.toLowerCase() === profileUser.name.toLowerCase())
+    ));
+    return matchesId || matchesUsername || matchesName;
+  });
+
   const userReposts = activePosts.filter(
     (p: any) =>
       (profileUser.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(profileUser.id)) ||
@@ -126,7 +154,7 @@ export default function UserProfileClient({
       (profileUser.id && p.repostedByFaculty?.facultyId === profileUser.id) ||
       (profileUser.id && p.repostedByInstitution?.institutionId === profileUser.id)
   );
-  const totalLikesReceived = userPosts.reduce((acc, p) => acc + p.likesCount, 0);
+  const totalLikesReceived = userPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -244,22 +272,44 @@ export default function UserProfileClient({
               </div>
             </div>
 
-            {/* INSTAGRAM 5-STAT GRID (Posts, Reposts, Followers, Following, Likes) */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 border-y border-[#F1F5F9] py-3 text-center">
+            {/* INSTAGRAM 7-STAT GRID (Posts, Reviews, Feedback, Reposts, Followers, Following, Likes) */}
+            <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 border-y border-[#F1F5F9] py-3 text-center">
               <button
                 onClick={() => setActiveTab('posts')}
-                className="hover:bg-blue-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className={`rounded-xl p-1 transition cursor-pointer group ${activeTab === 'posts' ? 'bg-blue-50' : 'hover:bg-blue-50/60'}`}
               >
                 <p className="text-base sm:text-lg font-black text-[#0F172A] group-hover:text-blue-600">
-                  {userPosts.length}
+                  {userStandardPosts.length}
                 </p>
                 <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-blue-600">
                   Posts
                 </p>
               </button>
               <button
+                onClick={() => setActiveTab('reviews')}
+                className={`rounded-xl p-1 transition cursor-pointer group ${activeTab === 'reviews' ? 'bg-amber-50' : 'hover:bg-amber-50/60'}`}
+              >
+                <p className="text-base sm:text-lg font-black text-amber-600 group-hover:text-amber-700">
+                  {userReviews.length}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-amber-600">
+                  Reviews
+                </p>
+              </button>
+              <button
+                onClick={() => setActiveTab('feedback')}
+                className={`rounded-xl p-1 transition cursor-pointer group ${activeTab === 'feedback' ? 'bg-amber-100/70' : 'hover:bg-amber-50/60'}`}
+              >
+                <p className="text-base sm:text-lg font-black text-amber-800 group-hover:text-amber-900">
+                  {userFeedbacks.length}
+                </p>
+                <p className="text-[10px] uppercase font-semibold text-[#64748B] group-hover:text-amber-800">
+                  Feedback
+                </p>
+              </button>
+              <button
                 onClick={() => setActiveTab('reposts')}
-                className="hover:bg-purple-50/60 rounded-xl p-1 transition cursor-pointer group"
+                className={`rounded-xl p-1 transition cursor-pointer group ${activeTab === 'reposts' ? 'bg-purple-50' : 'hover:bg-purple-50/60'}`}
               >
                 <p className="text-base sm:text-lg font-black text-purple-600 group-hover:text-purple-700">
                   {userReposts.length}
@@ -335,22 +385,75 @@ export default function UserProfileClient({
           </div>
         )}
 
+        {/* AI CAREER COPILOT - CONNECTED DATABASE HERO BANNER */}
+        {profileUser.role === 'student' && (
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-white">AI Career Copilot Ready</span>
+                  <span className="text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Database Linked</span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-blue-200/80 mt-0.5">
+                  Synchronized with {profileUser.skills?.length || 0} skills, {profileUser.department || 'academics'}, &amp; {profileUser.collegeName || 'institute'} database.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/career"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-[#1687D4] hover:from-blue-600 hover:to-[#075080] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-xs"
+            >
+              <span>{isSelf ? 'Launch My Career Copilot' : 'Explore Career Copilot'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
         {/* Profile Tabs */}
-        <div className="flex border-t border-[#F1F5F9] pt-2 text-xs">
+        <div className="flex border-t border-[#F1F5F9] pt-2 text-xs overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 min-w-[75px] py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'posts'
                 ? 'border-[#2563EB] text-[#2563EB]'
                 : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
             }`}
           >
             <Grid className="h-4 w-4" />
-            <span>POSTS ({userPosts.length})</span>
+            <span>POSTS ({userStandardPosts.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={`flex-1 min-w-[75px] py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all shrink-0 ${
+              activeTab === 'reviews'
+                ? 'border-amber-500 text-amber-600'
+                : 'border-transparent text-[#64748B] hover:text-amber-600'
+            }`}
+          >
+            <Star className="h-4 w-4" />
+            <span>REVIEWS ({userReviews.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`flex-1 min-w-[75px] py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all shrink-0 ${
+              activeTab === 'feedback'
+                ? 'border-amber-600 text-amber-700'
+                : 'border-transparent text-[#64748B] hover:text-amber-700'
+            }`}
+          >
+            <Lightbulb className="h-4 w-4" />
+            <span>FEEDBACK ({userFeedbacks.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('reposts')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 min-w-[75px] py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'reposts'
                 ? 'border-purple-600 text-purple-600'
                 : 'border-transparent text-[#64748B] hover:text-purple-600'
@@ -361,14 +464,14 @@ export default function UserProfileClient({
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`flex-1 py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all ${
+            className={`flex-1 min-w-[75px] py-2 font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all shrink-0 ${
               activeTab === 'about'
                 ? 'border-[#2563EB] text-[#2563EB]'
                 : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
             }`}
           >
             <GraduationCap className="h-4 w-4" />
-            <span>ACADEMIC CREDENTIALS</span>
+            <span>CREDENTIALS</span>
           </button>
         </div>
       </div>
@@ -376,13 +479,13 @@ export default function UserProfileClient({
       {/* TAB CONTENT: POSTS */}
       {activeTab === 'posts' && (
         <div className="space-y-4">
-          {userPosts.length === 0 ? (
+          {userStandardPosts.length === 0 ? (
             <div className="apple-card p-10 text-center text-xs text-[#64748B] space-y-2">
               <p className="font-semibold text-sm text-[#0F172A]">No posts published yet</p>
               <p>When {profileUser.fullName} shares updates or mentorship posts, they will appear here.</p>
             </div>
           ) : (
-            userPosts.map((post) => {
+            userStandardPosts.map((post) => {
               const isLiked = currentUser ? post.likes.includes(currentUser.id) : false;
               return (
                 <div key={post.id} className="apple-card p-6 space-y-3">
@@ -520,6 +623,280 @@ export default function UserProfileClient({
                 </div>
               );
             })
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: REVIEWS */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <span>Institutional Reviews &amp; Ratings ({userReviews.length})</span>
+            </h2>
+            {isSelf && (
+              <Link
+                href="/create"
+                className="apple-button-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5"
+              >
+                <span>Write Review</span>
+              </Link>
+            )}
+          </div>
+
+          {userReviews.length === 0 ? (
+            <div className="apple-card p-10 text-center text-xs text-[#64748B] space-y-2">
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto">
+                <Star className="w-6 h-6 fill-amber-400" />
+              </div>
+              <p className="font-semibold text-sm text-[#0F172A]">No reviews published yet</p>
+              <p>When {profileUser.fullName} reviews educational institutions or courses, they will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userReviews.map((rev: any) => {
+                const targetCollege = colleges.find((c: any) => c.id === rev.collegeId);
+                return (
+                  <div key={rev.id} className="apple-card p-5 sm:p-6 space-y-4 border-l-4 border-l-amber-500">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link
+                            href={targetCollege?.slug ? `/colleges/${targetCollege.slug}#reviews` : '/explore'}
+                            className="font-black text-slate-900 hover:text-[#1687D4] transition text-sm flex items-center gap-1"
+                          >
+                            <Building2 className="w-4 h-4 text-[#1687D4]" />
+                            <span>{targetCollege?.name || 'Verified Institution'}</span>
+                          </Link>
+                          {rev.isAnonymous && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
+                              Posted Anonymously
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {rev.course && `${rev.course} • `}{rev.department && `${rev.department} • `}{rev.batch || 'Verified Batch'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl shrink-0">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                        <span className="text-xs font-black text-amber-900">{Number(rev.overallRating || 5).toFixed(1)}</span>
+                        <span className="text-[10px] text-amber-700 font-medium">/ 5.0</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">{rev.title}</h3>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed whitespace-pre-wrap">{rev.experience}</p>
+                    </div>
+
+                    {rev.dimensions && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                        {Object.entries(rev.dimensions).map(([key, val]) => (
+                          <div key={key} className="p-2 rounded-xl bg-slate-50 flex items-center justify-between">
+                            <span className="capitalize text-slate-600 font-medium">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <span className="font-bold text-slate-900 flex items-center gap-0.5">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                              {typeof val === 'number' ? val.toFixed(1) : (val as any)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {((rev.pros && rev.pros.length > 0) || (rev.cons && rev.cons.length > 0)) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                        {rev.pros && rev.pros.length > 0 && (
+                          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                              <span>✓ Highlights &amp; Pros</span>
+                            </p>
+                            <ul className="space-y-1 text-xs text-emerald-900">
+                              {rev.pros.map((p: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-1.5">
+                                  <span className="text-emerald-500 font-bold">•</span>
+                                  <span>{p}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {rev.cons && rev.cons.length > 0 && (
+                          <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3">
+                            <p className="text-[11px] font-bold text-rose-800 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                              <span>✗ Areas for Improvement</span>
+                            </p>
+                            <ul className="space-y-1 text-xs text-rose-900">
+                              {rev.cons.map((c: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-1.5">
+                                  <span className="text-rose-500 font-bold">•</span>
+                                  <span>{c}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                      <span>Submitted {new Date(rev.createdAt).toLocaleDateString()}</span>
+                      <Link
+                        href={targetCollege?.slug ? `/colleges/${targetCollege.slug}#reviews` : '/explore'}
+                        className="font-bold text-[#1687D4] hover:underline flex items-center gap-1"
+                      >
+                        <span>View on College Page</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: FEEDBACK & GRIEVANCES */}
+      {activeTab === 'feedback' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-amber-600" />
+              <span>Campus Feedback &amp; Grievances ({userFeedbacks.length})</span>
+            </h2>
+            {isSelf && (
+              <Link
+                href="/create"
+                className="apple-button-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5"
+              >
+                <span>Submit Feedback</span>
+              </Link>
+            )}
+          </div>
+
+          {userFeedbacks.length === 0 ? (
+            <div className="apple-card p-10 text-center text-xs text-[#64748B] space-y-2">
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">
+                💡
+              </div>
+              <p className="font-semibold text-sm text-[#0F172A]">No campus feedback posted yet</p>
+              <p>Campus grievances, facility reviews, and improvement suggestions will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {userFeedbacks.map((post: any) => {
+                const isLiked = currentUser ? (post.likes || []).includes(currentUser.id) : false;
+                return (
+                  <div key={post.id} className="apple-card p-5 sm:p-6 space-y-4 border-l-4 border-l-amber-500">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] uppercase font-bold text-amber-900 tracking-wider bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                            Campus Feedback
+                          </span>
+                          {post.feedbackCategory && (
+                            <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                              {post.feedbackCategory}
+                            </span>
+                          )}
+                          {post.isAnonymous && (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded-full">
+                              Anonymous Author
+                            </span>
+                          )}
+                        </div>
+                        {post.feedbackTarget && (
+                          <p className="text-xs text-amber-900 font-semibold mt-1">
+                            Target Unit: <strong>{post.feedbackTarget}</strong>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {post.collegeName || 'Campus'} • {new Date(post.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      {(post.rating || post.institutionRating) && (
+                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl shrink-0">
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                          <span className="text-xs font-black text-amber-900">
+                            {Number(post.rating || post.institutionRating || 4).toFixed(1)}
+                          </span>
+                          <span className="text-[10px] text-amber-700 font-medium">/ 5.0</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                      {post.content}
+                    </p>
+
+                    {post.imageUrl && (
+                      <div className="rounded-xl overflow-hidden border border-slate-200 max-h-96 bg-black/5">
+                        {isVideoMedia(post.imageUrl) ? (
+                          <video
+                            src={post.imageUrl}
+                            controls
+                            className="w-full max-h-96 object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={post.imageUrl}
+                            alt="Feedback attachment"
+                            className="w-full max-h-96 object-cover cursor-pointer hover:opacity-95 transition"
+                            onClick={() => setZoomedPost(post)}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => toggleLikePost(post.id)}
+                          className={`flex items-center gap-1 font-semibold transition ${
+                            isLiked ? 'text-[#1687D4]' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                          <span>{post.likesCount}</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveCommentsPostId(activeCommentsPostId === post.id ? null : post.id)}
+                          className="flex items-center gap-1 font-semibold hover:text-slate-900 transition"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{post.commentsCount}</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href="/?filter=feedback"
+                          className="font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
+                        >
+                          <span>View in Feedback Stream</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                        {(isSelf || currentUser?.role === 'admin') && (
+                          <button
+                            onClick={() => setPostPendingDelete(post)}
+                            className="text-slate-400 hover:text-rose-600 transition"
+                            title="Delete Feedback"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

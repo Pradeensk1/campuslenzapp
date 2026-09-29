@@ -19,10 +19,10 @@ export default function AutoReloadManager() {
   const router = useRouter();
   const { reloadWebappData } = useApp();
 
-  const [isEnabled, setIsEnabled] = useState<boolean>(true);
-  const [intervalSeconds, setIntervalSeconds] = useState<number>(3);
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+  const [intervalSeconds, setIntervalSeconds] = useState<number>(5);
   const [mode, setMode] = useState<'data' | 'full'>('data');
-  const [countdown, setCountdown] = useState<number>(3);
+  const [countdown, setCountdown] = useState<number>(5);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isReloading, setIsReloading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -131,6 +131,10 @@ export default function AutoReloadManager() {
     if (!isEnabled) return;
 
     const timer = setInterval(() => {
+      // Don't count down if page is hidden (e.g. background tab) or user is offline
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
       setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
@@ -140,6 +144,10 @@ export default function AutoReloadManager() {
   // Trigger reload when countdown reaches 0 (decoupled from the ticker state updater)
   useEffect(() => {
     if (countdown === 0 && isEnabled) {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        setCountdown(intervalSecondsRef.current);
+        return;
+      }
       executeReload(false);
     }
   }, [countdown, isEnabled, executeReload]);

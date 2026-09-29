@@ -37,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="text-[#05233b] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#0c1824]">
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning className="text-[#05233b] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#0c1824]">
         {/* Apple iOS 27 Liquid Glass Ambient Canvas with Ultra High-Definition 6K Fluid Wallpaper */}
         <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#0c1824]">
           {/* Pristine 6000x4000 Full-Fidelity Wallpaper (Zero Quality Loss) */}

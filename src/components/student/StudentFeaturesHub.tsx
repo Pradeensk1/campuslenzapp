@@ -31,9 +31,12 @@ import {
   Compass,
   Search,
   Filter,
-  Clock
+  Clock,
+  Brain,
+  Bot
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CareerCopilot from './CareerCopilot';
 
 export default function StudentFeaturesHub() {
   const {
@@ -54,7 +57,7 @@ export default function StudentFeaturesHub() {
     examMilestones
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'study' | 'qa' | 'marketplace' | 'tracker'>('study');
+  const [activeTab, setActiveTab] = useState<'career' | 'study' | 'qa' | 'marketplace' | 'tracker'>('career');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   // --------------------------------------------------------------------------
@@ -268,6 +271,17 @@ export default function StudentFeaturesHub() {
       <div className="flex items-center justify-between p-2 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex-wrap gap-2">
         <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl overflow-x-auto">
           <button
+            onClick={() => setActiveTab('career')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              activeTab === 'career'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Brain className="w-3.5 h-3.5" />
+            <span>AI Career Copilot</span>
+          </button>
+          <button
             onClick={() => setActiveTab('study')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
               activeTab === 'study'
@@ -320,6 +334,13 @@ export default function StudentFeaturesHub() {
           </Link>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 0: AI CAREER COPILOT (GROUNDED IN DATABASE PROFILE)                    */}
+      {/* ========================================================================= */}
+      {activeTab === 'career' && (
+        <CareerCopilot />
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: PEER STUDY ROOMS & POMODORO TIMER                                   */}
