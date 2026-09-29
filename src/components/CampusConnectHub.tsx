@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
+import { INITIAL_USERS } from '@/lib/mockData';
 import {
   UserProfile,
   DirectMessage,
@@ -407,7 +408,19 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
   }, [activePartnerId, initialPartnerId]);
 
   const activePartner = useMemo(() => {
-    return allUsers.find((u) => u.id === activePartnerId) || null;
+    if (!activePartnerId) return null;
+    const found = allUsers.find((u) => u.id === activePartnerId) || INITIAL_USERS.find((u) => u.id === activePartnerId);
+    if (found) return found;
+    return {
+      id: activePartnerId,
+      username: activePartnerId.replace(/^user-/, ''),
+      fullName: activePartnerId.replace(/^user-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      email: `${activePartnerId}@campuslenz.edu`,
+      role: 'student',
+      followersCount: 0,
+      followingCount: 0,
+      createdAt: new Date().toISOString()
+    } as UserProfile;
   }, [allUsers, activePartnerId]);
 
   const [conversationsSearch, setConversationsSearch] = useState('');
@@ -440,7 +453,19 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
     const list: { partner: UserProfile; lastMessage: DirectMessage; messages: DirectMessage[] }[] = [];
 
     partnerMap.forEach((msgs, pId) => {
-      const partner = allUsers.find((u) => u.id === pId);
+      let partner = allUsers.find((u) => u.id === pId) || INITIAL_USERS.find((u) => u.id === pId);
+      if (!partner) {
+        partner = {
+          id: pId,
+          username: pId.replace(/^user-/, ''),
+          fullName: pId.replace(/^user-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          email: `${pId}@campuslenz.edu`,
+          role: 'student',
+          followersCount: 0,
+          followingCount: 0,
+          createdAt: new Date().toISOString()
+        } as UserProfile;
+      }
       if (partner) {
         const sorted = [...msgs].sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -534,6 +559,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
   const handleStartChatWithUser = (user: UserProfile) => {
     setActivePartnerId(user.id);
+    setMobileDmView('chat');
     setShowNewChatModal(false);
     setUserSearchQuery('');
   };
@@ -1187,33 +1213,33 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                         className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                       >
                         <div
-                          className={`max-w-[85%] sm:max-w-[70%] p-3.5 rounded-2xl shadow-xs border relative ${
+                          className={`max-w-[85%] sm:max-w-[70%] p-3.5 rounded-2xl shadow-xs relative ${
                             isMe
-                              ? 'bg-[#E0F2FE] border-blue-200 text-slate-900 rounded-br-none'
-                              : 'bg-white border-slate-200 text-slate-900 rounded-bl-none'
+                              ? 'chat-bubble-me rounded-br-none'
+                              : 'chat-bubble-other rounded-bl-none'
                           }`}
                         >
                           {!isMe && (
-                            <div className="flex items-center gap-1.5 mb-1">
+                            <div className="flex items-center gap-1.5 mb-1.5">
                               <span className={`text-xs font-bold ${roleTextColor}`}>
                                 {msg.authorName}
                               </span>
-                              <span className="text-[9px] uppercase px-1 rounded bg-slate-100 text-slate-600 font-semibold">
+                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200">
                                 {msg.authorRole}
                               </span>
                             </div>
                           )}
-                          <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words font-medium ${isMe ? 'text-white' : 'text-slate-900'}`}>
                             {msg.content}
                           </p>
-                          <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                          <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${isMe ? 'text-white/80' : 'text-slate-500'}`}>
                             <span suppressHydrationWarning>
                               {new Date(msg.createdAt).toLocaleTimeString([], {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
                             </span>
-                            {isMe && <CheckCheck className="w-3.5 h-3.5 text-blue-600 inline" />}
+                            {isMe && <CheckCheck className="w-3.5 h-3.5 text-white inline" />}
                           </div>
                         </div>
                       </div>
@@ -1452,11 +1478,11 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
                                 onDoubleClick={() => toggleLikeDirectMessage(msg.id)}
                                 className={`p-3.5 px-4 rounded-2xl text-xs sm:text-sm leading-relaxed relative ${
                                   isMe
-                                    ? 'bg-[#0095F6] text-white rounded-br-xs shadow-xs'
-                                    : 'bg-[#EFEFEF] text-slate-900 rounded-bl-xs'
+                                    ? 'chat-bubble-me rounded-br-xs'
+                                    : 'chat-bubble-other rounded-bl-xs'
                                 }`}
                               >
-                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                <p className={`whitespace-pre-wrap break-words font-medium ${isMe ? 'text-white' : 'text-slate-900'}`}>{msg.content}</p>
                                 {msg.liked && (
                                   <span className="absolute -bottom-2.5 right-2 bg-white rounded-full p-0.5 border border-slate-200 shadow-xs flex items-center justify-center">
                                     <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />

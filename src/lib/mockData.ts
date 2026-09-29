@@ -1004,6 +1004,69 @@ export const INITIAL_SERVER_MESSAGES: ServerMessage[] = [
   }
 ];
 
+export const INITIAL_DIRECT_MESSAGES: DirectMessage[] = [
+  {
+    id: 'dm-mock-1',
+    conversationId: 'conv-user-alumni-demo-user-student-demo',
+    senderId: 'user-student-demo',
+    receiverId: 'user-alumni-demo',
+    content: 'Hello Karthika! I saw your guidance post on tier-1 engineering drives. Could you give me advice on how to structure system design answers for junior roles?',
+    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    isRead: true,
+    liked: true
+  },
+  {
+    id: 'dm-mock-2',
+    conversationId: 'conv-user-alumni-demo-user-student-demo',
+    senderId: 'user-alumni-demo',
+    receiverId: 'user-student-demo',
+    content: 'Hi Junith! For junior roles, focus on: 1) Requirements clarification (functional & non-functional), 2) High-level data flow (client -> gateway -> service -> DB), and 3) Addressing bottlenecks (caching, indexing, pagination). Would love to review a sample mock design with you!',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    isRead: true,
+    liked: false
+  },
+  {
+    id: 'dm-mock-3',
+    conversationId: 'conv-user-faculty-demo-user-student-demo',
+    senderId: 'user-student-demo',
+    receiverId: 'user-faculty-demo',
+    content: 'Good afternoon Dr. Arunkumar, will tomorrow’s distributed algorithms lab review cover the Raft consensus simulation module?',
+    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    isRead: true,
+    liked: false
+  },
+  {
+    id: 'dm-mock-4',
+    conversationId: 'conv-user-faculty-demo-user-student-demo',
+    senderId: 'user-faculty-demo',
+    receiverId: 'user-student-demo',
+    content: 'Yes Junith. Please make sure your team has the election timeout test cases committed to the lab repository before the slot starts.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    isRead: false,
+    liked: true
+  },
+  {
+    id: 'dm-mock-5',
+    conversationId: 'conv-user-alumni-demo-user-inst-demo',
+    senderId: 'user-alumni-demo',
+    receiverId: 'user-inst-demo',
+    content: 'Respected Administration, our alumni chapter would like to sponsor a ₹1,00,000 prize pool for the upcoming Inter-College Hackathon. Whom should we contact for formal MoA?',
+    createdAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+    isRead: true,
+    liked: true
+  },
+  {
+    id: 'dm-mock-6',
+    conversationId: 'conv-user-alumni-demo-user-inst-demo',
+    senderId: 'user-inst-demo',
+    receiverId: 'user-alumni-demo',
+    content: 'Thank you for this wonderful initiative! Please connect with the Industry Relations cell at industry.cell@psgtech.edu and we will initiate the MoU.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+    isRead: true,
+    liked: false
+  }
+];
+
 export const INITIAL_GRIEVANCE_REPORTS: PrivateGrievanceReport[] = [
   {
     id: 'grv-1',
@@ -1034,28 +1097,6 @@ export const INITIAL_GRIEVANCE_REPORTS: PrivateGrievanceReport[] = [
     submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
     status: 'under_investigation',
     institutionRemarks: 'Maintenance work order #4102 logged with campus electrical and IT team.'
-  }
-];
-
-export const INITIAL_DIRECT_MESSAGES: DirectMessage[] = [
-  {
-    id: 'dm-1',
-    conversationId: 'conv-user-alumni-demo-user-student-demo',
-    senderId: 'user-student-demo',
-    receiverId: 'user-alumni-demo',
-    content: 'Hello sir! Wanted to ask for guidance regarding system design and coding interview rounds for tech campus hiring.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    isRead: true
-  },
-  {
-    id: 'dm-2',
-    conversationId: 'conv-user-alumni-demo-user-student-demo',
-    senderId: 'user-alumni-demo',
-    receiverId: 'user-student-demo',
-    content: 'Happy to help! Focus on strong fundamentals in Trees, Graphs, and DP on LeetCode. Also ensure you can explain your full-stack project architecture clearly!',
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    isRead: true,
-    liked: true
   }
 ];
 
