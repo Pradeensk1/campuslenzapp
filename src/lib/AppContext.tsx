@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   UserProfile,
   UserRole,
@@ -852,17 +852,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 1.6. Real-Time 3-Second Webapp Auto-Reload Engine (Seamless Cloud Sync)
+  const isReloadingDataRef = useRef(false);
   const reloadWebappData = async () => {
+    if (isReloadingDataRef.current) return;
+    isReloadingDataRef.current = true;
     try {
       const [colRes, postRes, revRes, userRes, commRes, grvRes, dmRes, smsgRes] = await Promise.allSettled([
-        fetch('/api/colleges'),
-        fetch('/api/posts'),
-        fetch('/api/reviews'),
-        fetch('/api/users'),
-        fetch('/api/communities'),
-        fetch('/api/grievances'),
-        fetch('/api/direct-messages'),
-        fetch('/api/server-messages')
+        fetch('/api/colleges', { cache: 'no-store' }),
+        fetch('/api/posts', { cache: 'no-store' }),
+        fetch('/api/reviews', { cache: 'no-store' }),
+        fetch('/api/users', { cache: 'no-store' }),
+        fetch('/api/communities', { cache: 'no-store' }),
+        fetch('/api/grievances', { cache: 'no-store' }),
+        fetch('/api/direct-messages', { cache: 'no-store' }),
+        fetch('/api/server-messages', { cache: 'no-store' })
       ]);
 
       if (postRes.status === 'fulfilled' && postRes.value.ok) {
@@ -882,10 +885,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 merged.push(localP);
               }
             });
-            if (merged.length !== prev.length || (merged[0]?.id !== prev[0]?.id)) {
-              return merged;
-            }
-            return prev;
+            const hasChanged =
+              merged.length !== prev.length ||
+              (merged.length > 0 && merged[0]?.id !== prev[0]?.id) ||
+              merged.some((p: Post, i: number) => {
+                const o = prev[i];
+                return (
+                  !o ||
+                  o.id !== p.id ||
+                  o.likesCount !== p.likesCount ||
+                  (o.comments?.length || 0) !== (p.comments?.length || 0) ||
+                  o.sharesCount !== p.sharesCount
+                );
+              });
+            return hasChanged ? merged : prev;
           });
         }
       }
@@ -899,10 +912,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prev.forEach(m => dmMap.set(m.id, m));
             dmData.messages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
             const merged = Array.from(dmMap.values());
-            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
-              return merged;
-            }
-            return prev;
+            const hasChanged =
+              merged.length !== prev.length ||
+              (merged.length > 0 &&
+                (merged[merged.length - 1].id !== prev[prev.length - 1]?.id ||
+                  merged.some((m: DirectMessage, i: number) => prev[i]?.isRead !== m.isRead || prev[i]?.liked !== m.liked || prev[i]?.content !== m.content)));
+            return hasChanged ? merged : prev;
           });
         }
       }
@@ -916,10 +931,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prev.forEach(m => smsgMap.set(m.id, m));
             smsgData.messages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
             const merged = Array.from(smsgMap.values());
-            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
-              return merged;
-            }
-            return prev;
+            const hasChanged =
+              merged.length !== prev.length ||
+              (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id);
+            return hasChanged ? merged : prev;
           });
         }
       }
@@ -944,43 +959,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (commRes.status === 'fulfilled' && commRes.value.ok) {
         const commData = await commRes.value.json();
         if (commData.success && Array.isArray(commData.communities) && commData.communities.length > 0) {
-          setCommunities(commData.communities);
+          setCommunities(prev => {
+            if (prev.length !== commData.communities.length) return commData.communities;
+            const changed = commData.communities.some((c: Community, i: number) => {
+              const p = prev[i];
+              return !p || p.id !== c.id || p.membersCount !== c.membersCount;
+            });
+            return changed ? commData.communities : prev;
+          });
         }
       }
 
       if (grvRes.status === 'fulfilled' && grvRes.value.ok) {
         const grvData = await grvRes.value.json();
         if (grvData.success && Array.isArray(grvData.grievances) && grvData.grievances.length > 0) {
-          setGrievanceReports(grvData.grievances);
+          setGrievanceReports(prev => {
+            if (prev.length !== grvData.grievances.length) return grvData.grievances;
+            const changed = grvData.grievances.some((g: PrivateGrievanceReport, i: number) => {
+              const p = prev[i];
+              return !p || p.id !== g.id || p.status !== g.status || p.institutionRemarks !== g.institutionRemarks;
+            });
+            return changed ? grvData.grievances : prev;
+          });
         }
       }
 
       if (revRes.status === 'fulfilled' && revRes.value.ok) {
         const revData = await revRes.value.json();
         if (revData.success && Array.isArray(revData.reviews) && revData.reviews.length > 0) {
-          setReviews(revData.reviews);
+          setReviews(prev => {
+            if (prev.length !== revData.reviews.length) return revData.reviews;
+            const changed = revData.reviews.some((r: CollegeReview, i: number) => {
+              const p = prev[i];
+              return !p || p.id !== r.id || p.overallRating !== r.overallRating || p.experience !== r.experience;
+            });
+            return changed ? revData.reviews : prev;
+          });
         }
       }
 
       if (colRes.status === 'fulfilled' && colRes.value.ok) {
         const colData = await colRes.value.json();
-        if (colData.success && colData.colleges?.length > 0) {
-          setColleges(colData.colleges);
+        if (colData.success && Array.isArray(colData.colleges) && colData.colleges.length > 0) {
+          setColleges(prev => {
+            if (prev.length !== colData.colleges.length) return colData.colleges;
+            const changed = colData.colleges.some((c: College, i: number) => {
+              const p = prev[i];
+              return !p || p.id !== c.id || p.ratingAverage !== c.ratingAverage || p.reviewCount !== c.reviewCount;
+            });
+            return changed ? colData.colleges : prev;
+          });
         }
       }
     } catch {
       // silent background reload notice
+    } finally {
+      isReloadingDataRef.current = false;
     }
   };
 
   useEffect(() => {
     let isMounted = true;
-    const intervalId = setInterval(() => {
-      if (isMounted) {
-        reloadWebappData();
-      }
-    }, 3000);
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isMounted) {
         reloadWebappData();
@@ -990,7 +1029,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

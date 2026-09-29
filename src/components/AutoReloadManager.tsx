@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
 import {
@@ -27,17 +27,32 @@ export default function AutoReloadManager() {
   const [isReloading, setIsReloading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load preferences from localStorage
+  const isExecutingRef = useRef(false);
+  const intervalSecondsRef = useRef(intervalSeconds);
+  intervalSecondsRef.current = intervalSeconds;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
+  // Load preferences safely from localStorage
   useEffect(() => {
     try {
       const savedEnabled = localStorage.getItem('cl_auto_reload_enabled');
       if (savedEnabled !== null) setIsEnabled(savedEnabled === 'true');
 
       const savedInterval = localStorage.getItem('cl_auto_reload_interval');
-      if (savedInterval) setIntervalSeconds(Number(savedInterval) || 3);
+      if (savedInterval) {
+        const parsed = Number(savedInterval);
+        if ([3, 5, 10].includes(parsed)) {
+          setIntervalSeconds(parsed);
+          setCountdown(parsed);
+        }
+      }
 
+      // We sanitize mode: always default to 'data' to prevent automated full reload loops
       const savedMode = localStorage.getItem('cl_auto_reload_mode');
-      if (savedMode === 'full' || savedMode === 'data') setMode(savedMode);
+      if (savedMode === 'data' || savedMode === 'full') {
+        setMode(savedMode);
+      }
     } catch {}
   }, []);
 
@@ -68,53 +83,66 @@ export default function AutoReloadManager() {
     return isInput || isEditable;
   };
 
-  const executeReload = async () => {
+  const executeReload = useCallback(async (isManual = false) => {
+    if (isExecutingRef.current) return;
+    isExecutingRef.current = true;
     setIsReloading(true);
 
-    if (mode === 'full') {
-      // If user is actively typing in a form or chat input, pause full page reload to protect typed input
-      if (isUserTyping()) {
-        setToastMessage('Auto-reload paused while typing...');
-        setTimeout(() => setToastMessage(null), 2500);
-        setIsReloading(false);
-        setCountdown(intervalSeconds);
+    if (isManual) {
+      setToastMessage('Reloading webapp...');
+    }
+
+    try {
+      // Manual hard browser reload if mode is 'full'
+      if (isManual && modeRef.current === 'full') {
+        window.location.reload();
         return;
       }
-      // Hard browser reload
-      window.location.reload();
-      return;
-    }
 
-    // Live data reload (Next.js server component revalidation + Supabase cloud data sync)
-    try {
+      // Pause background sync if user is actively typing to avoid interrupting form focus
+      if (!isManual && isUserTyping()) {
+        return;
+      }
+
+      // Live data reload (Supabase cloud sync + client context updates)
       await reloadWebappData();
-      router.refresh();
-      setToastMessage('Webapp reloaded live (3s)');
-      setTimeout(() => setToastMessage(null), 1500);
+
+      // Only refresh Next.js server components on manual reload to prevent AbortError during background polling
+      if (isManual) {
+        router.refresh();
+        setToastMessage('Webapp reloaded live');
+        setTimeout(() => setToastMessage(null), 1500);
+      }
     } catch (err) {
-      console.warn('Auto-reload error:', err);
+      console.warn('Auto-reload notice:', err);
+      if (isManual) {
+        setToastMessage('Reload completed');
+        setTimeout(() => setToastMessage(null), 1500);
+      }
     } finally {
       setIsReloading(false);
-      setCountdown(intervalSeconds);
+      isExecutingRef.current = false;
+      setCountdown(intervalSecondsRef.current);
     }
-  };
+  }, [reloadWebappData, router]);
 
-  // 1-second ticker for countdown
+  // 1-second countdown ticker (pure state decrement, zero side-effects inside reducer)
   useEffect(() => {
     if (!isEnabled) return;
 
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          executeReload();
-          return intervalSeconds;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isEnabled, intervalSeconds, mode]);
+  }, [isEnabled]);
+
+  // Trigger reload when countdown reaches 0 (decoupled from the ticker state updater)
+  useEffect(() => {
+    if (countdown === 0 && isEnabled) {
+      executeReload(false);
+    }
+  }, [countdown, isEnabled, executeReload]);
 
   return (
     <aside
@@ -160,7 +188,7 @@ export default function AutoReloadManager() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={executeReload}
+              onClick={() => executeReload(true)}
               disabled={isReloading}
               className="flex-1 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
             >
@@ -239,7 +267,7 @@ export default function AutoReloadManager() {
                   )}
                 </div>
                 <span className="text-[9px] text-slate-500">
-                  Hard page reload (pauses automatically while typing)
+                  Hard page reload on manual button click
                 </span>
               </button>
             </div>
@@ -320,10 +348,10 @@ export default function AutoReloadManager() {
         {/* Quick Instant Reload Icon */}
         <button
           type="button"
-          onClick={executeReload}
+          onClick={() => executeReload(true)}
           disabled={isReloading}
           title="Reload webapp right now"
-          className="p-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-slate-300 hover:text-white shadow-xl border border-slate-700/80 backdrop-blur-md transition-all duration-150 touch-manipulation active:scale-90"
+          className="p-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-slate-300 hover:text-white shadow-xl border border-slate-700/80 backdrop-blur-md transition-all duration-150 touch-manipulation active:scale-90 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isReloading ? 'animate-spin text-emerald-400' : ''}`} />
         </button>
