@@ -63,13 +63,40 @@ interface CopilotRequestBody {
 export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'GEMINI_API_KEY environment variable is not configured on the server.'
-      },
-      { status: 500 }
-    );
+    try {
+      const body: CopilotRequestBody = await request.json();
+      const { message, studentContext } = body;
+      const targetRole = studentContext?.careerProfile?.targetRole || 'Software Engineer';
+      const skills = (studentContext?.careerProfile?.skills || []).join(', ') || 'Core Computer Science & Systems';
+      const college = studentContext?.collegeName || 'Campus Lenz College';
+
+      return NextResponse.json({
+        success: true,
+        reply: `### 🎯 Career Copilot Placement Strategy (Campus Offline Mode)
+
+Hello **${studentContext?.fullName || 'Student'}**! Here is your customized preparation roadmap for **${targetRole}**:
+
+#### 1. Skill Profile & Gap Analysis
+- **Your Verified Skills**: ${skills}
+- **Target Role**: ${targetRole}
+- **Institutional Context**: ${college} (${studentContext?.department || 'Engineering'}, Batch ${studentContext?.graduationBatch || '2026'})
+
+#### 2. Strategic 4-Week Placement Blueprint
+1. **Week 1 (Foundations & DSA)**: Master top 50 LeetCode patterns (Sliding Window, Two Pointers, Graph BFS/DFS) and review data structures.
+2. **Week 2 (Core Projects)**: Build a production-grade full-stack project demonstrating database migrations, API design, and automated testing.
+3. **Week 3 (Campus Placement Alignment)**: Review previous placement test patterns for top recruiters visiting ${college}.
+4. **Week 4 (Mock Interviews & Peer Review)**: Connect with alumni mentors in the **Connect Hub** and schedule peer mock rounds in **Study Rooms**.
+
+*Tip: To enable live multimodal Gemini streaming insights, add \`GEMINI_API_KEY\` to your Vercel project environment settings.*`,
+        modelUsed: 'campus-lenz-heuristic-fallback'
+      });
+    } catch {
+      return NextResponse.json({
+        success: true,
+        reply: "Career Copilot is ready. Please configure your Target Role and Skills in your student profile to generate personalized placement insights.",
+        modelUsed: 'campus-lenz-heuristic-fallback'
+      });
+    }
   }
 
   try {
