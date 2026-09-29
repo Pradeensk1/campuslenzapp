@@ -35,6 +35,7 @@ import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 import FollowersListModal from '@/components/FollowersListModal';
 import PinterestImageModal from '@/components/PinterestImageModal';
+import StudentSkillsSection from '@/components/StudentSkillsSection';
 import { isVideoMedia } from '@/lib/mediaUtils';
 import { Post } from '@/types';
 
@@ -193,6 +194,14 @@ export default function ProfileClient({
                 <span className="text-[#CBD5E1]">•</span>
                 <span className="text-[#64748B] font-medium">{currentUser?.collegeName}</span>
               </div>
+              {currentUser?.headline && (
+                <p className="mt-2 text-xs font-semibold text-slate-800">{currentUser.headline}</p>
+              )}
+              {currentUser?.bio && (
+                <p className="mt-1 text-xs text-slate-600 leading-relaxed max-w-xl">
+                  {currentUser.bio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim()}
+                </p>
+              )}
               <div className="mt-2.5 flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setIsEditingProfile(true)}
@@ -220,6 +229,19 @@ export default function ProfileClient({
             </div>
           </div>
         </div>
+
+        {/* STUDENT SKILLS & TECHNICAL EXPERTISE (WITH VIEW MORE / VIEW LESS) */}
+        {(currentUser.role === 'student' || (currentUser.skills && currentUser.skills.length > 0)) && (
+          <div className="mt-5 pt-4 border-t border-[#F1F5F9]">
+            <StudentSkillsSection
+              skills={currentUser.skills}
+              role={currentUser.role}
+              isOwner={true}
+              onEdit={() => setIsEditingProfile(true)}
+              initialCount={3}
+            />
+          </div>
+        )}
 
         {/* INTERACTIVE FOLLOWERS / FOLLOWING STATS BAR */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 border-t border-[#F1F5F9] pt-4 text-center">
@@ -737,6 +759,18 @@ export default function ProfileClient({
                     <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{currentUser?.graduationBatch || '2027'}</strong>
                   </div>
                 </div>
+              </div>
+
+              {/* Student Verified Technical Expertise & Skill Matrix */}
+              <div className="apple-card p-6 text-xs space-y-4">
+                <StudentSkillsSection
+                  skills={currentUser.skills}
+                  role={currentUser.role}
+                  isOwner={true}
+                  onEdit={() => setIsEditingProfile(true)}
+                  initialCount={4}
+                  title="Technical Skills, Specializations & Competency Matrix"
+                />
               </div>
 
               {/* Joined Communities & Channels */}

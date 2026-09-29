@@ -1,16 +1,22 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import CollegeDetailClient from './CollegeDetailClient';
+import { INITIAL_COLLEGES } from '@/lib/mockData';
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const cookieStore = await cookies();
   const supabase = await createClient(cookieStore);
   const { slug } = await params;
 
+  if (!slug || slug === 'explore') {
+    redirect('/explore');
+  }
+
   const { data: collegeData } = await supabase
     .from('colleges')
     .select('*')
-    .eq('slug', slug)
+    .or(`slug.eq.${slug},id.eq.${slug}`)
     .maybeSingle();
 
   let initialCollege = null;
@@ -50,6 +56,17 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         badge: 'A+',
       },
     };
+  } else {
+    const cleanSlug = decodeURIComponent(slug).toLowerCase();
+    const fallback =
+      INITIAL_COLLEGES.find(
+        (c) =>
+          c.slug.toLowerCase() === cleanSlug ||
+          c.id.toLowerCase() === cleanSlug ||
+          c.name.toLowerCase() === cleanSlug ||
+          c.name.toLowerCase().includes(cleanSlug)
+      ) || INITIAL_COLLEGES[0];
+    initialCollege = fallback;
   }
 
   let initialReviews: any[] = [];

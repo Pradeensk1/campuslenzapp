@@ -366,6 +366,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     return true;
   });
 
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
+
+  const toggleExpandPost = (postId: string) => {
+    setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
   const handleToggleComments = (postId: string) => {
     setActiveCommentsPostId(prev => (prev === postId ? null : postId));
   };
@@ -1645,10 +1651,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         </div>
                       ) : (
                         <>
-                          {/* Post Body Content */}
-                          <p className="mt-3 text-[13.5px] leading-relaxed text-slate-800 whitespace-pre-line">
-                            {post.content}
-                          </p>
+                          {/* Post Body Content & High-Fidelity Text Previewance */}
+                          <div className="mt-3">
+                            <p className="text-[14px] sm:text-[14.5px] leading-[1.65] text-[#0F172A] font-normal tracking-normal text-preview whitespace-pre-line break-words">
+                              {post.content.length > 280 && !expandedPosts[post.id]
+                                ? `${post.content.slice(0, 280)}... `
+                                : post.content}
+                              {post.content.length > 280 && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandPost(post.id)}
+                                  className="text-[#1687D4] hover:text-[#0875BD] font-bold text-xs ml-1 hover:underline touch-manipulation active:scale-95 inline-flex items-center gap-0.5"
+                                >
+                                  {expandedPosts[post.id] ? 'Show less ↑' : 'Read more ↓'}
+                                </button>
+                              )}
+                            </p>
+                          </div>
 
                           {/* Media Attachment (Image with Zoom or Video with Player) */}
                           {post.imageUrl && (
@@ -1741,7 +1760,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             </div>
                           </div>
                           <Link
-                            href={`/colleges/${colleges.find(c => c.id === post.collegeId || c.name === post.collegeName)?.slug || 'explore'}#reviews`}
+                            href={(() => {
+                              const foundCol = colleges.find(c => c.id === post.collegeId || c.name === post.collegeName);
+                              return foundCol?.slug ? `/colleges/${foundCol.slug}#reviews` : '/explore';
+                            })()}
                             className="px-3 py-1.5 rounded-lg bg-[#1687D4] hover:bg-[#075080] text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
                           >
                             <span>Reviews & Ratings</span>
@@ -1776,10 +1798,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
-                    <div className="grid grid-cols-5 border-t border-white/40 text-xs font-semibold text-[#05233b]">
+                    <div className="grid grid-cols-5 border-t border-white/50 text-xs font-semibold text-[#05233b]">
                       <button
                         onClick={() => toggleLikePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/50 active:scale-90 transition-all duration-150 touch-manipulation min-h-[44px] ${
                           isLiked ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
@@ -1789,7 +1811,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleToggleComments(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/50 active:scale-90 transition-all duration-150 touch-manipulation min-h-[44px] ${
                           isCommentsOpen ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
@@ -1799,7 +1821,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleRepost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/50 hover:text-[#1687D4] active:scale-90 transition-all duration-150 touch-manipulation min-h-[44px] ${
                           post.repostedByInstitution || post.repostedByFaculty || post.repostedByStudent
                             ? 'text-[#1687D4] font-bold'
                             : ''
@@ -1826,7 +1848,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => toggleSavePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                        className={`flex items-center justify-center gap-1.5 py-3 hover:bg-white/50 active:scale-90 transition-all duration-150 touch-manipulation min-h-[44px] ${
                           isSaved ? 'text-[#0875BD] font-bold' : ''
                         }`}
                       >
@@ -1836,7 +1858,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleSharePost(post.id)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150"
+                        className="flex items-center justify-center gap-1.5 py-3 hover:bg-white/50 hover:text-[#1687D4] active:scale-90 transition-all duration-150 touch-manipulation min-h-[44px]"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Share</span>

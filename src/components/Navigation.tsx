@@ -57,7 +57,7 @@ export default function Navigation() {
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]
       : []),
     ...(currentUser && isAuthenticated
-      ? [{ label: 'Profile', href: `/user/${currentUser.username}`, icon: User }]
+      ? [{ label: 'Profile', href: currentUser.username ? `/user/${currentUser.username}` : '/profile', icon: User }]
       : []),
   ];
 
@@ -82,11 +82,11 @@ export default function Navigation() {
   return (
     <>
       {/* Apple-Styled Floating Island Navigation (Desktop) */}
-      <header className="sticky top-3 z-50 w-full px-3 sm:px-6 pointer-events-none transition-all">
-        <div className="pointer-events-auto mx-auto max-w-7xl 2xl:max-w-[1480px] rounded-2xl sm:rounded-full liquid-glass px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
+      <header className="sticky top-2 sm:top-3 z-50 w-full px-2.5 sm:px-6 pointer-events-none transition-all pt-[env(safe-area-inset-top,0px)]">
+        <div className="pointer-events-auto mx-auto max-w-7xl 2xl:max-w-[1480px] rounded-2xl sm:rounded-full liquid-glass px-3 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
           
           {/* Apple Squircle Brand Glyph */}
-          <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0">
+          <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0 touch-manipulation active:scale-95 transition-transform duration-150">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-sm shadow-[0_4px_16px_rgba(22,135,212,0.4)] transition-transform duration-300 group-hover:scale-105">
               CL
             </div>
@@ -101,7 +101,7 @@ export default function Navigation() {
           </Link>
 
           {/* Apple macOS Segmented Dock Navigation Items */}
-          <nav className="hidden md:flex items-center bg-white/25 backdrop-blur-md p-1 rounded-full border border-white/40">
+          <nav className="hidden md:flex items-center bg-white/40 backdrop-blur-md p-1 rounded-full border border-white/60">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isConnect = item.href === '/connect';
@@ -115,10 +115,10 @@ export default function Navigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  className={`relative flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 touch-manipulation active:scale-95 ${
                     isActive
                       ? 'text-[#0875BD] font-bold'
-                      : 'text-[#05233b] hover:text-[#0875BD] hover:bg-white/40'
+                      : 'text-[#05233b] hover:text-[#0875BD] hover:bg-white/50'
                   }`}
                 >
                   <Icon className={`h-3.5 w-3.5 transition-transform duration-200 ${isActive ? 'scale-110 stroke-[2.2]' : ''}`} />
@@ -126,7 +126,7 @@ export default function Navigation() {
                   {isActive && (
                     <motion.div
                       layoutId="appleNavPill"
-                      className="absolute inset-0 bg-white/60 backdrop-blur-md rounded-full border border-white/60 shadow-xs -z-10"
+                      className="absolute inset-0 bg-white/80 backdrop-blur-md rounded-full border border-white/70 shadow-xs -z-10"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
@@ -141,8 +141,8 @@ export default function Navigation() {
               <div className="flex items-center gap-2">
                 {/* User Info Capsule */}
                 <Link
-                  href={`/user/${currentUser.username}`}
-                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-white/35 hover:bg-white/55 backdrop-blur-md border border-white/50 transition-all duration-200 group shadow-xs"
+                  href={currentUser.username ? `/user/${currentUser.username}` : '/profile'}
+                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-white/50 hover:bg-white/75 backdrop-blur-md border border-white/70 transition-all duration-150 group shadow-xs touch-manipulation active:scale-95"
                 >
                   <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
                     {currentUser.fullName.charAt(0)}
@@ -194,15 +194,15 @@ export default function Navigation() {
       </header>
 
       {/* Apple-Styled Floating macOS / iOS Bottom Dock (Mobile) */}
-      <div className="fixed bottom-3 inset-x-0 mx-auto w-[92%] max-w-sm z-50 md:hidden pointer-events-auto">
-        <nav className="rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-[0_12px_40px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] p-1.5 flex items-center justify-around">
+      <div className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] inset-x-0 mx-auto w-[94%] max-w-sm z-50 md:hidden pointer-events-auto">
+        <nav className="rounded-3xl bg-white/92 backdrop-blur-2xl border border-white/80 shadow-[0_12px_40px_rgba(7,40,68,0.20),0_2px_8px_rgba(0,0,0,0.06)] p-1.5 flex items-center justify-around">
           {[
             { label: 'Home', href: '/', icon: Home },
             { label: 'Search', href: '/search', icon: Search },
             { label: 'Explore', href: '/explore', icon: Compass },
             { label: 'Connect', href: '/connect', icon: MessageSquare },
             isAuthenticated && currentUser
-              ? { label: 'Profile', href: `/user/${currentUser.username}`, icon: User }
+              ? { label: 'Profile', href: currentUser.username ? `/user/${currentUser.username}` : '/profile', icon: User }
               : { label: 'Sign In', href: '/login', icon: LogIn }
           ].map((item) => {
             const Icon = item.icon;
@@ -217,18 +217,18 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex flex-col items-center justify-center py-1.5 px-2.5 rounded-2xl transition-all duration-200 ${
-                  isActive ? 'text-[#1687D4]' : 'text-[#075080]/70 hover:text-[#075080]'
+                className={`relative flex flex-col items-center justify-center py-2 px-3 rounded-2xl transition-all duration-150 active:scale-90 touch-manipulation min-w-[56px] min-h-[44px] ${
+                  isActive ? 'text-[#1687D4]' : 'text-[#075080]/75 hover:text-[#075080]'
                 }`}
               >
-                <Icon className={`h-4 w-4 transition-transform duration-200 ${isActive ? 'scale-115 stroke-[2.2]' : ''}`} />
-                <span className="mt-0.5 text-[9px] font-semibold tracking-tight">
+                <Icon className={`h-4 w-4 transition-transform duration-200 ${isActive ? 'scale-115 stroke-[2.3]' : ''}`} />
+                <span className="mt-0.5 text-[9.5px] font-bold tracking-tight">
                   {item.label}
                 </span>
                 {isActive && (
                   <motion.span
                     layoutId="appleMobileDockDot"
-                    className="h-1 w-1 rounded-full bg-[#1687D4] mt-0.5 shadow-[0_0_6px_#1687D4]"
+                    className="h-1.5 w-1.5 rounded-full bg-[#1687D4] mt-0.5 shadow-[0_0_8px_#1687D4]"
                     transition={{ type: "spring", stiffness: 450, damping: 35 }}
                   />
                 )}

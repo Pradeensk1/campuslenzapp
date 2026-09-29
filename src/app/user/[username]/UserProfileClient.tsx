@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { INITIAL_USERS } from '@/lib/mockData';
 import {
   UserCheck,
   Building2,
@@ -31,6 +32,7 @@ import { Post } from '@/types';
 import EditProfileModal from '@/components/EditProfileModal';
 import PinterestImageModal from '@/components/PinterestImageModal';
 import FollowersListModal from '@/components/FollowersListModal';
+import StudentSkillsSection from '@/components/StudentSkillsSection';
 import { isVideoMedia } from '@/lib/mediaUtils';
 
 export default function UserProfileClient({
@@ -60,13 +62,41 @@ export default function UserProfileClient({
     setTimeout(() => setActionFeedback(null), 3500);
   };
 
-  const profileUser = allUsers.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase()
-  ) || initialProfile;
-
-  if (!profileUser) {
-    notFound();
-  }
+  const cleanUsername = (username || '').toLowerCase();
+  const profileUser =
+    allUsers.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanUsername) ||
+        u.id === username
+    ) ||
+    initialProfile ||
+    INITIAL_USERS.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === cleanUsername) ||
+        u.id === username
+    ) ||
+    (currentUser &&
+    (currentUser.username?.toLowerCase() === cleanUsername || currentUser.id === username)
+      ? currentUser
+      : null) || {
+      id: username,
+      username: username,
+      name: decodeURIComponent(username).replace(/[-_]/g, ' '),
+      fullName: decodeURIComponent(username).replace(/[-_]/g, ' '),
+      role: 'student' as const,
+      headline: 'Campus Contributor',
+      bio: 'Verified student community member.',
+      collegeName: 'CampusLenz Partner Institute',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      isVerified: true,
+      followersCount: 0,
+      followingCount: 0,
+      followers: [],
+      following: [],
+      badges: ['Active Contributor'],
+      createdAt: new Date().toISOString(),
+    };
 
   const isSelf = currentUser
     ? (profileUser.id === currentUser.id ||
@@ -270,7 +300,9 @@ export default function UserProfileClient({
             <div className="text-xs space-y-1.5">
               <p className="font-semibold text-[#0F172A]">{profileUser.headline}</p>
               {profileUser.bio && (
-                <p className="text-[#475569] leading-relaxed">{profileUser.bio}</p>
+                <p className="text-[#475569] leading-relaxed">
+                  {profileUser.bio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim()}
+                </p>
               )}
               {profileUser.collegeName && (
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1 text-[#64748B]">
@@ -289,6 +321,19 @@ export default function UserProfileClient({
             </div>
           </div>
         </div>
+
+        {/* STUDENT SKILLS & TECHNICAL EXPERTISE (WITH VIEW MORE / VIEW LESS) */}
+        {(profileUser.role === 'student' || (profileUser.skills && profileUser.skills.length > 0)) && (
+          <div className="pt-3 border-t border-[#F1F5F9]">
+            <StudentSkillsSection
+              skills={profileUser.skills}
+              role={profileUser.role}
+              isOwner={isSelf}
+              onEdit={() => setIsEditingProfile(true)}
+              initialCount={3}
+            />
+          </div>
+        )}
 
         {/* Profile Tabs */}
         <div className="flex border-t border-[#F1F5F9] pt-2 text-xs">
@@ -701,6 +746,16 @@ export default function UserProfileClient({
                 <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                   <span className="block text-[10px] uppercase font-semibold text-[#64748B]">Graduation Batch</span>
                   <strong className="mt-1 block text-sm font-bold text-[#0F172A]">{profileUser.graduationBatch || 'Not Listed'}</strong>
+                </div>
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 col-span-1 sm:col-span-2">
+                  <StudentSkillsSection
+                    skills={profileUser.skills}
+                    role={profileUser.role}
+                    isOwner={isSelf}
+                    onEdit={() => setIsEditingProfile(true)}
+                    initialCount={4}
+                    title="Verified Student Skills & Expertise"
+                  />
                 </div>
               </>
             )}
