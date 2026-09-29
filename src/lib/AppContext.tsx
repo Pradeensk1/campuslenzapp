@@ -212,6 +212,7 @@ interface AppContextType {
   applyUnreadLivePosts: () => void;
   triggerLiveActivity: () => void;
   resetAllUserData: () => void;
+  reloadWebappData: () => Promise<void>;
   // --- Advanced Role Features ---
   studyRooms: StudyRoom[];
   addStudyRoom: (room: Omit<StudyRoom, 'id' | 'createdAt'>) => { success: boolean; message: string };
@@ -850,61 +851,139 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // 1.6. Real-Time Live Chat Sync (2.5s Polling & Visibility wake-up)
+  // 1.6. Real-Time 3-Second Webapp Auto-Reload Engine (Seamless Cloud Sync)
+  const reloadWebappData = async () => {
+    try {
+      const [colRes, postRes, revRes, userRes, commRes, grvRes, dmRes, smsgRes] = await Promise.allSettled([
+        fetch('/api/colleges'),
+        fetch('/api/posts'),
+        fetch('/api/reviews'),
+        fetch('/api/users'),
+        fetch('/api/communities'),
+        fetch('/api/grievances'),
+        fetch('/api/direct-messages'),
+        fetch('/api/server-messages')
+      ]);
+
+      if (postRes.status === 'fulfilled' && postRes.value.ok) {
+        const postData = await postRes.value.json();
+        if (postData.success && Array.isArray(postData.posts)) {
+          setPosts(prev => {
+            const cloudMap = new Map(postData.posts.map((cp: Post) => [cp.id, cp]));
+            const merged = postData.posts.map((cp: Post) => {
+              const localMatch = prev.find(p => p.id === cp.id || p.content === cp.content);
+              return {
+                ...cp,
+                imageUrl: cp.imageUrl || localMatch?.imageUrl || null
+              };
+            });
+            prev.forEach(localP => {
+              if (!cloudMap.has(localP.id) && !merged.some((m: Post) => m.content === localP.content)) {
+                merged.push(localP);
+              }
+            });
+            if (merged.length !== prev.length || (merged[0]?.id !== prev[0]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (dmRes.status === 'fulfilled' && dmRes.value.ok) {
+        const dmData = await dmRes.value.json();
+        if (dmData.success && Array.isArray(dmData.messages)) {
+          setDirectMessages(prev => {
+            const dmMap = new Map<string, DirectMessage>();
+            INITIAL_DIRECT_MESSAGES.forEach(m => dmMap.set(m.id, m));
+            prev.forEach(m => dmMap.set(m.id, m));
+            dmData.messages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
+            const merged = Array.from(dmMap.values());
+            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (smsgRes.status === 'fulfilled' && smsgRes.value.ok) {
+        const smsgData = await smsgRes.value.json();
+        if (smsgData.success && Array.isArray(smsgData.messages)) {
+          setServerMessages(prev => {
+            const smsgMap = new Map<string, ServerMessage>();
+            INITIAL_SERVER_MESSAGES.forEach(m => smsgMap.set(m.id, m));
+            prev.forEach(m => smsgMap.set(m.id, m));
+            smsgData.messages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
+            const merged = Array.from(smsgMap.values());
+            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (userRes.status === 'fulfilled' && userRes.value.ok) {
+        const userData = await userRes.value.json();
+        if (userData.success && Array.isArray(userData.users)) {
+          setAllUsers(prev => {
+            const userMap = new Map<string, UserProfile>();
+            INITIAL_USERS.forEach(u => userMap.set(u.id, u));
+            prev.forEach(u => userMap.set(u.id, u));
+            userData.users.forEach((u: UserProfile) => userMap.set(u.id, u));
+            const merged = Array.from(userMap.values());
+            if (merged.length !== prev.length) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (commRes.status === 'fulfilled' && commRes.value.ok) {
+        const commData = await commRes.value.json();
+        if (commData.success && Array.isArray(commData.communities) && commData.communities.length > 0) {
+          setCommunities(commData.communities);
+        }
+      }
+
+      if (grvRes.status === 'fulfilled' && grvRes.value.ok) {
+        const grvData = await grvRes.value.json();
+        if (grvData.success && Array.isArray(grvData.grievances) && grvData.grievances.length > 0) {
+          setGrievanceReports(grvData.grievances);
+        }
+      }
+
+      if (revRes.status === 'fulfilled' && revRes.value.ok) {
+        const revData = await revRes.value.json();
+        if (revData.success && Array.isArray(revData.reviews) && revData.reviews.length > 0) {
+          setReviews(revData.reviews);
+        }
+      }
+
+      if (colRes.status === 'fulfilled' && colRes.value.ok) {
+        const colData = await colRes.value.json();
+        if (colData.success && colData.colleges?.length > 0) {
+          setColleges(colData.colleges);
+        }
+      }
+    } catch {
+      // silent background reload notice
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-    const pollLiveMessages = async () => {
-      try {
-        const [dmRes, smsgRes] = await Promise.allSettled([
-          fetch('/api/direct-messages'),
-          fetch('/api/server-messages')
-        ]);
-
-        if (!isMounted) return;
-
-        if (dmRes.status === 'fulfilled' && dmRes.value.ok) {
-          const dmData = await dmRes.value.json();
-          if (dmData.success && Array.isArray(dmData.messages)) {
-            setDirectMessages(prev => {
-              const dmMap = new Map<string, DirectMessage>();
-              INITIAL_DIRECT_MESSAGES.forEach(m => dmMap.set(m.id, m));
-              prev.forEach(m => dmMap.set(m.id, m));
-              dmData.messages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
-              const merged = Array.from(dmMap.values());
-              if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
-                return merged;
-              }
-              return prev;
-            });
-          }
-        }
-
-        if (smsgRes.status === 'fulfilled' && smsgRes.value.ok) {
-          const smsgData = await smsgRes.value.json();
-          if (smsgData.success && Array.isArray(smsgData.messages)) {
-            setServerMessages(prev => {
-              const smsgMap = new Map<string, ServerMessage>();
-              INITIAL_SERVER_MESSAGES.forEach(m => smsgMap.set(m.id, m));
-              prev.forEach(m => smsgMap.set(m.id, m));
-              smsgData.messages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
-              const merged = Array.from(smsgMap.values());
-              if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
-                return merged;
-              }
-              return prev;
-            });
-          }
-        }
-      } catch {
-        // silent polling notice
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        reloadWebappData();
       }
-    };
-
-    const intervalId = setInterval(pollLiveMessages, 2500);
+    }, 3000);
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        pollLiveMessages();
+      if (document.visibilityState === 'visible' && isMounted) {
+        reloadWebappData();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -3447,6 +3526,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         applyUnreadLivePosts,
         triggerLiveActivity,
         resetAllUserData,
+        reloadWebappData,
         studyRooms,
         addStudyRoom,
         courseQuestions,
