@@ -28,7 +28,10 @@ import {
   Plus,
   Download,
   Tag,
-  Search
+  Search,
+  TrendingUp,
+  Target,
+  BarChart3
 } from 'lucide-react';
 
 export default function FacultyHomeView() {
@@ -59,7 +62,7 @@ export default function FacultyHomeView() {
   const [postImageUrl, setPostImageUrl] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  const [facultyTab, setFacultyTab] = useState<'portal' | 'officeHours' | 'research' | 'materials'>('portal');
+  const [facultyTab, setFacultyTab] = useState<'portal' | 'officeHours' | 'research' | 'materials' | 'skillGaps'>('portal');
 
   // Community proposal form state
   const [isProposingCommunity, setIsProposingCommunity] = useState(false);
@@ -246,6 +249,17 @@ export default function FacultyHomeView() {
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Lecture Versioning Hub ({lectureMaterials.length})</span>
+          </button>
+          <button
+            onClick={() => setFacultyTab('skillGaps')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              facultyTab === 'skillGaps'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Staff Feedback & Upskill Diagnostics</span>
           </button>
         </div>
       </div>
@@ -1147,6 +1161,223 @@ export default function FacultyHomeView() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: STAFF STRUCTURED FEEDBACK & UPSKILL GAP DIAGNOSTICS                */}
+      {/* Grounded in Business Model Canvas Value Proposition for Staff             */}
+      {/* ========================================================================= */}
+      {facultyTab === 'skillGaps' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider">
+                  BMC Staff Value Proposition
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">Department: MCA / Computer Science</span>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 mt-1">
+                Staff Structured Feedback & Upskilling Gap Diagnostics
+              </h2>
+              <p className="text-xs text-slate-500">
+                Actionable student evaluation analytics to identify pedagogy/technology gaps, access curated FDP training, and benchmark against departmental standards.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setActionFeedback('📊 Detailed Staff Pedagogy & Evaluation Report generated!');
+                setTimeout(() => setActionFeedback(null), 3000);
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Faculty Assessment</span>
+            </button>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Overall Effectiveness</span>
+              <div className="text-2xl font-black text-indigo-600">4.7 / 5.0</div>
+              <span className="text-[11px] text-slate-500">From 148 verified student reviews</span>
+            </div>
+            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Department Benchmark</span>
+              <div className="text-2xl font-black text-emerald-600">+12.4%</div>
+              <span className="text-[11px] text-slate-500">Higher than campus faculty baseline</span>
+            </div>
+            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Classroom Retention</span>
+              <div className="text-2xl font-black text-slate-900">92.8%</div>
+              <span className="text-[11px] text-slate-500">Lab attendance & project completion</span>
+            </div>
+            <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">NIRF Tier-1 Standing</span>
+              <div className="text-2xl font-black text-blue-600">Top 5%</div>
+              <span className="text-[11px] text-slate-500">Mentorship & research publications</span>
+            </div>
+          </div>
+
+          {/* 4 Pillars of Structured Student Feedback & Gap Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Left: 4 Teaching Dimensions */}
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Student Feedback on 4 Core Pillars</h3>
+                <span className="text-[11px] text-slate-400">Weighted Student Surveys</span>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  {
+                    title: '1. Pedagogical Clarity & Concept Delivery',
+                    score: 4.8,
+                    strength: 'Exemplary real-world case studies and architectural diagrams.',
+                    status: 'excellent'
+                  },
+                  {
+                    title: '2. Pacing & Syllabus Coverage',
+                    score: 4.3,
+                    strength: 'Fast pacing observed during Weeks 8-10 (Distributed Consensuses).',
+                    status: 'good'
+                  },
+                  {
+                    title: '3. Hands-on Lab & Practical Tooling',
+                    score: 4.1,
+                    strength: 'Students request cloud sandbox environments instead of local VMs.',
+                    status: 'gap'
+                  },
+                  {
+                    title: '4. Mentorship & Research Accessibility',
+                    score: 4.9,
+                    strength: 'Highly responsive during office hours and paper writing.',
+                    status: 'excellent'
+                  }
+                ].map(pillar => (
+                  <div key={pillar.title} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-900">{pillar.title}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                        pillar.status === 'excellent' ? 'bg-emerald-100 text-emerald-800' :
+                        pillar.status === 'gap' ? 'bg-amber-100 text-amber-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {pillar.score} / 5.0
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          pillar.status === 'excellent' ? 'bg-emerald-500' :
+                          pillar.status === 'gap' ? 'bg-amber-500' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${(pillar.score / 5) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      💡 <strong>Student Sentiment:</strong> {pillar.strength}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Automated Upskilling & FDP Training Pathways */}
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Recommended Staff Upskilling & Training</h3>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                  AICTE & NPTEL Aligned
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Automated diagnostics based on identified student feedback gaps to help staff upskill and maintain competitive excellence.
+              </p>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    title: 'Cloud-Native Containerization & Kubernetes FDP',
+                    provider: 'IIT Bombay & NPTEL Faculty Development',
+                    duration: '4-Week Modular Training',
+                    targetsGap: 'Directly addresses Lab Tooling Gap (4.1/5.0)',
+                    badge: 'Recommended',
+                    linkText: 'Enroll via Institution License'
+                  },
+                  {
+                    title: 'Flipped Classroom & Active Learning Pedagogy',
+                    provider: 'AICTE NITTR Pedagogical Workshop',
+                    duration: '2-Day Intensive Virtual Seminar',
+                    targetsGap: 'Addresses Syllabus Pacing (4.3/5.0)',
+                    badge: 'Accreditation Credit',
+                    linkText: 'Register for AICTE Credit'
+                  },
+                  {
+                    title: 'Agentic AI & LLMs in Engineering Curricula',
+                    provider: 'Google Cloud Academic Research Institute',
+                    duration: 'Self-Paced Masterclass',
+                    targetsGap: 'Enhances Modern Curriculum Benchmark',
+                    badge: 'Industry Certified',
+                    linkText: 'Access Free Faculty License'
+                  }
+                ].map(course => (
+                  <div key={course.title} className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 leading-snug">{course.title}</h4>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-100 text-indigo-800 shrink-0">
+                        {course.badge}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                      <span>🏛️ {course.provider}</span>
+                      <span>⏱️ {course.duration}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white border border-indigo-100 text-[10px] text-indigo-950 font-medium">
+                      🎯 <strong>Objective:</strong> {course.targetsGap}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActionFeedback(`Redirecting to sponsored training: ${course.title}...`);
+                        setTimeout(() => setActionFeedback(null), 3000);
+                      }}
+                      className="w-full py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition flex items-center justify-center gap-1 shadow-2xs"
+                    >
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      <span>{course.linkText}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Competitive Benchmarking Radar */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900">Peer & Institutional Competitive Benchmarking</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="text-slate-400 text-[10px] uppercase font-bold">vs Department Average</span>
+                <div className="text-lg font-black text-slate-900">4.7 vs 4.2</div>
+                <p className="text-[11px] text-emerald-600 font-semibold">+11.9% higher student satisfaction</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="text-slate-400 text-[10px] uppercase font-bold">vs Anna University Zone</span>
+                <div className="text-lg font-black text-slate-900">92.8% vs 84.1%</div>
+                <p className="text-[11px] text-emerald-600 font-semibold">Top Decile in Course Retention</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <span className="text-slate-400 text-[10px] uppercase font-bold">NAAC Criterion 2 Score</span>
+                <div className="text-lg font-black text-slate-900">3.88 / 4.00</div>
+                <p className="text-[11px] text-indigo-600 font-semibold">Exemplary Teaching-Learning Metrics</p>
+              </div>
+            </div>
           </div>
         </div>
       )}

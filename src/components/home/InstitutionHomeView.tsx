@@ -28,7 +28,10 @@ import {
   TrendingUp,
   Download,
   FileText,
-  Clock
+  Clock,
+  Target,
+  PieChart,
+  Layers
 } from 'lucide-react';
 
 export default function InstitutionHomeView() {
@@ -774,6 +777,167 @@ export default function InstitutionHomeView() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* BMC VALUE PROP: AGGREGATED ANONYMIZED STAFF TRAINING & BENCHMARKING       */}
+          {/* ========================================================================= */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 uppercase tracking-wider">
+                    BMC Institutional Value Proposition
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-semibold">Aggregated & Anonymized Feedback Analysis</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 mt-1">
+                  Department-Wise Staff Performance & Faculty Training Diagnostics
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Data-driven insights pinpointing which academic departments require faculty development programs (FDP) and pedagogical upskilling.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setActionFeedback('📄 Department Training Needs Diagnostic Summary exported!');
+                  setTimeout(() => setActionFeedback(null), 3000);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Diagnostics</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  dept: 'Computer Science & Engineering / MCA',
+                  facultyCount: 42,
+                  satisfactionRate: 94.2,
+                  identifiedGap: 'AI/ML Cloud Sandbox Lab tooling & GenAI integration in assignments.',
+                  recommendedFDP: 'NPTEL 4-Week AI Systems Architecture FDP',
+                  urgency: 'Moderate'
+                },
+                {
+                  dept: 'Mechanical Engineering',
+                  facultyCount: 36,
+                  satisfactionRate: 81.5,
+                  identifiedGap: 'Industry 4.0 IoT instrumentation & practical CAD/CAM simulation lab pacing.',
+                  recommendedFDP: 'AICTE Smart Manufacturing & Automation Pedagogy',
+                  urgency: 'High Priority'
+                },
+                {
+                  dept: 'Electrical & Electronics Engineering',
+                  facultyCount: 38,
+                  satisfactionRate: 86.0,
+                  identifiedGap: 'Electric Vehicle (EV) power train labs & battery management syllabus depth.',
+                  recommendedFDP: 'DST-SERB Electric Mobility Faculty Immersion Workshop',
+                  urgency: 'High Priority'
+                },
+                {
+                  dept: 'Information Technology',
+                  facultyCount: 28,
+                  satisfactionRate: 92.0,
+                  identifiedGap: 'DevOps, CI/CD orchestration, and modern cloud deployment frameworks.',
+                  recommendedFDP: 'AWS/Google Cloud Academic Educator Certification',
+                  urgency: 'Low Priority'
+                }
+              ].map(d => (
+                <div key={d.dept} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{d.dept}</h4>
+                      <span className="text-[10px] text-slate-500">{d.facultyCount} Verified Faculty Members</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
+                      d.urgency === 'High Priority' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                      d.urgency === 'Moderate' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                      'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}>
+                      {d.urgency}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                      <span>Student Pedagogy Satisfaction</span>
+                      <span className="text-purple-700 font-bold">{d.satisfactionRate}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-purple-600 h-full rounded-full" style={{ width: `${d.satisfactionRate}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] space-y-1">
+                    <p className="text-slate-700">
+                      <strong className="text-slate-900">Identified Need:</strong> {d.identifiedGap}
+                    </p>
+                    <p className="text-purple-900 font-semibold text-[10px]">
+                      🎯 <strong>Recommended Training:</strong> {d.recommendedFDP}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* BMC REVENUE STREAM 1: INSTITUTIONAL SUBSCRIPTIONS & ANALYTICS SAAS TIERS  */}
+          {/* ========================================================================= */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950 via-[#181a38] to-slate-950 text-white shadow-md space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                  BMC Revenue Stream 1: Institutional Subscriptions & Analytics
+                </span>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Institutional B2B SaaS Licensing & Competitive Intelligence
+                </h3>
+                <p className="text-xs text-slate-400 max-w-xl">
+                  Colleges and universities subscribe for anonymized analytics dashboards, staff training intelligence, and state-wide competitive benchmarking.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-800">
+                Active License: Tier-2 Accredited Pro
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                <span className="text-slate-400 font-bold block text-[11px]">Free Academic Tier</span>
+                <div className="text-xl font-black text-white">₹0 <span className="text-xs font-normal text-slate-400">/ forever</span></div>
+                <ul className="text-slate-300 text-[11px] space-y-1">
+                  <li>✓ Official circular broadcast</li>
+                  <li>✓ 1 Official campus community</li>
+                  <li>✓ Basic review viewing</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-900/40 border border-purple-500/50 space-y-2 relative">
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500 text-white">
+                  Active
+                </span>
+                <span className="text-purple-300 font-bold block text-[11px]">Accredited Pro</span>
+                <div className="text-xl font-black text-white">₹49,999 <span className="text-xs font-normal text-slate-400">/ year</span></div>
+                <ul className="text-slate-300 text-[11px] space-y-1">
+                  <li>✓ Anonymized staff training diagnostics</li>
+                  <li>✓ NAAC & NIRF automated export</li>
+                  <li>✓ Incident email alerts (pkeditxoffical@gmail.com)</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                <span className="text-cyan-300 font-bold block text-[11px]">Enterprise University</span>
+                <div className="text-xl font-black text-white">₹1,49,999 <span className="text-xs font-normal text-slate-400">/ year</span></div>
+                <ul className="text-slate-300 text-[11px] space-y-1">
+                  <li>✓ Multi-campus state-wide benchmarking</li>
+                  <li>✓ Custom FDP upskilling integrations</li>
+                  <li>✓ Dedicated Account Manager & SLA</li>
+                </ul>
               </div>
             </div>
           </div>

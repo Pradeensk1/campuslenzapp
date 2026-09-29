@@ -33,10 +33,13 @@ import {
   Filter,
   Clock,
   Brain,
-  Bot
+  Bot,
+  Coins,
+  Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CareerCopilot from './CareerCopilot';
+import LenzRewardsHub from './LenzRewardsHub';
 
 export default function StudentFeaturesHub() {
   const {
@@ -57,7 +60,7 @@ export default function StudentFeaturesHub() {
     examMilestones
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'career' | 'study' | 'qa' | 'marketplace' | 'tracker'>('career');
+  const [activeTab, setActiveTab] = useState<'career' | 'study' | 'qa' | 'marketplace' | 'tracker' | 'rewards'>('career');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   // --------------------------------------------------------------------------
@@ -324,6 +327,17 @@ export default function StudentFeaturesHub() {
           >
             <Calendar className="w-3.5 h-3.5" />
             <span>Exam & Task Tracker</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('rewards')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+              activeTab === 'rewards'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <span>LenzCoins & Rewards 🪙</span>
           </button>
           <Link
             href="/copilot"
@@ -1224,6 +1238,13 @@ export default function StudentFeaturesHub() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* =============================================================== */}
+      {/* TAB 6: LENZCOINS & GAMIFICATION REWARDS HUB                     */}
+      {/* =============================================================== */}
+      {activeTab === 'rewards' && (
+        <LenzRewardsHub />
       )}
     </div>
   );

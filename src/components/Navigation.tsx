@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -17,17 +18,20 @@ import {
   GraduationCap,
   BookOpen,
   Sparkles,
-  Palette
+  Palette,
+  Layers
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { useTheme } from '@/lib/ThemeContext';
 import { motion } from 'framer-motion';
+import BusinessModelCanvasModal from './BusinessModelCanvasModal';
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, isAuthenticated, logout } = useApp();
   const { setIsCustomizerOpen, themeConfig } = useTheme();
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
 
   // Hide navigation bar completely on auth pages (Login & Register)
   const isAuthPage =
@@ -151,6 +155,17 @@ export default function Navigation() {
               <span className="hidden lg:inline text-[11px] font-bold">Theme</span>
             </button>
 
+            {/* Business Model Canvas Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsCanvasOpen(true)}
+              title="Team LIXDROID (MFAJP27) Business Model Canvas"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-full border border-cyan-400/40 bg-cyan-50/70 hover:bg-cyan-100/90 text-xs font-extrabold text-cyan-900 backdrop-blur-md transition-all shadow-xs flex items-center gap-1.5 touch-manipulation active:scale-95"
+            >
+              <Layers className="w-3.5 h-3.5 text-cyan-600" />
+              <span className="hidden xl:inline text-[11px] font-extrabold text-cyan-950">Canvas (MFAJP27)</span>
+            </button>
+
             {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2">
                 {/* User Info Capsule */}
@@ -254,13 +269,30 @@ export default function Navigation() {
             type="button"
             onClick={() => setIsCustomizerOpen(true)}
             aria-label="Customize Theme"
-            className="flex flex-col items-center justify-center py-2 px-2.5 rounded-2xl text-[#075080]/75 hover:text-[#1687D4] transition-all duration-150 active:scale-90 touch-manipulation min-w-[48px]"
+            className="flex flex-col items-center justify-center py-2 px-2.5 rounded-2xl text-[#075080]/75 hover:text-[#1687D4] transition-all duration-150 active:scale-90 touch-manipulation min-w-[44px]"
           >
             <Palette className="h-4 w-4" />
             <span className="mt-0.5 text-[9.5px] font-bold tracking-tight">Theme</span>
           </button>
+
+          {/* Mobile Canvas Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsCanvasOpen(true)}
+            aria-label="Business Model Canvas"
+            className="flex flex-col items-center justify-center py-2 px-2.5 rounded-2xl text-[#075080]/75 hover:text-cyan-600 transition-all duration-150 active:scale-90 touch-manipulation min-w-[44px]"
+          >
+            <Layers className="h-4 w-4 text-cyan-600" />
+            <span className="mt-0.5 text-[9.5px] font-bold tracking-tight">Canvas</span>
+          </button>
         </nav>
       </div>
+
+      {/* Business Model Canvas Modal */}
+      <BusinessModelCanvasModal
+        isOpen={isCanvasOpen}
+        onClose={() => setIsCanvasOpen(false)}
+      />
     </>
   );
 }

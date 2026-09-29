@@ -32,13 +32,16 @@ import {
   X,
   Star,
   ArrowRight,
-  Lightbulb
+  Lightbulb,
+  Coins,
+  Gift
 } from 'lucide-react';
 import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 import FollowersListModal from '@/components/FollowersListModal';
 import PinterestImageModal from '@/components/PinterestImageModal';
 import StudentSkillsSection from '@/components/StudentSkillsSection';
+import LenzRewardsHub from '@/components/student/LenzRewardsHub';
 import { isVideoMedia } from '@/lib/mediaUtils';
 import { Post } from '@/types';
 
@@ -66,7 +69,7 @@ export default function ProfileClient({
     addComment,
     deletePost
   } = useApp();
-  const [activeTab, setActiveTab] = useState<'posts' | 'reviews' | 'feedback' | 'reposts' | 'details' | 'saved' | 'verification'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reviews' | 'feedback' | 'reposts' | 'details' | 'saved' | 'verification' | 'rewards'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
   const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
@@ -468,6 +471,18 @@ export default function ProfileClient({
             }`}
           >
             Verification
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rewards')}
+            className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
+              activeTab === 'rewards'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-xs'
+                : 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
+            }`}
+          >
+            <Coins className="h-3.5 w-3.5 text-amber-500" />
+            <span>LenzCoins & Rewards 🪙</span>
           </button>
         </div>
       </div>
@@ -1581,6 +1596,11 @@ export default function ProfileClient({
             </form>
           )}
         </div>
+      )}
+
+      {/* TAB CONTENT: LENZCOINS & GAMIFICATION REWARDS */}
+      {activeTab === 'rewards' && (
+        <LenzRewardsHub />
       )}
 
       {/* EDIT PROFILE MODAL */}
