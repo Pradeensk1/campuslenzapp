@@ -66,6 +66,17 @@ export interface UserProfile {
   contactPhone?: string;
   websiteUrl?: string;
   linkedinUrl?: string;
+
+  // Career Copilot (Challenge 1)
+  careerProfile?: StudentCareerProfile;
+}
+
+export interface StudentCareerProfile {
+  targetRole: string;
+  skills: string[];
+  currentLearning: string[];
+  completedLearning: string[];
+  updatedAt?: string;
 }
 
 export interface PlacementDetails {

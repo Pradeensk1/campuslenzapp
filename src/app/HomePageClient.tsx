@@ -559,7 +559,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
                   <Link
                     href={`/user/${currentUser.username}`}
                     className="w-full py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1"
@@ -567,6 +567,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     <span>My Profile</span>
                     <ArrowRight className="w-3 h-3 text-slate-400" />
                   </Link>
+
+                  {currentUser.role === 'student' && (
+                    <Link
+                      href="/copilot"
+                      className="w-full py-2 px-3 rounded-xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white text-xs font-bold transition shadow-xs hover:opacity-95 flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Career Copilot ✨</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

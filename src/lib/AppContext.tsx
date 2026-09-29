@@ -34,7 +34,8 @@ import {
   UnifiedAIModerationResult,
   PostAnalysisResult,
   CampusLenzCategoryClassification,
-  ReviewAnalysisResult
+  ReviewAnalysisResult,
+  StudentCareerProfile
 } from '@/types';
 import {
   runUnifiedAIModeration,
@@ -155,6 +156,7 @@ interface AppContextType {
   getUserByUsername: (username: string) => UserProfile | undefined;
   getUserById: (id: string) => UserProfile | undefined;
   updateProfile: (updatedData: Partial<UserProfile>) => void;
+  updateCareerProfile: (careerData: Partial<StudentCareerProfile>) => void;
   repostToInstitution: (postId: string) => { success: boolean; message: string };
   repostPost: (postId: string) => { success: boolean; message: string };
   reportFalseInfoPost: (postId: string, reason: string) => { success: boolean; message: string };
@@ -2398,6 +2400,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateCareerProfile = (careerData: Partial<StudentCareerProfile>) => {
+    if (!currentUser) return;
+    const existingCareer: StudentCareerProfile = currentUser.careerProfile || {
+      targetRole: '',
+      skills: [],
+      currentLearning: [],
+      completedLearning: []
+    };
+    const updatedCareer: StudentCareerProfile = {
+      targetRole: careerData.targetRole !== undefined ? careerData.targetRole : existingCareer.targetRole,
+      skills: careerData.skills !== undefined ? careerData.skills : existingCareer.skills,
+      currentLearning: careerData.currentLearning !== undefined ? careerData.currentLearning : existingCareer.currentLearning,
+      completedLearning: careerData.completedLearning !== undefined ? careerData.completedLearning : existingCareer.completedLearning,
+      updatedAt: new Date().toISOString()
+    };
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      careerProfile: updatedCareer
+    };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    try {
+      localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+    } catch {}
+  };
+
   // WhatsApp Community / Campus Servers: Send Message
   const sendServerMessage = (channelId: string, content: string) => {
     if (!currentUser) return { success: false, message: 'Please sign in to send messages.' };
@@ -3212,6 +3240,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         getUserByUsername,
         getUserById,
         updateProfile,
+        updateCareerProfile,
         repostToInstitution,
         repostPost,
         reportFalseInfoPost,

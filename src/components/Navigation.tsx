@@ -15,7 +15,8 @@ import {
   Building2,
   Briefcase,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion } from 'framer-motion';
@@ -42,12 +43,16 @@ export default function Navigation() {
   };
 
   const isAdmin = currentUser?.role === 'admin';
+  const isStudent = currentUser?.role === 'student';
 
   const navItems = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Explore & Compare', href: '/explore', icon: Compass },
     { label: 'Connect Hub', href: '/connect', icon: MessageSquare },
+    ...(isStudent && isAuthenticated
+      ? [{ label: 'Career Copilot', href: '/copilot', icon: Sparkles }]
+      : []),
     ...(isAdmin
       ? [{ label: 'Admin CLI', href: '/admin', icon: Terminal }]
       : []),
