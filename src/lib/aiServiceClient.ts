@@ -39,6 +39,17 @@ const AI_SERVICE_BASE_URL =
 const AI_API_KEY = process.env.CAMPUS_LENZ_API_KEY || 'your-local-api-key';
 const TIMEOUT_MS = 1800;
 
+function shouldQueryExternalService(): boolean {
+  if (typeof window !== 'undefined') {
+    // In client browser, never attempt direct HTTP connections to localhost/private IP
+    const url = AI_SERVICE_BASE_URL.toLowerCase();
+    if (url.includes('127.0.0.1') || url.includes('localhost') || url.startsWith('http://192.') || url.startsWith('http://10.')) {
+      return false;
+    }
+  }
+  return true;
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -59,7 +70,46 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = T
 
 export async function checkAIServiceHealth(): Promise<AIServiceHealth> {
   const startTime = Date.now();
+
+  // If in browser, safely query the Next.js API route /api/ai/status instead of direct microservice
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/ai/status', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.health) return data.health;
+      }
+    } catch {
+      // Local fallback
+    }
+
+    return {
+      service: 'Campus Lenz AI Local Edge Engine',
+      status: 'healthy',
+      version: '1.0.0',
+      isExternalServiceActive: false,
+      activeEngine: 'Edge WASM + Local Heuristic Model Matrix',
+      availableModels: [
+        'campus-lenz-ai (Edge Transformer)',
+        'unitary/toxic-bert (WASM)',
+        'distilbert-sst-2 (Edge)',
+        'nsfwjs-mobilenet-v2 (Local)',
+        'review-summarizer (Rule & Sentiment Matrix)',
+        'duplicate-detector (TF-IDF N-Gram Cosine)',
+        'message-analyzer (Safety & Threat Filter)',
+        'semantic-search (Multi-Attribute College Vector)'
+      ],
+      latencyMs: 1
+    };
+  }
+
   try {
+    if (!shouldQueryExternalService()) {
+      throw new Error('Skip external service');
+    }
     const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/health`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
@@ -119,36 +169,38 @@ export async function analyzePostAI(
   authorId = 'unknown_author',
   collegeId = 'unknown_college'
 ): Promise<PostAnalysisResult> {
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/moderate/post`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({
-        post: postContent,
-        author_id: authorId,
-        college_id: collegeId
-      })
-    });
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/moderate/post`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
+          post: postContent,
+          author_id: authorId,
+          college_id: collegeId
+        })
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.analysis) {
-        return {
-          sentiment: data.analysis.sentiment || 'neutral',
-          category: data.analysis.category || 'General',
-          moderation: data.analysis.moderation || 'normal',
-          college_related: Boolean(data.analysis.college_related),
-          action: data.action || 'publish',
-          confidence: 0.94,
-          model: 'campus-lenz-ai (FastAPI + Ollama)'
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.analysis) {
+          return {
+            sentiment: data.analysis.sentiment || 'neutral',
+            category: data.analysis.category || 'General',
+            moderation: data.analysis.moderation || 'normal',
+            college_related: Boolean(data.analysis.college_related),
+            action: data.action || 'publish',
+            confidence: 0.94,
+            model: 'campus-lenz-ai (FastAPI + Ollama)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return analyzeCampusLenzPost(postContent, authorId, collegeId);
@@ -163,28 +215,30 @@ export async function analyzeReviewAI(
   authorId = 'unknown_author',
   collegeId = 'unknown_college'
 ): Promise<ReviewAnalysisResult> {
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/analyze/review`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({ review: reviewText })
-    });
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/analyze/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({ review: reviewText })
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.aspects) {
-        return {
-          overall_sentiment: data.overall_sentiment || 'neutral',
-          aspects: data.aspects || [],
-          model: 'campus-lenz-ai (FastAPI + Ollama)'
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.aspects) {
+          return {
+            overall_sentiment: data.overall_sentiment || 'neutral',
+            aspects: data.aspects || [],
+            model: 'campus-lenz-ai (FastAPI + Ollama)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return analyzeReviewAspects(reviewText);
@@ -202,33 +256,35 @@ export async function summarizeReviewsAI(
     return summarizeCollegeReviews(collegeId, []);
   }
 
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/analyze/summary`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({
-        college_id: collegeId,
-        reviews: reviews.slice(0, 50)
-      })
-    }, 2500);
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/analyze/summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
+          college_id: collegeId,
+          reviews: reviews.slice(0, 50)
+        })
+      }, 2500);
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.summary) {
-        return {
-          summary: data.summary,
-          positive_points: data.positive_points || [],
-          negative_points: data.negative_points || [],
-          aspect_summary: data.aspect_summary || {},
-          model: 'campus-lenz-ai (FastAPI + Ollama Summarizer)'
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.summary) {
+          return {
+            summary: data.summary,
+            positive_points: data.positive_points || [],
+            negative_points: data.negative_points || [],
+            aspect_summary: data.aspect_summary || {},
+            model: 'campus-lenz-ai (FastAPI + Ollama Summarizer)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return summarizeCollegeReviews(collegeId, reviews);
@@ -243,40 +299,42 @@ export async function semanticSearchAI(
   colleges: Array<any>,
   limit = 5
 ): Promise<SemanticSearchResult> {
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/search/colleges`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({
-        query,
-        limit
-      })
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.results)) {
-        return {
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/search/colleges`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
           query,
-          matches: data.results.map((r: any) => ({
-            collegeId: r.college_id,
-            collegeName: r.college_name,
-            slug: r.college_id,
-            score: r.similarity_score || 0.85,
-            matchedAttributes: r.matched_attributes || [],
-            snippet: r.summary || `Semantic match with ${Math.round((r.similarity_score || 0.85) * 100)}% relevance`,
-            location: r.location
-          })),
-          totalMatches: data.results.length,
-          model: 'campus-lenz-ai (nomic-embed-text)'
-        };
+          limit
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.results)) {
+          return {
+            query,
+            matches: data.results.map((r: any) => ({
+              collegeId: r.college_id,
+              collegeName: r.college_name,
+              slug: r.college_id,
+              score: r.similarity_score || 0.85,
+              matchedAttributes: r.matched_attributes || [],
+              snippet: r.summary || `Semantic match with ${Math.round((r.similarity_score || 0.85) * 100)}% relevance`,
+              location: r.location
+            })),
+            totalMatches: data.results.length,
+            model: 'campus-lenz-ai (nomic-embed-text)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return semanticSearchColleges(query, colleges, limit);
@@ -291,33 +349,35 @@ export async function detectDuplicateAI(
   textB: string,
   threshold = 0.85
 ): Promise<DuplicateDetectionResult> {
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/detect/duplicate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({
-        text_a: textA,
-        text_b: textB,
-        threshold
-      })
-    });
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/detect/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
+          text_a: textA,
+          text_b: textB,
+          threshold
+        })
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && typeof data.similarity === 'number') {
-        return {
-          similarity: data.similarity,
-          likely_duplicate: Boolean(data.likely_duplicate),
-          threshold: data.threshold || threshold,
-          model: 'campus-lenz-ai (Ollama Vector Similarity)'
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data.similarity === 'number') {
+          return {
+            similarity: data.similarity,
+            likely_duplicate: Boolean(data.likely_duplicate),
+            threshold: data.threshold || threshold,
+            model: 'campus-lenz-ai (Ollama Vector Similarity)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return detectDuplicateText(textA, textB, threshold);
@@ -332,38 +392,40 @@ export async function analyzeMessageAI(
   senderId = 'unknown_sender',
   recipientId = 'unknown_recipient'
 ): Promise<MessageAnalysisResult> {
-  try {
-    const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/moderate/message`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY
-      },
-      body: JSON.stringify({
-        message,
-        sender_id: senderId,
-        recipient_id: recipientId
-      })
-    });
+  if (shouldQueryExternalService()) {
+    try {
+      const res = await fetchWithTimeout(`${AI_SERVICE_BASE_URL}/moderate/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
+          message,
+          sender_id: senderId,
+          recipient_id: recipientId
+        })
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.analysis) {
-        const isHarmful = data.analysis.moderation === 'potentially_harmful';
-        const isSensitive = data.analysis.moderation === 'sensitive';
-        return {
-          sentiment: data.analysis.sentiment || 'neutral',
-          category: data.analysis.category || 'general',
-          moderation: data.analysis.moderation || 'normal',
-          is_safe: !isHarmful,
-          action: isHarmful ? 'block' : isSensitive ? 'warn' : 'allow',
-          flagReason: isHarmful ? 'Potentially harmful content flagged by safety model.' : undefined,
-          model: 'campus-lenz-ai (FastAPI Message Safety)'
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.analysis) {
+          const isHarmful = data.analysis.moderation === 'potentially_harmful';
+          const isSensitive = data.analysis.moderation === 'sensitive';
+          return {
+            sentiment: data.analysis.sentiment || 'neutral',
+            category: data.analysis.category || 'general',
+            moderation: data.analysis.moderation || 'normal',
+            is_safe: !isHarmful,
+            action: isHarmful ? 'block' : isSensitive ? 'warn' : 'allow',
+            flagReason: isHarmful ? 'Potentially harmful content flagged by safety model.' : undefined,
+            model: 'campus-lenz-ai (FastAPI Message Safety)'
+          };
+        }
       }
+    } catch (err) {
+      // Graceful fallback to local engine
     }
-  } catch (err) {
-    // Graceful fallback to local engine
   }
 
   return analyzeDirectMessage(message, senderId, recipientId);
