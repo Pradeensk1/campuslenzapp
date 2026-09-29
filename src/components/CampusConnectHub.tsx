@@ -714,7 +714,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
             {!isAlumni && (
               <button
                 onClick={() => setActiveTab('community')}
-                className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
+                className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl transition-all duration-150 touch-manipulation active:scale-95 min-h-[40px] ${
                   activeTab === 'community'
                     ? 'bg-white text-emerald-700 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -727,7 +727,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl transition-all duration-150 touch-manipulation active:scale-95 min-h-[40px] ${
                 activeTab === 'messages'
                   ? 'bg-white text-blue-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -739,7 +739,7 @@ function ConnectHubContent({ initialTab = 'community' }: CampusConnectHubProps) 
 
             <button
               onClick={() => setActiveTab('grievance')}
-              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all ${
+              className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl transition-all duration-150 touch-manipulation active:scale-95 min-h-[40px] ${
                 activeTab === 'grievance'
                   ? 'bg-white text-purple-700 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'

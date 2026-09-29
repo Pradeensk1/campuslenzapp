@@ -9,10 +9,11 @@ import AutoReloadManager from "@/components/AutoReloadManager";
 import RolePersonaSwitcher from "@/components/RolePersonaSwitcher";
 
 export const viewport: Viewport = {
-  themeColor: "#2563EB",
+  themeColor: "#0c1824",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -59,7 +60,7 @@ export default function RootLayout({
         </div>
 
         <AppProvider>
-          <div className="flex min-h-screen flex-col pb-20 md:pb-0">
+          <div className="flex min-h-screen flex-col pb-28 md:pb-8">
             <EmergencyBroadcastBanner />
             <Navigation />
             <main className="flex-1 w-full max-w-7xl 2xl:max-w-[1480px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7">

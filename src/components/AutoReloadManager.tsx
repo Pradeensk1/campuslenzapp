@@ -119,7 +119,7 @@ export default function AutoReloadManager() {
   return (
     <aside
       aria-label="Webapp Auto Reload Controller"
-      className="fixed bottom-4 left-4 z-50 font-sans pointer-events-auto"
+      className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-4 left-3 sm:left-4 z-40 font-sans pointer-events-auto"
     >
       {/* Toast Notification */}
       {toastMessage && (
@@ -288,7 +288,7 @@ export default function AutoReloadManager() {
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
-          className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white shadow-xl hover:shadow-2xl border border-slate-700/80 backdrop-blur-md transition-all group"
+          className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white shadow-xl hover:shadow-2xl border border-slate-700/80 backdrop-blur-md transition-all duration-150 touch-manipulation active:scale-95 group"
           title="Click to configure webapp auto-reload"
         >
           <div className="flex items-center gap-1.5">
@@ -323,7 +323,7 @@ export default function AutoReloadManager() {
           onClick={executeReload}
           disabled={isReloading}
           title="Reload webapp right now"
-          className="p-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-slate-300 hover:text-white shadow-xl border border-slate-700/80 backdrop-blur-md transition-all"
+          className="p-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-slate-300 hover:text-white shadow-xl border border-slate-700/80 backdrop-blur-md transition-all duration-150 touch-manipulation active:scale-90"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isReloading ? 'animate-spin text-emerald-400' : ''}`} />
         </button>

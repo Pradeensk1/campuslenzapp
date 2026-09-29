@@ -96,7 +96,7 @@ export default function RolePersonaSwitcher() {
   };
 
   return (
-    <aside aria-label="Role Persona Switcher" className="fixed bottom-4 right-4 z-50 font-sans pointer-events-auto">
+    <aside aria-label="Role Persona Switcher" className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-4 right-3 sm:right-4 z-40 font-sans pointer-events-auto">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="mb-2 px-3.5 py-2 rounded-2xl bg-slate-900 text-white text-xs font-semibold shadow-xl border border-slate-700 flex items-center gap-2 animate-bounce">
@@ -187,7 +187,7 @@ export default function RolePersonaSwitcher() {
       <button
         type="button"
         onClick={() => setIsExpanded(prev => !prev)}
-        className="flex items-center gap-2 pl-3 pr-2.5 py-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white shadow-xl hover:shadow-2xl border border-slate-700/80 backdrop-blur-md transition-all group"
+        className="flex items-center gap-2 pl-3 pr-2.5 py-2 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white shadow-xl hover:shadow-2xl border border-slate-700/80 backdrop-blur-md transition-all duration-150 touch-manipulation active:scale-95 group"
       >
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
