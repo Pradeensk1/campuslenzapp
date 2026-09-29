@@ -94,18 +94,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   // Feed Filter Tabs: 'all' | 'students' | 'alumni' | 'institution' | 'feedback' | 'reviews'
-  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution' | 'feedback' | 'reviews'>(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const qf = urlParams.get('filter');
-      if (qf === 'feedback') return 'feedback';
-      if (qf === 'reviews') return 'reviews';
-      if (qf === 'students') return 'students';
-      if (qf === 'alumni') return 'alumni';
-      if (qf === 'institution') return 'institution';
-    }
-    return 'all';
-  });
+  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution' | 'feedback' | 'reviews'>('all');
 
   // AI Sentiment & Safety Feed Filter: 'all' | 'positive' | 'academic' | 'sensitive'
   const [feedSentimentFilter, setFeedSentimentFilter] = useState<'all' | 'positive' | 'academic' | 'sensitive'>('all');
@@ -119,15 +108,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [roleWorkspaceMode, setRoleWorkspaceMode] = useState<boolean>(true);
   
   // Split Feed Streams: 'campus' (all posts across ecosystem) | 'students' (student-only peer stream)
-  const [feedStream, setFeedStream] = useState<'campus' | 'students'>(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('stream') === 'students') return 'students';
-    }
-    return currentUser?.role === 'student' ? 'students' : 'campus';
-  });
+  const [feedStream, setFeedStream] = useState<'campus' | 'students'>('campus');
 
-  // When student logs in, redirect / default them directly to the students social stream
+  // When student logs in or URL query parameters exist, sync feed tabs cleanly without hydration mismatch
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -136,6 +119,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         setFeedFilter('feedback');
       } else if (qf === 'reviews') {
         setFeedFilter('reviews');
+      } else if (qf === 'students') {
+        setFeedFilter('students');
+      } else if (qf === 'alumni') {
+        setFeedFilter('alumni');
+      } else if (qf === 'institution') {
+        setFeedFilter('institution');
       }
 
       if (urlParams.get('stream') === 'students' || currentUser?.role === 'student') {
