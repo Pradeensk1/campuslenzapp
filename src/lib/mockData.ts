@@ -25,6 +25,32 @@ import {
   AuditLogEntry
 } from '@/types';
 
+export const DEFAULT_STUDENT_SKILLS = [
+  'Fullstack Developer',
+  'Data Analyst',
+  'UI/UX Designer',
+  'Cloud Architecture',
+  'Machine Learning',
+  'DevOps & CI/CD',
+  'Mobile App Developer',
+  'Cybersecurity'
+];
+
+export const PRESET_SKILL_OPTIONS = [
+  'Fullstack Developer',
+  'Data Analyst',
+  'UI/UX Designer',
+  'Cloud Architecture',
+  'Machine Learning',
+  'DevOps & CI/CD',
+  'Mobile App Developer',
+  'Cybersecurity',
+  'Artificial Intelligence',
+  'Database Administrator',
+  'Web3 & Blockchain',
+  'Product Designer'
+];
+
 export const INITIAL_USERS: UserProfile[] = [
   {
     id: 'user-student-demo',
@@ -40,6 +66,15 @@ export const INITIAL_USERS: UserProfile[] = [
     course: 'B.Tech CSE',
     graduationBatch: '2026',
     isVerified: true,
+    skills: [
+      'Fullstack Developer',
+      'Data Analyst',
+      'UI/UX Designer',
+      'Cloud Architecture',
+      'Machine Learning',
+      'DevOps & CI/CD',
+      'Mobile App Developer'
+    ],
     followersCount: 184,
     followingCount: 95,
     followers: ['user-alumni-demo', 'user-faculty-demo'],
@@ -135,6 +170,14 @@ export const INITIAL_USERS: UserProfile[] = [
     course: 'B.Tech AI & DS',
     graduationBatch: '2026',
     isVerified: true,
+    skills: [
+      'Data Analyst',
+      'Machine Learning',
+      'Fullstack Developer',
+      'UI/UX Designer',
+      'Artificial Intelligence',
+      'Cloud Architecture'
+    ],
     followersCount: 340,
     followingCount: 110,
     followers: ['user-student-demo'],
@@ -155,6 +198,14 @@ export const INITIAL_USERS: UserProfile[] = [
     course: 'MCA',
     graduationBatch: '2025',
     isVerified: true,
+    skills: [
+      'Fullstack Developer',
+      'UI/UX Designer',
+      'Data Analyst',
+      'DevOps & CI/CD',
+      'Database Administrator',
+      'Mobile App Developer'
+    ],
     followersCount: 215,
     followingCount: 75,
     followers: [],

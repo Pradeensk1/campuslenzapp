@@ -112,7 +112,7 @@ export async function POST() {
       role: u.role,
       full_name: u.fullName,
       headline: u.headline,
-      bio: u.bio,
+      bio: u.skills && u.skills.length > 0 ? `${u.bio || ''}\n\n<!--SKILLS-->${JSON.stringify(u.skills)}` : u.bio,
       avatar_url: u.avatarUrl,
       college_id: u.collegeId,
       college_name: u.collegeName,

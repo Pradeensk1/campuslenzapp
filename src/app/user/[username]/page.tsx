@@ -22,6 +22,16 @@ export default async function Page({ params }: { params: Promise<{ username: str
 
   let initialProfile = null;
   if (profileData) {
+    let userBio = profileData.bio || '';
+    let userSkills: string[] | undefined = undefined;
+    const skillsMatch = userBio.match(/<!--SKILLS-->([\s\S]*)$/);
+    if (skillsMatch) {
+      try {
+        userSkills = JSON.parse(skillsMatch[1]);
+        userBio = userBio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim();
+      } catch {}
+    }
+
     initialProfile = {
       id: profileData.id,
       username: profileData.username,
@@ -30,7 +40,8 @@ export default async function Page({ params }: { params: Promise<{ username: str
       email: profileData.email,
       role: profileData.role || 'student',
       headline: profileData.headline,
-      bio: profileData.bio,
+      bio: userBio,
+      skills: userSkills,
       collegeId: profileData.college_id,
       collegeName: profileData.college_name,
       avatarUrl: profileData.avatar_url,

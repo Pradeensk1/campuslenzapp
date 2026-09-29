@@ -32,29 +32,41 @@ export async function GET(request: Request) {
 
     const users = (data || [])
       .filter((u: any) => u.role !== 'admin')
-      .map((u: any) => ({
-      id: u.id,
-      username: u.username,
-      email: u.email,
-      role: u.role,
-      fullName: u.full_name,
-      headline: u.headline,
-      bio: u.bio,
-      avatarUrl: u.avatar_url,
-      collegeId: u.college_id,
-      collegeName: u.college_name,
-      department: u.department,
-      course: u.course,
-      graduationBatch: u.graduation_batch,
-      isVerified: Boolean(u.is_verified),
-      followersCount: u.followers_count ?? 0,
-      followingCount: u.following_count ?? 0,
-      followers: u.followers || [],
-      following: u.following || [],
-      isBanned: Boolean(u.is_banned),
-      strikesCount: u.strikes_count ?? 0,
-      createdAt: u.created_at,
-    }));
+      .map((u: any) => {
+        let userBio = u.bio || '';
+        let userSkills: string[] | undefined = undefined;
+        const skillsMatch = userBio.match(/<!--SKILLS-->([\s\S]*)$/);
+        if (skillsMatch) {
+          try {
+            userSkills = JSON.parse(skillsMatch[1]);
+            userBio = userBio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim();
+          } catch {}
+        }
+        return {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          role: u.role,
+          fullName: u.full_name,
+          headline: u.headline,
+          bio: userBio,
+          skills: userSkills,
+          avatarUrl: u.avatar_url,
+          collegeId: u.college_id,
+          collegeName: u.college_name,
+          department: u.department,
+          course: u.course,
+          graduationBatch: u.graduation_batch,
+          isVerified: Boolean(u.is_verified),
+          followersCount: u.followers_count ?? 0,
+          followingCount: u.following_count ?? 0,
+          followers: u.followers || [],
+          following: u.following || [],
+          isBanned: Boolean(u.is_banned),
+          strikesCount: u.strikes_count ?? 0,
+          createdAt: u.created_at,
+        };
+      });
 
     return NextResponse.json({ success: true, count: users.length, users });
   } catch (err: any) {

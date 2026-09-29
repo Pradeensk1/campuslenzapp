@@ -35,6 +35,17 @@ export async function GET(
       .eq('author_username', profile.username)
       .order('created_at', { ascending: false });
 
+    // Parse skills embedded in bio if present
+    let userBio = profile.bio || '';
+    let userSkills: string[] | undefined = undefined;
+    const skillsMatch = userBio.match(/<!--SKILLS-->([\s\S]*)$/);
+    if (skillsMatch) {
+      try {
+        userSkills = JSON.parse(skillsMatch[1]);
+        userBio = userBio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim();
+      } catch {}
+    }
+
     return NextResponse.json({
       success: true,
       user: {
@@ -44,7 +55,8 @@ export async function GET(
         role: profile.role,
         fullName: profile.full_name,
         headline: profile.headline,
-        bio: profile.bio,
+        bio: userBio,
+        skills: userSkills,
         avatarUrl: profile.avatar_url,
         collegeId: profile.college_id,
         collegeName: profile.college_name,
@@ -107,7 +119,29 @@ export async function PATCH(
 
     if (body.fullName !== undefined) updateFields.full_name = body.fullName;
     if (body.headline !== undefined) updateFields.headline = body.headline;
-    if (body.bio !== undefined) updateFields.bio = body.bio;
+
+    // Handle bio and skills sync
+    if (body.bio !== undefined || body.skills !== undefined) {
+      let baseBio = body.bio;
+      if (baseBio === undefined) {
+        // Fetch current bio to preserve it if only skills changed
+        const { data: existingProf } = await supabase
+          .from('profiles')
+          .select('bio')
+          .ilike('username', username)
+          .maybeSingle();
+        baseBio = existingProf?.bio || '';
+      }
+      let cleanBio = (baseBio || '').replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim();
+      if (body.skills && Array.isArray(body.skills)) {
+        updateFields.bio = cleanBio
+          ? `${cleanBio}\n\n<!--SKILLS-->${JSON.stringify(body.skills)}`
+          : `<!--SKILLS-->${JSON.stringify(body.skills)}`;
+      } else {
+        updateFields.bio = cleanBio;
+      }
+    }
+
     if (body.avatarUrl !== undefined) updateFields.avatar_url = body.avatarUrl;
     if (body.collegeId !== undefined) updateFields.college_id = body.collegeId;
     if (body.collegeName !== undefined) updateFields.college_name = body.collegeName;
@@ -128,6 +162,17 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 
+    // Parse skills from data.bio for the response
+    let resBio = data.bio || '';
+    let resSkills: string[] | undefined = undefined;
+    const skillsMatch = resBio.match(/<!--SKILLS-->([\s\S]*)$/);
+    if (skillsMatch) {
+      try {
+        resSkills = JSON.parse(skillsMatch[1]);
+        resBio = resBio.replace(/\s*<!--SKILLS-->[\s\S]*$/, '').trim();
+      } catch {}
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
@@ -138,7 +183,8 @@ export async function PATCH(
         role: data.role,
         fullName: data.full_name,
         headline: data.headline,
-        bio: data.bio,
+        bio: resBio,
+        skills: resSkills,
         avatarUrl: data.avatar_url,
         collegeId: data.college_id,
         collegeName: data.college_name,

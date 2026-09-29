@@ -66,6 +66,7 @@ export interface UserProfile {
   contactPhone?: string;
   websiteUrl?: string;
   linkedinUrl?: string;
+  skills?: string[];
 }
 
 export interface PlacementDetails {
