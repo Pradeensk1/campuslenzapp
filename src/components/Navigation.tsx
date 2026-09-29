@@ -43,6 +43,7 @@ export default function Navigation() {
   };
 
   const isAdmin = currentUser?.role === 'admin';
+  const isStudent = currentUser?.role === 'student';
 
   const navItems = [
     { label: 'Home', href: '/', icon: Home },

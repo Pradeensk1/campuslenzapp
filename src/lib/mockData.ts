@@ -79,6 +79,13 @@ export const INITIAL_USERS: UserProfile[] = [
     followingCount: 95,
     followers: ['user-alumni-demo', 'user-faculty-demo'],
     following: ['user-alumni-demo', 'user-inst-demo'],
+    careerProfile: {
+      targetRole: 'Software Development Engineer (SDE-1)',
+      skills: ['Python', 'C++', 'Data Structures', 'SQL', 'Git'],
+      currentLearning: ['Distributed Systems', 'System Design', 'Docker'],
+      completedLearning: ['Object Oriented Programming', 'Database Management Systems'],
+      updatedAt: '2026-09-28T10:00:00Z'
+    },
     createdAt: '2026-01-01T00:00:00Z'
   },
   {

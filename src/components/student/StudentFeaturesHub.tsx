@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useApp } from '@/lib/AppContext';
 import {
   Timer,
@@ -324,6 +325,13 @@ export default function StudentFeaturesHub() {
             <Calendar className="w-3.5 h-3.5" />
             <span>Exam & Task Tracker</span>
           </button>
+          <Link
+            href="/copilot"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white shadow-xs hover:opacity-95"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Career Copilot ✨</span>
+          </Link>
         </div>
       </div>
 
