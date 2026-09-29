@@ -52,7 +52,7 @@ export default function StrategicPartnersHub() {
   const [leadModalPartner, setLeadModalPartner] = useState<PartnerListing | null>(null);
   const [leadSubmitted, setLeadSubmitted] = useState(false);
   const [applicantName, setApplicantName] = useState(currentUser?.fullName || '');
-  const [applicantPhone, setApplicantPhone] = useState(currentUser?.email || '');
+  const [applicantPhone, setApplicantPhone] = useState(currentUser?.contactPhone || currentUser?.contactEmail || currentUser?.email || '');
   const [applicantGoal, setApplicantGoal] = useState('Immediate Enrollment / Discount Claim');
 
   // =========================================================================

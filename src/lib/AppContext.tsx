@@ -179,6 +179,8 @@ interface AppContextType {
   deleteComment: (postId: string, commentId: string) => { success: boolean; message: string };
   deleteUser: (userId: string) => { success: boolean; message: string };
   unbanUser: (userId: string) => { success: boolean; message: string };
+  banUser: (userId: string, durationHours?: number, reason?: string) => { success: boolean; message: string };
+  restoreRestrictedPost: (postId: string) => { success: boolean; message: string };
   joinServer: (serverId: string) => { success: boolean; message: string };
   leaveServer: (serverId: string) => { success: boolean; message: string };
   joinGroup: (serverId: string, groupId: string) => { success: boolean; message: string };
@@ -1777,6 +1779,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           success: false,
           message: `🚨 Account Restricted: Cooldown active until ${currentUser.bannedUntil ? new Date(currentUser.bannedUntil).toLocaleString() : 'further notice'}. Reason: ${currentUser.bannedReason || 'Policy violation'}.`
         };
+      } else {
+        // Cooldown has expired -> automatically lift ban
+        currentUser.isBanned = false;
+        currentUser.bannedUntil = undefined;
+        currentUser.bannedReason = undefined;
+        setCurrentUser({ ...currentUser });
+        try {
+          localStorage.setItem('campus_lenz_user', JSON.stringify(currentUser));
+        } catch {}
       }
     }
 
@@ -1794,16 +1805,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // AUTOMATED OPEN-SOURCE AI MODERATION SCAN (toxic-bert + distilbert + nsfwjs)
     const aiResult = runUnifiedAIModeration(newPost.content, newPost.imageUrl, aiModelSettings);
 
-    // 1. Critical Threats / Severe Hate Speech -> AUTOMATED TOXICITY BAN (Only for severe threats)
-    if (aiModelSettings.autoBanEnabled && (aiResult.toxicity.categories.threat > 90 || aiResult.toxicity.categories.identityHate > 95)) {
-      if (currentUser) {
+    const isAnonymous = Boolean(newPost.isAnonymous);
+    const isAIViolation = aiResult.isHarmful || aiResult.isSensitive || aiResult.toxicity.score >= 50 || (aiResult.imageSafety && aiResult.imageSafety.status !== 'safe');
+
+    // "remove anonymous content on a social feeds and users feeds redirect the anonymous contents only to admin"
+    // "dont blur or show it on feeds auto delete or restrict the content"
+    const shouldRestrictToAdmin = isAnonymous || isAIViolation;
+    const autoDeleted = aiResult.toxicity.score >= 90 || aiResult.toxicity.categories.threat > 90 || aiResult.toxicity.categories.identityHate > 95;
+    const isQuarantined = shouldRestrictToAdmin || aiResult.actionRecommended === 'quarantine' || autoDeleted;
+    const isRestricted = shouldRestrictToAdmin;
+    const redirectedToAdmin = shouldRestrictToAdmin;
+    const restrictionReason = isAnonymous
+      ? 'Anonymous Content: Redirected exclusively to Admin Queue (Hidden from public feeds)'
+      : (aiResult.actionReason || `AI Detected Policy Violation (${aiResult.toxicity.score}% toxicity, ${aiResult.sentiment.label})`);
+
+    // Automated Temporary Ban Checkout via AI
+    if (aiModelSettings.autoBanEnabled || aiResult.toxicity.score >= 75) {
+      if (currentUser && currentUser.role !== 'admin') {
         const nextStrikes = (currentUser.strikesCount || 0) + 1;
-        const bannedUntil = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+        const banHours = aiResult.toxicity.score >= 85 ? 168 : 72; // 7 days or 3 days
+        const bannedUntil = new Date(Date.now() + banHours * 3600 * 1000).toISOString();
         const updatedUser: UserProfile = {
           ...currentUser,
           isBanned: true,
           bannedUntil,
-          bannedReason: `Automated AI Ban: ${aiResult.actionReason || 'Severe threat violation'}`,
+          bannedReason: `AI Automated Temporary Ban (${banHours}h): ${restrictionReason}`,
           strikesCount: nextStrikes,
           lastStrikeTimestamp: new Date().toISOString()
         };
@@ -1815,26 +1841,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
 
         logAdminAction(
-          'AUTOMATED_TOXICITY_BAN',
+          'AUTOMATED_TEMPORARY_BAN',
           `@${currentUser.username}`,
-          `AI Model unitary/toxic-bert auto-banned user for 48h (Strike #${nextStrikes}). Violation: "${aiResult.actionReason}". Offending snippet: "${newPost.content.slice(0, 60)}..."`,
+          `AI Model auto-banned user for ${banHours}h (Strike #${nextStrikes}). Reason: "${restrictionReason}". Offending snippet: "${newPost.content.slice(0, 60)}..."`,
           'critical'
         );
       }
-
-      return {
-        success: false,
-        message: `🚨 Automated AI Action: Post rejected due to severe safety policy violation (Score: ${aiResult.toxicity.score}%). Recorded in administrative audit log.`
-      };
     }
 
-    // Quarantine Flagging (only for spam bots or explicit graphic images)
-    const isQuarantined = aiResult.actionRecommended === 'quarantine';
-    if (isQuarantined) {
+    if (isAnonymous) {
       logAdminAction(
-        'AI_AUTOMATED_QUARANTINE',
-        'Campus Stream',
-        `Open-source AI quarantined post by @${effectiveAuthorUsername} (${aiResult.actionReason})`,
+        'ANONYMOUS_CONTENT_REDIRECTED_TO_ADMIN',
+        `@${effectiveAuthorUsername}`,
+        `Anonymous submission redirected exclusively to Admin Desk. Hidden from public and user feeds.`,
+        'warning'
+      );
+    } else if (isAIViolation) {
+      logAdminAction(
+        'AI_RESTRICTED_CONTENT_REDIRECTED_TO_ADMIN',
+        `@${effectiveAuthorUsername}`,
+        `AI Models detected violation (${aiResult.toxicity.score}% toxicity). Post restricted and redirected to Admin Desk.`,
         'warning'
       );
     }
@@ -1858,9 +1884,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (effectiveAuthorRole === 'institution') {
       finalTopic = finalTopic || 'Official Announcement';
     }
-
-    // Role Limitation: STUDENT (Full social capabilities + anonymous toggle)
-    const isAnonymous = effectiveAuthorRole === 'student' ? Boolean(newPost.isAnonymous) : false;
 
     // Topic & Category classification via campus-lenz-ai
     if (!finalTopic || finalTopic === 'Campus Discussion' || finalTopic === 'Campus Update') {
@@ -1901,7 +1924,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sensitiveReason: aiResult.actionReason,
       imageSafety: aiResult.imageSafety,
       aiModelMetadata: `campus-lenz-ai + ${aiResult.sentiment.model} + ${aiResult.toxicity.model}${aiResult.imageSafety ? ' + ' + aiResult.imageSafety.model : ''}`,
-      isQuarantined
+      isQuarantined,
+      isRestricted,
+      redirectedToAdmin,
+      restrictionReason,
+      autoDeleted
     };
     setPosts(prev => [post, ...prev]);
 
@@ -1953,6 +1980,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(err => console.warn('Post API network notice:', err));
+
+    if (shouldRestrictToAdmin) {
+      return {
+        success: true,
+        message: isAnonymous
+          ? 'ℹ️ Notice: Anonymous posting to public feeds is restricted. Your submission has been securely routed to the Admin Desk for review.'
+          : '⚠️ Notice: Content was flagged by AI models and restricted from public feeds. It has been redirected to the Admin Desk.'
+      };
+    }
 
     return { success: true };
   };
@@ -2207,7 +2243,124 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return u;
     }));
+
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (targetUser) {
+      try {
+        fetch(`/api/users/${targetUser.username}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isBanned: false, bannedUntil: null, bannedReason: null })
+        }).catch(() => {});
+      } catch {}
+    }
+
     return { success: true, message: 'Account restrictions and cooldown lifted successfully.' };
+  };
+
+  // Temporary / checkout ban user (Admin action or automated checkout)
+  const banUser = (userId: string, durationHours?: number, reason?: string): { success: boolean; message: string } => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, message: 'Only administrators can ban accounts.' };
+    }
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (!targetUser) return { success: false, message: 'User not found in directory.' };
+
+    const bannedUntil = durationHours && durationHours > 0
+      ? new Date(Date.now() + durationHours * 3600 * 1000).toISOString()
+      : undefined;
+
+    const effectiveReason = reason || 'Violation of campus community guidelines';
+    const nextStrikes = (targetUser.strikesCount || 0) + 1;
+
+    const updatedUser: UserProfile = {
+      ...targetUser,
+      isBanned: true,
+      bannedUntil,
+      bannedReason: effectiveReason,
+      strikesCount: nextStrikes,
+      lastStrikeTimestamp: new Date().toISOString()
+    };
+
+    setAllUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+    if (currentUser.id === userId) {
+      setCurrentUser(updatedUser);
+      try {
+        localStorage.setItem('campus_lenz_user', JSON.stringify(updatedUser));
+      } catch {}
+    }
+
+    // Immediately quarantine and restrict all recent flagged posts by this user from public view
+    setPosts(prev => prev.map(p => {
+      if (p.authorId === userId && ((p.toxicityScore || 0) >= 35 || p.isAnonymous || p.isSensitive)) {
+        return {
+          ...p,
+          isQuarantined: true,
+          isRestricted: true,
+          redirectedToAdmin: true,
+          restrictionReason: `Author suspended: ${effectiveReason}`
+        };
+      }
+      return p;
+    }));
+
+    // Sync to Supabase
+    try {
+      fetch(`/api/users/${targetUser.username}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isBanned: true,
+          bannedUntil,
+          bannedReason: effectiveReason
+        })
+      }).catch(() => {});
+    } catch {}
+
+    const durationLabel = durationHours ? `${durationHours}h temporary suspension` : 'indefinite suspension';
+    logAdminAction(
+      'USER_TEMPORARILY_BANNED',
+      `@${targetUser.username}`,
+      `Account suspended (${durationLabel}, Strike #${nextStrikes}). Reason: "${effectiveReason}".`,
+      'critical'
+    );
+
+    return {
+      success: true,
+      message: `Account @${targetUser.username} (${targetUser.fullName}) temporarily suspended for ${durationLabel}.`
+    };
+  };
+
+  // Restore a restricted/quarantined post (Admin action)
+  const restoreRestrictedPost = (postId: string): { success: boolean; message: string } => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, message: 'Only administrators can restore restricted posts.' };
+    }
+    const targetPost = posts.find(p => p.id === postId);
+    if (!targetPost) return { success: false, message: 'Post not found.' };
+
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          isQuarantined: false,
+          isRestricted: false,
+          redirectedToAdmin: false,
+          isAnonymous: false,
+          isSensitive: false
+        };
+      }
+      return p;
+    }));
+
+    logAdminAction(
+      'POST_RESTORED',
+      `Post ${postId}`,
+      `Administrator restored restricted post by ${targetPost.authorName} to active feed.`,
+      'info'
+    );
+
+    return { success: true, message: `Post ${postId} restored and published to live campus stream.` };
   };
 
   // Dynamic Role-Aware Repost Method
@@ -3575,6 +3728,8 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         deleteComment,
         deleteUser,
         unbanUser,
+        banUser,
+        restoreRestrictedPost,
         joinServer,
         leaveServer,
         joinGroup,

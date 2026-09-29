@@ -64,6 +64,8 @@ export interface UserProfile {
   officeTitle?: string;
   aisheCode?: string;
   contactPhone?: string;
+  contactEmail?: string;
+  phone?: string;
   websiteUrl?: string;
   linkedinUrl?: string;
   skills?: string[];
@@ -277,6 +279,10 @@ export interface Post {
   };
   aiModelMetadata?: string;
   isQuarantined?: boolean;
+  isRestricted?: boolean;
+  redirectedToAdmin?: boolean;
+  restrictionReason?: string;
+  autoDeleted?: boolean;
 }
 
 export interface TextSentimentAnalysis {

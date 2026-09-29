@@ -35,11 +35,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  X,
-  Handshake
+  X
 } from 'lucide-react';
-import SchoolAndTransferHub from './explore/SchoolAndTransferHub';
-import StrategicPartnersHub from './explore/StrategicPartnersHub';
 
 type CompareAttributeKey = 'placements' | 'fees' | 'academics' | 'campus' | 'activities';
 
@@ -59,19 +56,19 @@ const ATTRIBUTE_OPTIONS: AttributeOption[] = [
 ];
 
 interface ExploreCompareHubProps {
-  initialTab?: 'explore' | 'compare' | 'transfers' | 'partners';
+  initialTab?: 'explore' | 'compare';
 }
 
 function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProps) {
   const searchParams = useSearchParams();
-  const tabFromQuery = searchParams.get('tab') as 'explore' | 'compare' | 'transfers' | 'partners' | null;
+  const tabFromQuery = searchParams.get('tab') as 'explore' | 'compare' | null;
 
-  const [activeTab, setActiveTab] = useState<'explore' | 'compare' | 'transfers' | 'partners'>(
+  const [activeTab, setActiveTab] = useState<'explore' | 'compare'>(
     tabFromQuery || initialTab
   );
 
   useEffect(() => {
-    if (tabFromQuery && (tabFromQuery === 'explore' || tabFromQuery === 'compare' || tabFromQuery === 'transfers' || tabFromQuery === 'partners')) {
+    if (tabFromQuery && (tabFromQuery === 'explore' || tabFromQuery === 'compare')) {
       setActiveTab(tabFromQuery);
     }
   }, [tabFromQuery]);
@@ -281,11 +278,11 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
           </div>
         </div>
 
-        {/* 4-Pill Tab Switcher */}
-        <div className="flex items-center overflow-x-auto bg-[#F1F5F9] p-1 rounded-2xl border border-[#E2E8F0] text-xs font-bold w-full md:w-auto gap-1">
+        {/* 2-Pill Tab Switcher */}
+        <div className="flex items-center bg-[#F1F5F9] p-1 rounded-2xl border border-[#E2E8F0] text-xs font-bold w-full md:w-auto">
           <button
             onClick={() => setActiveTab('explore')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'explore'
                 ? 'bg-white text-[#1687D4] shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -297,7 +294,7 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
 
           <button
             onClick={() => setActiveTab('compare')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
+            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl transition-all ${
               activeTab === 'compare'
                 ? 'bg-white text-purple-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -305,30 +302,6 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
           >
             <Scale className="w-4 h-4 text-purple-600" />
             <span>Compare Matrix</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('transfers')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === 'transfers'
-                ? 'bg-white text-indigo-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 text-indigo-600" />
-            <span>School & Transfer</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('partners')}
-            className={`flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === 'partners'
-                ? 'bg-white text-emerald-700 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Handshake className="w-4 h-4 text-emerald-600" />
-            <span>Partners & Loans</span>
           </button>
         </div>
       </div>
@@ -1510,20 +1483,6 @@ function ExploreCompareContent({ initialTab = 'explore' }: ExploreCompareHubProp
             )}
           </div>
         </div>
-      )}
-
-      {/* =============================================================== */}
-      {/* TAB 3: SCHOOL & TRANSFER ADVISORY                               */}
-      {/* =============================================================== */}
-      {activeTab === 'transfers' && (
-        <SchoolAndTransferHub />
-      )}
-
-      {/* =============================================================== */}
-      {/* TAB 4: STRATEGIC PARTNERS, COACHING & LOANS                     */}
-      {/* =============================================================== */}
-      {activeTab === 'partners' && (
-        <StrategicPartnersHub />
       )}
     </div>
   );

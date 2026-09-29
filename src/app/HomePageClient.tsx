@@ -244,6 +244,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       setTimeout(() => setActionFeedback(null), 4000);
       return;
     }
+    if (currentUser.isBanned) {
+      const remaining = currentUser.bannedUntil ? `until ${new Date(currentUser.bannedUntil).toLocaleDateString()} ${new Date(currentUser.bannedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'temporarily';
+      setActionFeedback(`🚫 Account Suspended: Your posting privileges are restricted ${remaining}. Reason: ${currentUser.bannedReason || 'Content policy violation'}`);
+      setTimeout(() => setActionFeedback(null), 6000);
+      return;
+    }
     if (!postContent.trim()) return;
 
     // 1. Text Classification & AI Content Purification
@@ -431,8 +437,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   };
 
   const filteredPosts = posts.filter((p) => {
-    // Hide quarantined posts from non-admin users
-    if (p.isQuarantined && currentUser?.role !== 'admin') return false;
+    // Hide quarantined, restricted, anonymous, auto-deleted, or sensitive posts from non-admin users
+    // Anonymous content is strictly redirected ONLY to admin
+    // Do not blur or show offending content on feeds - restrict completely
+    if (currentUser?.role !== 'admin') {
+      if (p.isQuarantined || p.isRestricted || p.isAnonymous || p.autoDeleted) return false;
+      if (p.isSensitive || (p.toxicityScore !== undefined && p.toxicityScore >= 50)) return false;
+    }
 
     // Dedicated Feedback Feed filter: show only feedback posts
     if (feedFilter === 'feedback') {
@@ -1120,18 +1131,39 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 </div>
               )}
 
-              <div className="flex items-start gap-3">
-                <Link href={`/user/${currentUser.username}`}>
-                  <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0">
-                    {currentUser.fullName[0] || 'U'}
+              {currentUser.isBanned ? (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-800 space-y-2 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-xl bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    </span>
+                    <h4 className="text-xs font-bold text-rose-950">Posting Suspended (Temporary Moderation Hold)</h4>
                   </div>
-                </Link>
+                  <p className="text-[12px] leading-relaxed text-rose-800">
+                    Your posting privileges have been restricted{' '}
+                    <span className="font-semibold underline">
+                      {currentUser.bannedUntil ? `until ${new Date(currentUser.bannedUntil).toLocaleDateString()} at ${new Date(currentUser.bannedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'temporarily'}
+                    </span>{' '}
+                    due to AI-flagged violation: <em>&quot;{currentUser.bannedReason || 'Content policy violation'}&quot;</em>.
+                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-rose-600 pt-1 border-t border-rose-200">
+                    <span>Strikes Recorded: <strong>{(currentUser as any).warningCount || (currentUser as any).strikeCount || 1}</strong></span>
+                    <span>Automated AI Discipline System</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <Link href={`/user/${currentUser.username}`}>
+                    <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0">
+                      {currentUser.fullName[0] || 'U'}
+                    </div>
+                  </Link>
 
-                <div className="flex-1">
-                  {!isComposing ? (
-                    <button
-                      onClick={() => setIsComposing(true)}
-                      className="w-full text-left rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-xs text-[#2d5a7d] hover:bg-white/60 hover:text-[#05233b] transition shadow-xs backdrop-blur-md"
+                  <div className="flex-1">
+                    {!isComposing ? (
+                      <button
+                        onClick={() => setIsComposing(true)}
+                        className="w-full text-left rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-xs text-[#2d5a7d] hover:bg-white/60 hover:text-[#05233b] transition shadow-xs backdrop-blur-md"
                     >
                       {currentUser.role === 'faculty'
                         ? 'Publish academic research, curriculum notes, or lecture slides...'
@@ -1636,7 +1668,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   )}
                 </div>
               </div>
-
+              )}
             </div>
           )}
 
@@ -1825,7 +1857,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 ));
                 const isSaved = savedPosts.includes(post.id);
                 const isSensitive = Boolean(post.isSensitive);
-                const isShielded = isSensitive && sensitiveContentShieldActive && !unhiddenSensitivePostIds.includes(post.id);
 
                 return (
                   <motion.article
@@ -1967,96 +1998,52 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         </div>
                       </div>
 
-                      {/* Post Content (Protected by Apple-style Frosted Sensitive Blur Shield if flagged) */}
-                      {isShielded ? (
-                        <div className="relative mt-3 rounded-2xl border border-amber-200 bg-amber-50/20 overflow-hidden">
-                          {/* Frosted/Blurred Background Preview */}
-                          <div className="filter blur-md select-none pointer-events-none opacity-40 p-4">
-                            <p className="text-[13.5px] leading-relaxed text-slate-800 line-clamp-3">
-                              {post.content}
-                            </p>
-                            {post.imageUrl && (
-                              <div className="mt-2 h-28 bg-slate-200 rounded-xl" />
-                            )}
-                          </div>
-
-                          {/* Centered Sensitive Content Warning Shield */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center bg-white/75 backdrop-blur-xs space-y-2">
-                            <div className="p-2 rounded-2xl bg-amber-100 text-amber-800 border border-amber-200 shadow-xs">
-                              <AlertTriangle className="w-5 h-5" />
-                            </div>
-                            <div className="space-y-0.5 max-w-sm">
-                              <h4 className="text-xs font-bold text-slate-900 tracking-tight">
-                                Sensitive Content Shield Activated
-                              </h4>
-                              <p className="text-[11px] text-slate-600 leading-snug">
-                                Flagged by open-source AI ({post.aiModelMetadata || 'unitary/toxic-bert'}):{' '}
-                                <span className="font-semibold text-amber-900">
-                                  {post.sensitiveReason || 'Hostile or controversial discourse'}
-                                </span>{' '}
-                                (Toxicity: {post.toxicityScore ?? 54}%)
-                              </p>
-                            </div>
+                      {/* Post Body Content & High-Fidelity Text (Zero Blur Policy - Restricted content routed exclusively to Admin) */}
+                      <div className="mt-3">
+                        <p className="text-[14px] sm:text-[14.5px] leading-[1.65] text-[#0F172A] font-normal tracking-normal text-preview whitespace-pre-line break-words">
+                          {post.content.length > 280 && !expandedPosts[post.id]
+                            ? `${post.content.slice(0, 280)}... `
+                            : post.content}
+                          {post.content.length > 280 && (
                             <button
                               type="button"
-                              onClick={() => handleRevealSensitivePost(post.id)}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                              onClick={() => toggleExpandPost(post.id)}
+                              className="text-[#1687D4] hover:text-[#0875BD] font-bold text-xs ml-1 hover:underline touch-manipulation active:scale-95 inline-flex items-center gap-0.5"
                             >
-                              <Eye className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Show Content Anyway</span>
+                              {expandedPosts[post.id] ? 'Show less ↑' : 'Read more ↓'}
                             </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Post Body Content & High-Fidelity Text Previewance */}
-                          <div className="mt-3">
-                            <p className="text-[14px] sm:text-[14.5px] leading-[1.65] text-[#0F172A] font-normal tracking-normal text-preview whitespace-pre-line break-words">
-                              {post.content.length > 280 && !expandedPosts[post.id]
-                                ? `${post.content.slice(0, 280)}... `
-                                : post.content}
-                              {post.content.length > 280 && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleExpandPost(post.id)}
-                                  className="text-[#1687D4] hover:text-[#0875BD] font-bold text-xs ml-1 hover:underline touch-manipulation active:scale-95 inline-flex items-center gap-0.5"
-                                >
-                                  {expandedPosts[post.id] ? 'Show less ↑' : 'Read more ↓'}
-                                </button>
-                              )}
-                            </p>
-                          </div>
-
-                          {/* Media Attachment (Image with Zoom or Video with Player) */}
-                          {post.imageUrl && (
-                            isVideoMedia(post.imageUrl) ? (
-                              <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
-                                <video
-                                  src={post.imageUrl}
-                                  controls
-                                  className="w-full max-h-[480px] rounded-2xl bg-black"
-                                  preload="metadata"
-                                />
-                              </div>
-                            ) : (
-                              <div
-                                onClick={() => setZoomedPost(post)}
-                                className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
-                              >
-                                <img
-                                  src={post.imageUrl}
-                                  alt="Post visual attachment"
-                                  loading="lazy"
-                                  className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
-                                />
-                                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
-                                  <ZoomIn className="w-3.5 h-3.5" />
-                                  <span>Zoom Full</span>
-                                </div>
-                              </div>
-                            )
                           )}
-                        </>
+                        </p>
+                      </div>
+
+                      {/* Media Attachment (Image with Zoom or Video with Player) */}
+                      {post.imageUrl && (
+                        isVideoMedia(post.imageUrl) ? (
+                          <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-black">
+                            <video
+                              src={post.imageUrl}
+                              controls
+                              className="w-full max-h-[480px] rounded-2xl bg-black"
+                              preload="metadata"
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => setZoomedPost(post)}
+                            className="mt-3 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative group cursor-zoom-in"
+                          >
+                            <img
+                              src={post.imageUrl}
+                              alt="Post visual attachment"
+                              loading="lazy"
+                              className="w-full max-h-[460px] object-cover rounded-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                            />
+                            <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shadow-sm">
+                              <ZoomIn className="w-3.5 h-3.5" />
+                              <span>Zoom Full</span>
+                            </div>
+                          </div>
+                        )
                       )}
 
                       {/* Topic Tag & AI Provenance Badge */}

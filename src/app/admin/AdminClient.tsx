@@ -51,7 +51,8 @@ import {
   Copy,
   MessageSquare,
   CheckCircle,
-  RefreshCcw
+  RefreshCcw,
+  X
 } from 'lucide-react';
 import { isVideoMedia } from '@/lib/mediaUtils';
 
@@ -77,6 +78,8 @@ export default function AdminClient({
     allUsers,
     deleteUser,
     unbanUser,
+    banUser,
+    restoreRestrictedPost,
     colleges,
     grievanceReports,
     servers,
@@ -101,6 +104,18 @@ export default function AdminClient({
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'student' | 'alumni' | 'faculty' | 'institution' | 'admin'>('all');
+
+  // Anonymous & AI-Restricted Incident Queue State
+  const [incidentFilter, setIncidentFilter] = useState<'all' | 'anonymous' | 'toxic' | 'quarantined'>('all');
+  const [incidentBanDurations, setIncidentBanDurations] = useState<Record<string, number>>({});
+  const [incidentBanReasons, setIncidentBanReasons] = useState<Record<string, string>>({});
+  const [incidentActionLoading, setIncidentActionLoading] = useState<Record<string, boolean>>({});
+
+  // Direct User Ban Checkout Modal State
+  const [userToBan, setUserToBan] = useState<any | null>(null);
+  const [userBanDuration, setUserBanDuration] = useState<number>(72);
+  const [userBanReason, setUserBanReason] = useState<string>('Violation of community guidelines and content safety policy');
+  const [isProcessingUserBan, setIsProcessingUserBan] = useState(false);
 
   // Dedicated Admin Gate Login State
   const [adminLoginId, setAdminLoginId] = useState('');
@@ -416,6 +431,109 @@ Developer environment initialized. Type 'help' to view available system commands
     downloadAnchor.remove();
   };
 
+  const getAIIncidentRecommendation = (post: any) => {
+    const tox = post.toxicityScore ?? 0;
+    if (tox >= 90 || post.autoDeleted) {
+      return {
+        hours: 168,
+        label: '7-Day Suspension (Tier 3 Severe Threat / Toxicity >= 90%)',
+        badge: 'Recommended: 7-Day Ban',
+        defaultReason: `Automated AI Ban: Extreme toxicity (${tox}%) - Severe policy violation`
+      };
+    }
+    if (tox >= 75) {
+      return {
+        hours: 72,
+        label: '3-Day Suspension (Tier 2 High Abuse / Hostility >= 75%)',
+        badge: 'Recommended: 3-Day Ban',
+        defaultReason: `Automated AI Ban: High toxicity (${tox}%) - Hostile discourse detected`
+      };
+    }
+    if (post.isAnonymous) {
+      return {
+        hours: 24,
+        label: '24-Hour Review Hold (Unauthorized Anonymous Feed Bypass)',
+        badge: 'Recommended: 24h Hold',
+        defaultReason: `Automated AI Hold: Anonymous posting redirected to admin clearance`
+      };
+    }
+    return {
+      hours: 24,
+      label: '24-Hour Moderation Hold (Tier 1 Warning)',
+      badge: 'Recommended: 24h Ban',
+      defaultReason: `Automated AI Moderation: Flagged for sensitive discourse (${post.sensitiveReason || 'Flagged content'})`
+    };
+  };
+
+  const handleCheckoutBan = async (post: any) => {
+    if (!isAdmin) return;
+    const authorId = post.authorId || post.authorUsername;
+    const defaultRec = getAIIncidentRecommendation(post);
+    const durationHours = incidentBanDurations[post.id] ?? defaultRec.hours;
+    const reason = incidentBanReasons[post.id]?.trim() || defaultRec.defaultReason;
+
+    setIncidentActionLoading(prev => ({ ...prev, [post.id]: true }));
+    try {
+      const res = banUser(authorId, durationHours, reason);
+      logAdminAction(
+        'USER_TEMPORARY_BAN',
+        `@${post.authorUsername || authorId}`,
+        `Admin issued ${durationHours}h temporary suspension to ${post.authorName || authorId}. Reason: "${reason}". Origin Post: ${post.id}`,
+        'warning'
+      );
+      setActionFeedback(res.message);
+      setTimeout(() => setActionFeedback(null), 4500);
+    } finally {
+      setIncidentActionLoading(prev => ({ ...prev, [post.id]: false }));
+    }
+  };
+
+  const handlePurgeRestrictedPost = (postId: string, authorName: string) => {
+    if (!isAdmin) return;
+    deletePost(postId);
+    logAdminAction(
+      'POST_DELETED',
+      `Post ${postId}`,
+      `Restricted post by ${authorName} permanently purged by administrator.`,
+      'critical'
+    );
+    setActionFeedback(`🗑️ Post ${postId} permanently purged and wiped from the platform.`);
+    setTimeout(() => setActionFeedback(null), 4000);
+  };
+
+  const handleReleasePostToFeed = (postId: string, authorName: string) => {
+    if (!isAdmin) return;
+    restoreRestrictedPost(postId);
+    logAdminAction(
+      'POST_APPROVED',
+      `Post ${postId}`,
+      `Restricted post by ${authorName} manually reviewed and approved for public feed by administrator.`,
+      'info'
+    );
+    setActionFeedback(`✅ Post ${postId} approved and released to the public campus feed!`);
+    setTimeout(() => setActionFeedback(null), 4000);
+  };
+
+  const handleExecuteUserBan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToBan || !isAdmin) return;
+    setIsProcessingUserBan(true);
+    try {
+      const res = banUser(userToBan.id, userBanDuration, userBanReason);
+      logAdminAction(
+        'USER_TEMPORARY_BAN',
+        `@${userToBan.username}`,
+        `Administrator issued ${userBanDuration}h temporary suspension to ${userToBan.fullName}. Reason: "${userBanReason}"`,
+        'warning'
+      );
+      setActionFeedback(res.message);
+      setTimeout(() => setActionFeedback(null), 4500);
+      setUserToBan(null);
+    } finally {
+      setIsProcessingUserBan(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -618,9 +736,15 @@ Developer environment initialized. Type 'help' to view available system commands
           >
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span>AI Toxicity & Moderation</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600 font-bold">
-              {posts.length}
-            </span>
+            {posts.some(p => p.isAnonymous || p.isQuarantined || p.isRestricted || p.redirectedToAdmin || p.autoDeleted) ? (
+              <span className="px-2 py-0.5 rounded-full bg-rose-500 text-[10px] text-white font-extrabold shadow-2xs animate-pulse">
+                {posts.filter(p => p.isAnonymous || p.isQuarantined || p.isRestricted || p.redirectedToAdmin || p.autoDeleted).length} Incidents
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600 font-bold">
+                {posts.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -863,10 +987,22 @@ Developer environment initialized. Type 'help' to view available system commands
                           </td>
                           <td className="py-3">
                             {isBanned ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-300">
-                                <AlertTriangle className="w-3 h-3" />
-                                Banned / Restricted
-                              </span>
+                              <div className="space-y-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-300">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Banned / Restricted
+                                </span>
+                                {user.bannedUntil && (
+                                  <div className="text-[10px] text-rose-600 font-mono">
+                                    Until: {new Date(user.bannedUntil).toLocaleDateString()} {new Date(user.bannedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
+                                {user.bannedReason && (
+                                  <div className="text-[10px] text-slate-500 italic max-w-[160px] truncate" title={user.bannedReason}>
+                                    {user.bannedReason}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
                                 <CheckCircle2 className="w-3 h-3" />
@@ -889,6 +1025,20 @@ Developer environment initialized. Type 'help' to view available system commands
                                   Unban
                                 </button>
                               )}
+                              {!isBanned && !isCurrentAdmin && isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUserToBan(user);
+                                    setUserBanDuration(72);
+                                    setUserBanReason('Policy enforcement: Content violation / Suspension hold');
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-[11px] transition flex items-center gap-1"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-600" />
+                                  Temp Ban
+                                </button>
+                              )}
                               {isAdmin ? (
                                 isCurrentAdmin ? (
                                   <span className="text-[11px] text-slate-400 italic">Current Session</span>
@@ -905,7 +1055,7 @@ Developer environment initialized. Type 'help' to view available system commands
                                     className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition flex items-center gap-1"
                                   >
                                     <Trash2 className="w-3 h-3" />
-                                    Delete Account
+                                    Delete
                                   </button>
                                 )
                               ) : (
@@ -1211,15 +1361,15 @@ Developer environment initialized. Type 'help' to view available system commands
                   </div>
                 </div>
 
-                {/* Feed Sensitive Blur Threshold */}
+                {/* Feed Sensitive Restriction Threshold */}
                 <div className="p-5 rounded-2xl bg-amber-50/40 border border-amber-200/80 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-extrabold text-amber-900">
-                        Feed Sensitive Blur Shield Threshold
+                        Feed Sensitive Restriction Threshold
                       </span>
                       <p className="text-[11px] text-amber-700/80">
-                        Posts with toxicity &ge; this limit get covered with an Apple-style frosted blur overlay on the campus feed.
+                        Posts with toxicity &ge; this limit are withheld from public social feeds and routed exclusively to the Admin Queue (Zero Blur Policy).
                       </p>
                     </div>
                     <span className="px-3 py-1 rounded-xl bg-white border border-amber-300 text-amber-700 font-mono font-black text-sm shadow-xs">
@@ -1281,7 +1431,287 @@ Developer environment initialized. Type 'help' to view available system commands
               </div>
             </div>
 
-            {/* 3. MULTI-MODAL AI MODERATION SANDBOX */}
+            {/* 3. ANONYMOUS & AI-RESTRICTED INCIDENT QUEUE & BAN CHECKOUT */}
+            <div className="bg-white border-2 border-rose-200/90 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
+                      <ShieldAlert className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                        Anonymous &amp; AI-Restricted Incident Queue
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Zero-blur policy enforcement: Anonymous content and severe AI policy flags are withheld from public social feeds and routed exclusively to admin clearance.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter and stats */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    {posts.filter(p => p.isAnonymous || p.isQuarantined || p.isRestricted || p.redirectedToAdmin || p.autoDeleted).length} Pending Clearance
+                  </span>
+                </div>
+              </div>
+
+              {/* Sub-Filters */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { id: 'all', label: 'All Incidents', count: posts.filter(p => p.isAnonymous || p.isQuarantined || p.isRestricted || p.redirectedToAdmin || p.autoDeleted).length },
+                  { id: 'anonymous', label: '🕵️ Anonymous Posts', count: posts.filter(p => p.isAnonymous).length },
+                  { id: 'toxic', label: '🚨 Toxic / Hostile (≥50%)', count: posts.filter(p => (p.toxicityScore ?? 0) >= 50).length },
+                  { id: 'quarantined', label: '🔒 AI Quarantined', count: posts.filter(p => p.isQuarantined).length }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setIncidentFilter(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border flex items-center gap-1.5 ${
+                      incidentFilter === tab.id
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${incidentFilter === tab.id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Queue Items */}
+              {(() => {
+                const queuePosts = posts.filter(p => {
+                  const isIncident = p.isAnonymous || p.isQuarantined || p.isRestricted || p.redirectedToAdmin || p.autoDeleted;
+                  if (!isIncident) return false;
+                  if (incidentFilter === 'anonymous') return p.isAnonymous;
+                  if (incidentFilter === 'toxic') return (p.toxicityScore ?? 0) >= 50;
+                  if (incidentFilter === 'quarantined') return p.isQuarantined;
+                  return true;
+                });
+
+                if (queuePosts.length === 0) {
+                  return (
+                    <div className="p-8 rounded-2xl bg-emerald-50/50 border border-emerald-200 text-center space-y-2">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center mx-auto">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                      </div>
+                      <h4 className="text-sm font-bold text-emerald-950">Incident Queue All Clear</h4>
+                      <p className="text-xs text-emerald-700 max-w-md mx-auto">
+                        Zero anonymous or restricted posts awaiting administrator clearance. The public social feed is clean with zero blurred content.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {queuePosts.map(post => {
+                      const authorUser = allUsers.find(
+                        u => u.id === post.authorId || (u.username && post.authorUsername && u.username.toLowerCase() === post.authorUsername.toLowerCase())
+                      );
+                      const rollNo = authorUser?.studentRollNo || (authorUser as any)?.rollNo || 'REG-STUDENT-VERIFIED';
+                      const authorStrikes = (authorUser as any)?.warningCount || (authorUser as any)?.strikeCount || 0;
+                      const isAuthorBanned = Boolean(authorUser?.isBanned);
+                      const tox = post.toxicityScore ?? 0;
+                      const rec = getAIIncidentRecommendation(post);
+                      const selectedDuration = incidentBanDurations[post.id] ?? rec.hours;
+                      const selectedReason = incidentBanReasons[post.id] !== undefined ? incidentBanReasons[post.id] : rec.defaultReason;
+                      const isLoading = incidentActionLoading[post.id];
+
+                      return (
+                        <div key={post.id} className="p-5 sm:p-6 rounded-2xl border-2 border-rose-200/80 bg-white shadow-xs space-y-4">
+                          {/* Top Author Clearance Bar */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white font-bold flex items-center justify-center shrink-0 text-sm overflow-hidden">
+                                {authorUser?.avatarUrl ? (
+                                  <img src={authorUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                  (authorUser?.fullName?.[0] || post.authorName?.[0] || 'U')
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-extrabold text-slate-900 text-sm">{authorUser?.fullName || post.authorName}</span>
+                                  <span className="text-xs text-slate-500 font-medium">@{authorUser?.username || post.authorUsername}</span>
+                                  {post.isAnonymous && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                                      🕵️ Anonymous Unmasked
+                                    </span>
+                                  )}
+                                  {isAuthorBanned && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                      🚫 Banned until {authorUser?.bannedUntil ? new Date(authorUser.bannedUntil).toLocaleDateString() : 'Hold'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                                  <span>Roll No: <strong className="text-slate-800 font-mono">{rollNo}</strong></span>
+                                  <span>•</span>
+                                  <span>{authorUser?.collegeName || post.collegeName || 'Campus Lenz'}</span>
+                                  <span>•</span>
+                                  <span>Strikes: <strong className="text-rose-600">{authorStrikes}</strong></span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-start sm:self-center">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                                tox >= 80 ? 'bg-rose-50 text-rose-700 border-rose-200' : tox >= 50 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                              }`}>
+                                {tox}% Toxicity
+                              </span>
+                              {post.autoDeleted && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                  Auto-Deleted
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Zero Blur Content Evidence */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-slate-400">
+                              <span className="font-semibold uppercase tracking-wider text-[10px] text-slate-500">Uncensored Content Evidence (Hidden from Social Feed)</span>
+                              <span suppressHydrationWarning className="font-mono text-[11px]">{new Date(post.createdAt).toLocaleString()}</span>
+                            </div>
+                            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium select-text">
+                              {post.content}
+                            </div>
+                            {post.imageUrl && (
+                              <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-md bg-black">
+                                {isVideoMedia(post.imageUrl) ? (
+                                  <video src={post.imageUrl} controls className="w-full max-h-60 object-contain" />
+                                ) : (
+                                  <img src={post.imageUrl} alt="Evidence attachment" className="w-full max-h-60 object-cover" />
+                                )}
+                              </div>
+                            )}
+                            <div className="text-[11px] text-rose-700 bg-rose-50/70 p-2.5 rounded-xl border border-rose-200 flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-1.5 font-semibold">
+                                <Lock className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Zero-Blur Policy: Post is withheld from public feeds. No blur shield shown to students.</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-slate-400">Post ID: {post.id}</span>
+                            </div>
+                          </div>
+
+                          {/* Automated Temporary Ban Checkout Bar */}
+                          <div className="p-4 rounded-xl bg-gradient-to-r from-rose-50/80 via-white to-amber-50/40 border border-rose-200 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <Zap className="w-4 h-4 text-rose-600" />
+                                  <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                                    Automated Ban Checkout
+                                  </h4>
+                                </div>
+                                <p className="text-[11px] text-slate-600">
+                                  AI Recommended Action: <strong className="text-rose-900">{rec.label}</strong>
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {[
+                                  { h: 24, label: '24h' },
+                                  { h: 72, label: '3 Days' },
+                                  { h: 168, label: '7 Days' },
+                                  { h: 720, label: '30 Days' },
+                                  { h: 8760, label: '1 Year' }
+                                ].map(dur => (
+                                  <button
+                                    key={dur.h}
+                                    type="button"
+                                    onClick={() => setIncidentBanDurations(prev => ({ ...prev, [post.id]: dur.h }))}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                                      selectedDuration === dur.h
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {dur.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <input
+                                type="text"
+                                value={selectedReason}
+                                onChange={e => setIncidentBanReasons(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                                placeholder="Specify reason for temporary ban..."
+                              />
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-rose-100">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isLoading || !isAdmin}
+                                  onClick={() => handleCheckoutBan(post)}
+                                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-xs transition flex items-center justify-center gap-1.5"
+                                >
+                                  <Lock className="w-3.5 h-3.5" />
+                                  <span>Checkout {selectedDuration >= 24 ? `${selectedDuration / 24}D` : `${selectedDuration}h`} Ban &amp; Suspend</span>
+                                </button>
+
+                                {isAuthorBanned && (
+                                  <button
+                                    type="button"
+                                    disabled={!isAdmin}
+                                    onClick={() => {
+                                      const res = unbanUser(authorUser?.id || post.authorId);
+                                      logAdminAction('USER_UNBANNED', `@${authorUser?.username || post.authorUsername}`, `Suspension lifted by admin`, 'info');
+                                      setActionFeedback(res.message);
+                                      setTimeout(() => setActionFeedback(null), 4000);
+                                    }}
+                                    className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition"
+                                  >
+                                    Lift Suspension
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 justify-end">
+                                <button
+                                  type="button"
+                                  disabled={!isAdmin}
+                                  onClick={() => handlePurgeRestrictedPost(post.id, authorUser?.fullName || post.authorName)}
+                                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 font-bold text-xs transition flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Auto-Delete Content</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={!isAdmin}
+                                  onClick={() => handleReleasePostToFeed(post.id, authorUser?.fullName || post.authorName)}
+                                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Approve &amp; Release to Feed</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 4. MULTI-MODAL AI MODERATION SANDBOX */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div className="space-y-1">
@@ -2192,7 +2622,7 @@ Developer environment initialized. Type 'help' to view available system commands
               )}
             </div>
 
-            {/* 4. GLOBAL POST MODERATION DESK WITH AI TELEMETRY */}
+            {/* 5. GLOBAL POST MODERATION DESK WITH AI TELEMETRY */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
@@ -2260,10 +2690,10 @@ Developer environment initialized. Type 'help' to view available system commands
                             {postTox}% toxicity
                           </span>
 
-                          {isPostSensitive && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-extrabold border border-amber-200 flex items-center gap-1">
-                              <ShieldAlert className="w-3 h-3 text-amber-600" />
-                              Shielded on Feed
+                          {(post.isRestricted || post.isQuarantined || post.isAnonymous || post.autoDeleted || isPostSensitive) && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-extrabold border border-rose-200 flex items-center gap-1">
+                              <ShieldAlert className="w-3 h-3 text-rose-600" />
+                              {post.autoDeleted ? 'Auto-Deleted' : post.isAnonymous ? 'Restricted Anonymous' : 'Withheld from Feed (Zero Blur)'}
                             </span>
                           )}
 
@@ -2505,6 +2935,108 @@ Developer environment initialized. Type 'help' to view available system commands
           </div>
         )}
           </>
+        )}
+
+        {/* DIRECT USER TEMPORARY BAN CHECKOUT MODAL */}
+        {userToBan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
+              <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 font-bold flex items-center justify-center shrink-0">
+                    <Lock className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Enforce Temporary Account Suspension</h3>
+                    <p className="text-xs text-slate-500">Restricts user posting, reviews, and commenting for the specified duration</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUserToBan(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <div className="flex items-center justify-between font-bold text-slate-900">
+                  <span>{userToBan.fullName}</span>
+                  <span className="text-slate-500">@{userToBan.username}</span>
+                </div>
+                <div className="text-slate-600 flex items-center justify-between text-[11px]">
+                  <span>College: {userToBan.collegeName || 'Campus Lenz'}</span>
+                  <span>Role: <strong className="capitalize">{userToBan.role}</strong></span>
+                </div>
+                <div className="text-slate-500 text-[11px]">
+                  Strikes Recorded: <strong>{(userToBan as any).warningCount || (userToBan as any).strikeCount || 0}</strong>
+                </div>
+              </div>
+
+              <form onSubmit={handleExecuteUserBan} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Select Suspension Duration
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                    {[
+                      { h: 24, label: '24 Hours' },
+                      { h: 72, label: '3 Days' },
+                      { h: 168, label: '7 Days' },
+                      { h: 720, label: '30 Days' },
+                      { h: 8760, label: '1 Year' }
+                    ].map(dur => (
+                      <button
+                        key={dur.h}
+                        type="button"
+                        onClick={() => setUserBanDuration(dur.h)}
+                        className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all border text-center ${
+                          userBanDuration === dur.h
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {dur.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Suspension Reason (Visible to User &amp; Audit Trail)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={userBanReason}
+                    onChange={e => setUserBanReason(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                    placeholder="e.g. Violation of community standards: toxic content"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setUserToBan(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isProcessingUserBan}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Enforce {userBanDuration >= 24 ? `${userBanDuration / 24}-Day` : `${userBanDuration}h`} Suspension</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
 
       </div>

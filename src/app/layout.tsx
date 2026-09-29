@@ -10,7 +10,6 @@ import EmergencyBroadcastBanner from "@/components/EmergencyBroadcastBanner";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import AutoReloadManager from "@/components/AutoReloadManager";
 import RolePersonaSwitcher from "@/components/RolePersonaSwitcher";
-import Footer from "@/components/Footer";
 
 export const viewport: Viewport = {
   themeColor: "#0c1824",
@@ -56,7 +55,6 @@ export default function RootLayout({
                   {children}
                 </PageTransition>
               </main>
-              <Footer />
               <PWAInstallPrompt />
               <AutoReloadManager />
               <RolePersonaSwitcher />

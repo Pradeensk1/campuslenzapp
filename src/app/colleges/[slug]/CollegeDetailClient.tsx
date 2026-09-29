@@ -86,12 +86,20 @@ export default function CollegeDetailClient({
       map.set(r.id, r);
     });
 
-    return Array.from(map.values()).sort((a, b) => {
+    const allReviewsList = Array.from(map.values()).filter((r) => {
+      // Withhold anonymous, quarantined, restricted, or auto-deleted reviews from public directory feeds
+      if (currentUser?.role !== 'admin') {
+        if (r.isAnonymous || r.isQuarantined || r.isRestricted || r.autoDeleted) return false;
+      }
+      return true;
+    });
+
+    return allReviewsList.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
       const timeB = new Date(b.createdAt || 0).getTime();
       return timeB - timeA;
     });
-  }, [reviews, initialReviews, college.id]);
+  }, [reviews, initialReviews, college.id, currentUser?.role]);
 
   // Role Filter state: all, student, alumni, faculty
   const [reviewFilter, setReviewFilter] = useState<'all' | 'student' | 'alumni' | 'faculty'>('all');
@@ -168,6 +176,13 @@ export default function CollegeDetailClient({
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.isBanned) {
+      const remainingTime = currentUser.bannedUntil ? `until ${new Date(currentUser.bannedUntil).toLocaleDateString()} ${new Date(currentUser.bannedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'temporarily';
+      setFeedbackSuccess(`🚫 Account Suspended: Your review privileges are restricted ${remainingTime}. Reason: ${currentUser.bannedReason || 'Content policy violation'}`);
+      setTimeout(() => setFeedbackSuccess(null), 6000);
+      setIsModalOpen(false);
+      return;
+    }
     if (!title.trim() || !experience.trim()) return;
 
     // AI Text Classification & Content Purification

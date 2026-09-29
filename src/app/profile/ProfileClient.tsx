@@ -11,6 +11,7 @@ import {
   LogOut,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Edit3,
   Award,
   ExternalLink,
@@ -32,16 +33,13 @@ import {
   X,
   Star,
   ArrowRight,
-  Lightbulb,
-  Coins,
-  Gift
+  Lightbulb
 } from 'lucide-react';
 import Link from 'next/link';
 import EditProfileModal from '@/components/EditProfileModal';
 import FollowersListModal from '@/components/FollowersListModal';
 import PinterestImageModal from '@/components/PinterestImageModal';
 import StudentSkillsSection from '@/components/StudentSkillsSection';
-import LenzRewardsHub from '@/components/student/LenzRewardsHub';
 import { isVideoMedia } from '@/lib/mediaUtils';
 import { Post } from '@/types';
 
@@ -69,7 +67,7 @@ export default function ProfileClient({
     addComment,
     deletePost
   } = useApp();
-  const [activeTab, setActiveTab] = useState<'posts' | 'reviews' | 'feedback' | 'reposts' | 'details' | 'saved' | 'verification' | 'rewards'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reviews' | 'feedback' | 'reposts' | 'details' | 'saved' | 'verification'>('posts');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [zoomedPost, setZoomedPost] = useState<Post | null>(null);
   const [followersModalTitle, setFollowersModalTitle] = useState<'Followers' | 'Following' | null>(null);
@@ -93,6 +91,8 @@ export default function ProfileClient({
   const allAvailablePosts = posts.length > 0 ? posts : initialPosts;
   const userPosts = allAvailablePosts.filter(p => {
     if (!currentUser) return false;
+    // Strictly withhold anonymous, quarantined, restricted, or auto-deleted items from social feeds
+    if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
     const matchesId = p.authorId === currentUser.id || p.authorId === `user-${currentUser.username}`;
     const matchesUsername = Boolean(p.authorUsername && currentUser.username && p.authorUsername.toLowerCase() === currentUser.username.toLowerCase());
     const matchesName = Boolean(p.authorName && (
@@ -106,6 +106,7 @@ export default function ProfileClient({
 
   const userReviews = (reviews || []).filter(r => {
     if (!currentUser) return false;
+    if ((r as any).isAnonymous || (r as any).isQuarantined || (r as any).isRestricted || (r as any).autoDeleted) return false;
     const matchesId = r.userId === currentUser.id || r.userId === `user-${currentUser.username}`;
     const matchesUsername = Boolean(r.authorUsername && currentUser.username && r.authorUsername.toLowerCase() === currentUser.username.toLowerCase());
     const matchesName = Boolean(r.authorName && (
@@ -117,6 +118,7 @@ export default function ProfileClient({
 
   const userFeedbacks = allAvailablePosts.filter(p => {
     if (!currentUser) return false;
+    if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
     const isFeedback = p.postType === 'feedback' || p.topic?.toLowerCase().includes('feedback') || p.topic?.toLowerCase().includes('grievance');
     if (!isFeedback) return false;
     const matchesId = p.authorId === currentUser.id || p.authorId === `user-${currentUser.username}`;
@@ -128,12 +130,15 @@ export default function ProfileClient({
     return matchesId || matchesUsername || matchesName;
   });
 
-  const userReposts = allAvailablePosts.filter(p =>
-    (currentUser?.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(currentUser.id)) ||
-    (currentUser?.id && p.repostedByStudent?.studentId === currentUser.id) ||
-    (currentUser?.id && p.repostedByFaculty?.facultyId === currentUser.id) ||
-    (currentUser?.id && p.repostedByInstitution?.institutionId === currentUser.id)
-  );
+  const userReposts = allAvailablePosts.filter(p => {
+    if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
+    return (
+      (currentUser?.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(currentUser.id)) ||
+      (currentUser?.id && p.repostedByStudent?.studentId === currentUser.id) ||
+      (currentUser?.id && p.repostedByFaculty?.facultyId === currentUser.id) ||
+      (currentUser?.id && p.repostedByInstitution?.institutionId === currentUser.id)
+    );
+  });
 
   // Verification request form state
   const [docType, setDocType] = useState('Alumni Degree Certificate');
@@ -177,6 +182,40 @@ export default function ProfileClient({
           <button onClick={() => setActionFeedback(null)} className="text-[#0875BD] hover:text-[#075080]">
             <X className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* Active Account Moderation Suspension Notice */}
+      {currentUser.isBanned && (
+        <div className="p-5 rounded-3xl bg-rose-50 border border-rose-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-2xl bg-rose-100 text-rose-700 font-bold text-sm shrink-0">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-rose-950">Account Temporarily Suspended</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900 uppercase">
+                  Posting Hold
+                </span>
+              </div>
+              <p className="text-xs text-rose-800 leading-relaxed">
+                Your account is currently under temporary moderation suspension{' '}
+                <strong className="underline">
+                  {currentUser.bannedUntil ? `until ${new Date(currentUser.bannedUntil).toLocaleDateString()} at ${new Date(currentUser.bannedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'pending administrator review'}
+                </strong>.
+              </p>
+              <p className="text-[11.5px] text-rose-700">
+                Reason: <em>&quot;{currentUser.bannedReason || 'Content moderation policy violation / High toxicity detected'}&quot;</em>.
+                Your social posts and comments are restricted from public campus feeds until this hold automatically expires.
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 sm:text-right">
+            <span className="text-[11px] font-semibold text-rose-700 bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 inline-block">
+              Strikes: {(currentUser as any).warningCount || (currentUser as any).strikeCount || 1}
+            </span>
+          </div>
         </div>
       )}
 
@@ -471,18 +510,6 @@ export default function ProfileClient({
             }`}
           >
             Verification
-          </button>
-
-          <button
-            onClick={() => setActiveTab('rewards')}
-            className={`flex items-center space-x-1.5 rounded-xl px-4 py-2 font-bold transition-all duration-200 ${
-              activeTab === 'rewards'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-xs'
-                : 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
-            }`}
-          >
-            <Coins className="h-3.5 w-3.5 text-amber-500" />
-            <span>LenzCoins & Rewards 🪙</span>
           </button>
         </div>
       </div>
@@ -1596,11 +1623,6 @@ export default function ProfileClient({
             </form>
           )}
         </div>
-      )}
-
-      {/* TAB CONTENT: LENZCOINS & GAMIFICATION REWARDS */}
-      {activeTab === 'rewards' && (
-        <LenzRewardsHub />
       )}
 
       {/* EDIT PROFILE MODAL */}

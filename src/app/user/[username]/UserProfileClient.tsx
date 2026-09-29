@@ -115,6 +115,10 @@ export default function UserProfileClient({
 
   // Get all posts authored by this specific user (safe ID, username, and authorName matching)
   const userPosts = activePosts.filter((p: any) => {
+    // Strictly withhold anonymous, quarantined, restricted, or auto-deleted items from social feeds
+    if (currentUser?.role !== 'admin') {
+      if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
+    }
     const matchesId = p.authorId === profileUser.id || p.authorId === `user-${profileUser.username}`;
     const matchesUsername = Boolean(p.authorUsername && profileUser.username && p.authorUsername.toLowerCase() === profileUser.username.toLowerCase());
     const matchesName = Boolean(p.authorName && (
@@ -126,6 +130,9 @@ export default function UserProfileClient({
   const userStandardPosts = userPosts.filter((p: any) => p.postType !== 'feedback');
 
   const userReviews = (reviews || []).filter((r: any) => {
+    if (currentUser?.role !== 'admin') {
+      if (r.isAnonymous || r.isQuarantined || r.isRestricted || r.autoDeleted) return false;
+    }
     const matchesId = r.userId === profileUser.id || r.userId === `user-${profileUser.username}`;
     const matchesUsername = Boolean(r.authorUsername && profileUser.username && r.authorUsername.toLowerCase() === profileUser.username.toLowerCase());
     const matchesName = Boolean(r.authorName && (
@@ -136,6 +143,9 @@ export default function UserProfileClient({
   });
 
   const userFeedbacks = activePosts.filter((p: any) => {
+    if (currentUser?.role !== 'admin') {
+      if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
+    }
     const isFeedback = p.postType === 'feedback' || p.topic?.toLowerCase().includes('feedback') || p.topic?.toLowerCase().includes('grievance');
     if (!isFeedback) return false;
     const matchesId = p.authorId === profileUser.id || p.authorId === `user-${profileUser.username}`;
@@ -147,13 +157,17 @@ export default function UserProfileClient({
     return matchesId || matchesUsername || matchesName;
   });
 
-  const userReposts = activePosts.filter(
-    (p: any) =>
+  const userReposts = activePosts.filter((p: any) => {
+    if (currentUser?.role !== 'admin') {
+      if (p.isAnonymous || p.isQuarantined || p.isRestricted || p.autoDeleted) return false;
+    }
+    return (
       (profileUser.id && Array.isArray(p.repostedUserIds) && p.repostedUserIds.includes(profileUser.id)) ||
       (profileUser.id && p.repostedByStudent?.studentId === profileUser.id) ||
       (profileUser.id && p.repostedByFaculty?.facultyId === profileUser.id) ||
       (profileUser.id && p.repostedByInstitution?.institutionId === profileUser.id)
-  );
+    );
+  });
   const totalLikesReceived = userPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0);
 
   return (
@@ -218,6 +232,11 @@ export default function UserProfileClient({
                     <span className="flex items-center space-x-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-bold text-purple-700 border border-purple-200">
                       <Award className="h-3.5 w-3.5" />
                       <span>{profileUser.accreditationGrade}</span>
+                    </span>
+                  )}
+                  {profileUser.isBanned && (
+                    <span className="flex items-center space-x-1 rounded-md bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200 shadow-2xs">
+                      <span>🚫 Temporarily Suspended</span>
                     </span>
                   )}
                 </div>
