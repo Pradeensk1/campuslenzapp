@@ -27,7 +27,8 @@ import {
   X,
   Star,
   Lightbulb,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -381,6 +382,37 @@ export default function UserProfileClient({
               onEdit={() => setIsEditingProfile(true)}
               initialCount={3}
             />
+          </div>
+        )}
+
+        {/* AI CAREER COPILOT - CONNECTED DATABASE HERO BANNER */}
+        {profileUser.role === 'student' && (
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-white">AI Career Copilot Ready</span>
+                  <span className="text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Database Linked</span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-blue-200/80 mt-0.5">
+                  Synchronized with {profileUser.skills?.length || 0} skills, {profileUser.department || 'academics'}, &amp; {profileUser.collegeName || 'institute'} database.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/career"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-[#1687D4] hover:from-blue-600 hover:to-[#075080] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-xs"
+            >
+              <span>{isSelf ? 'Launch My Career Copilot' : 'Explore Career Copilot'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         )}
 

@@ -722,6 +722,25 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   <ArrowRight className="w-3 h-3 text-[#1687D4]" />
                 </Link>
               </div>
+
+              {/* AI Career Copilot Quick Access Widget */}
+              <div className="mt-3 pt-3 border-t border-white/40">
+                <Link
+                  href="/career"
+                  className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-[#1687D4] text-white hover:opacity-95 text-xs font-bold transition-all flex items-center justify-between shadow-xs active:scale-95"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                    <span>AI Career Copilot</span>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                {currentUser?.skills && currentUser.skills.length > 0 && (
+                  <p className="text-[10px] text-blue-900/80 font-semibold mt-1.5 text-left truncate">
+                    🎯 Connected to {currentUser.skills.length} skills in database
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <div className="rounded-3xl liquid-glass p-5 text-center space-y-3">
@@ -817,6 +836,21 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   <span>Compare Campuses</span>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-[#2d5a7d] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+
+              <Link
+                href="/career"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform border border-blue-200/60 shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <span>AI Career Copilot</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-bold shadow-xs">
+                  AI
+                </span>
               </Link>
 
               <Link
