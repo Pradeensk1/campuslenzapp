@@ -18,8 +18,8 @@ export default function CreateClient({
 
   const { colleges, posts, currentUser, addPost, addReview, runOpenSourceAIModeration, detectDuplicateWithAI, analyzeImageWithAI } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'post' | 'review'>(
-    queryTab === 'review' ? 'review' : 'post'
+  const [activeTab, setActiveTab] = useState<'post' | 'review' | 'feedback'>(
+    queryTab === 'review' ? 'review' : queryTab === 'feedback' ? 'feedback' : 'post'
   );
   const [postError, setPostError] = useState<string | null>(null);
   const [isOptimizingMedia, setIsOptimizingMedia] = useState(false);
@@ -35,12 +35,24 @@ export default function CreateClient({
   const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
-  const [postType, setPostType] = useState<'stream' | 'review'>('stream');
+  const [postType, setPostType] = useState<'stream' | 'review' | 'feedback'>(
+    queryTab === 'feedback' ? 'feedback' : 'stream'
+  );
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
   const [institutionReviewCategory, setInstitutionReviewCategory] = useState('Academics & Faculty');
   const [institutionReviewTitle, setInstitutionReviewTitle] = useState('');
   const [institutionReviewPros, setInstitutionReviewPros] = useState('');
   const [institutionReviewCons, setInstitutionReviewCons] = useState('');
+
+  // Feedback specific state
+  const [feedbackCollegeId, setFeedbackCollegeId] = useState(
+    queryCollegeId || activeColleges[0]?.id || ''
+  );
+  const [feedbackCategory, setFeedbackCategory] = useState('Hostel & Mess');
+  const [feedbackTarget, setFeedbackTarget] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(4);
+  const [feedbackContent, setFeedbackContent] = useState('');
+
   const [postImageUrl, setPostImageUrl] = useState<string>('');
   const [mediaFileName, setMediaFileName] = useState<string>('');
   const [mediaFileSize, setMediaFileSize] = useState<number>(0);
@@ -186,6 +198,9 @@ export default function CreateClient({
   useEffect(() => {
     if (queryTab === 'review') {
       setActiveTab('review');
+    } else if (queryTab === 'feedback') {
+      setActiveTab('feedback');
+      setPostType('feedback');
     } else if (queryTab === 'post') {
       setActiveTab('post');
     }
@@ -195,6 +210,7 @@ export default function CreateClient({
     if (queryCollegeId) {
       setPostCollegeId(queryCollegeId);
       setReviewCollegeId(queryCollegeId);
+      setFeedbackCollegeId(queryCollegeId);
     } else {
       if (!postCollegeId && activeColleges[0]?.id) {
         setPostCollegeId(activeColleges[0].id);
@@ -202,8 +218,52 @@ export default function CreateClient({
       if (!reviewCollegeId && activeColleges[0]?.id) {
         setReviewCollegeId(activeColleges[0].id);
       }
+      if (!feedbackCollegeId && activeColleges[0]?.id) {
+        setFeedbackCollegeId(activeColleges[0].id);
+      }
     }
-  }, [queryCollegeId, activeColleges, postCollegeId, reviewCollegeId]);
+  }, [queryCollegeId, activeColleges, postCollegeId, reviewCollegeId, feedbackCollegeId]);
+
+  const handleFeedbackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackContent.trim()) return;
+    if (isOptimizingMedia) {
+      setPostError('Media is still processing. Please wait a moment...');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPostError(null);
+    const chosenCollege = activeColleges.find(c => c.id === feedbackCollegeId);
+
+    const res = addPost({
+      authorId: currentUser?.id || 'guest',
+      authorUsername: postAnonymous ? 'anonymous_student' : (currentUser?.username || 'student_guest'),
+      authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor'),
+      authorRole: currentUser?.role || 'student',
+      authorHeadline: postAnonymous ? 'Anonymous Student Contributor' : (currentUser?.headline || 'Campus Contributor'),
+      isVerifiedAuthor: postAnonymous ? false : Boolean(currentUser?.isVerified),
+      isAnonymous: postAnonymous,
+      collegeId: feedbackCollegeId,
+      collegeName: chosenCollege?.name,
+      content: feedbackContent.trim(),
+      topic: `Feedback: ${feedbackCategory}`,
+      postType: 'feedback',
+      rating: feedbackRating,
+      feedbackCategory: feedbackCategory,
+      feedbackTarget: feedbackTarget.trim() || undefined,
+      imageUrl: postImageUrl || undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (!res.success) {
+      setPostError(res.message || 'Submission rejected by moderation policy.');
+      return;
+    }
+
+    router.push('/?filter=feedback');
+  };
 
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,6 +276,37 @@ export default function CreateClient({
     setIsSubmitting(true);
     setPostError(null);
     const chosenCollege = activeColleges.find(c => c.id === postCollegeId);
+
+    if (postType === 'feedback') {
+      const res = addPost({
+        authorId: currentUser?.id || 'guest',
+        authorUsername: postAnonymous ? 'anonymous_student' : (currentUser?.username || 'student_guest'),
+        authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor'),
+        authorRole: currentUser?.role || 'student',
+        authorHeadline: postAnonymous ? 'Anonymous Student Contributor' : (currentUser?.headline || 'Campus Contributor'),
+        isVerifiedAuthor: postAnonymous ? false : Boolean(currentUser?.isVerified),
+        isAnonymous: postAnonymous,
+        collegeId: postCollegeId,
+        collegeName: chosenCollege?.name,
+        content: postContent.trim(),
+        topic: `Feedback: ${feedbackCategory}`,
+        postType: 'feedback',
+        rating: feedbackRating,
+        feedbackCategory: feedbackCategory,
+        feedbackTarget: feedbackTarget.trim() || undefined,
+        imageUrl: postImageUrl || undefined,
+      });
+
+      setIsSubmitting(false);
+
+      if (!res.success) {
+        setPostError(res.message || 'Submission rejected by moderation policy.');
+        return;
+      }
+
+      router.push('/?filter=feedback');
+      return;
+    }
 
     if (postType === 'review' && postCollegeId) {
       const parsedPros = institutionReviewPros ? institutionReviewPros.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -311,6 +402,7 @@ export default function CreateClient({
       {/* Segmented Control */}
       <div className="flex rounded-2xl border border-[#E2E8F0] bg-[#F1F5F9] p-1.5 text-xs shadow-xs">
         <button
+          type="button"
           onClick={() => setActiveTab('post')}
           className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'post'
@@ -318,9 +410,10 @@ export default function CreateClient({
               : 'text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
-          Share Campus Post
+          📢 Campus Post
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('review')}
           className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
             activeTab === 'review'
@@ -328,7 +421,21 @@ export default function CreateClient({
               : 'text-[#64748B] hover:text-[#0F172A]'
           }`}
         >
-          Write Structured Review
+          ⭐ College Review
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('feedback');
+            setPostType('feedback');
+          }}
+          className={`flex-1 rounded-xl py-2.5 font-bold transition-all duration-200 ${
+            activeTab === 'feedback'
+              ? 'bg-white text-[#1687D4] shadow-xs'
+              : 'text-[#64748B] hover:text-[#0F172A]'
+          }`}
+        >
+          💡 Campus Feedback
         </button>
       </div>
 
@@ -608,15 +715,17 @@ export default function CreateClient({
                 <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-colors ${
                   postType === 'review'
                     ? 'bg-[#1687D4] text-white border-[#1687D4]'
+                    : postType === 'feedback'
+                    ? 'bg-amber-600 text-white border-amber-600'
                     : 'bg-white text-[#075080] border-[#CFEAFF]'
                 }`}>
-                  {postType === 'review' ? '⭐ Option 2: Review' : '📢 Option 1: Public Stream'}
+                  {postType === 'review' ? '⭐ Option 2: Review' : postType === 'feedback' ? '💡 Option 3: Feedback' : '📢 Option 1: Public Stream'}
                 </span>
               </div>
 
               <select
                 value={postType}
-                onChange={(e) => setPostType(e.target.value as 'stream' | 'review')}
+                onChange={(e) => setPostType(e.target.value as 'stream' | 'review' | 'feedback')}
                 className="w-full rounded-xl border border-[#CFEAFF] bg-white p-3 text-xs font-bold text-[#075080] shadow-xs focus:ring-2 focus:ring-[#1687D4]/30 focus:border-[#1687D4] focus:outline-none transition cursor-pointer"
               >
                 <option value="stream">
@@ -625,8 +734,101 @@ export default function CreateClient({
                 <option value="review">
                   Option 2: ⭐ Institution Review &amp; Rating (Public Stream + Institution Review Section)
                 </option>
+                <option value="feedback">
+                  Option 3: 💡 Campus Feedback &amp; Grievance (Dedicated Feedback Feed + Department Action)
+                </option>
               </select>
             </div>
+
+            {/* When Option 3 (Feedback) is selected: Show feedback controls */}
+            {postType === 'feedback' && (
+              <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-300 shadow-xs space-y-3.5">
+                <div className="flex items-start gap-2 text-xs text-amber-900 leading-relaxed">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Dedicated Feedback Guarantee:</strong> This item will be posted directly to the <strong>Dedicated Feedback Feed</strong> with rating indicators, visible to campus administrators and student peers.
+                  </span>
+                </div>
+
+                {/* Rating Picker */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
+                      Feedback Rating / Satisfaction Score
+                    </label>
+                    <span className="text-xs font-bold text-amber-700">
+                      {feedbackRating} / 5 Stars
+                      <span className="ml-1 text-[11px] text-amber-600 font-normal">
+                        ({feedbackRating === 5 ? 'Exceptional' : feedbackRating === 4 ? 'Satisfactory' : feedbackRating === 3 ? 'Needs Improvement' : feedbackRating === 2 ? 'Urgent Attention' : 'Critical Issue'})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-amber-200">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFeedbackRating(star)}
+                        className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            star <= feedbackRating
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200 hover:text-amber-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Feedback Category */}
+                <div>
+                  <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                    Facility / Department Category
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      'Hostel & Mess',
+                      'Academics & Faculty',
+                      'Infrastructure & Labs',
+                      'Placements & Training',
+                      'Campus Facilities',
+                      'Administration',
+                      'Transport & Parking'
+                    ].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setFeedbackCategory(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                          feedbackCategory === cat
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                            : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Target Facility / Unit */}
+                <div>
+                  <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                    Specific Location or Department (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Block D WiFi, 3rd Floor Lab Air Conditioning, South Mess"
+                    value={feedbackTarget}
+                    onChange={e => setFeedbackTarget(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-amber-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* When Option 2 (Review) is selected: Show institution review controls */}
             {postType === 'review' && (
@@ -765,10 +967,12 @@ export default function CreateClient({
           >
             {postType === 'review'
               ? 'Post to Stream & Institution Review Section'
+              : postType === 'feedback'
+              ? 'Submit Campus Feedback to Dedicated Feed'
               : 'Publish to Campus Social Stream'}
           </button>
         </form>
-      ) : (
+      ) : activeTab === 'review' ? (
         <form onSubmit={handleReviewSubmit} className="apple-card p-6 sm:p-8 space-y-5">
           <div className="border-b border-[#F1F5F9] pb-4">
             <h2 className="text-lg font-bold text-[#0F172A]">Structured College Review</h2>
@@ -901,6 +1105,181 @@ export default function CreateClient({
             className="apple-button-primary w-full text-xs font-bold py-3"
           >
             Submit Review
+          </button>
+        </form>
+      ) : (
+        /* DEDICATED CAMPUS FEEDBACK FORM */
+        <form onSubmit={handleFeedbackSubmit} className="apple-card p-6 sm:p-8 space-y-5">
+          <div className="border-b border-[#F1F5F9] pb-4">
+            <h2 className="text-lg font-bold text-[#0F172A] flex items-center gap-2">
+              <span className="text-xl">💡</span>
+              <span>Submit Campus Feedback &amp; Grievance</span>
+            </h2>
+            <p className="mt-1 text-xs text-[#64748B]">
+              Direct actionable feedback on facilities, hostels, labs, or administration. Published in the dedicated Campus Feedback Feed.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Target College / Campus
+            </label>
+            <select
+              value={feedbackCollegeId}
+              onChange={(e) => setFeedbackCollegeId(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#0F172A] focus:border-[#2563EB] focus:outline-none transition-colors"
+            >
+              {activeColleges.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
+              Feedback Category
+            </label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                'Hostel & Mess',
+                'Academics & Faculty',
+                'Infrastructure & Labs',
+                'Placements & Training',
+                'Campus Facilities',
+                'Administration',
+                'Transport & Parking'
+              ].map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFeedbackCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                    feedbackCategory === cat
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                      : 'bg-[#F8FAFC] text-slate-700 border-[#E2E8F0] hover:bg-amber-50'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Specific Facility / Unit / Location (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Block D WiFi, 3rd Floor Lab Air Conditioning, South Mess"
+              value={feedbackTarget}
+              onChange={e => setFeedbackTarget(e.target.value)}
+              className="mt-1.5 w-full p-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] text-xs sm:text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+                Satisfaction / Status Rating
+              </label>
+              <span className="text-xs font-bold text-amber-600">
+                {feedbackRating} / 5 Stars
+                <span className="ml-1 text-[11px] text-slate-500 font-normal">
+                  ({feedbackRating === 5 ? 'Exceptional' : feedbackRating === 4 ? 'Good' : feedbackRating === 3 ? 'Needs Improvement' : feedbackRating === 2 ? 'Poor' : 'Critical Issue'})
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setFeedbackRating(star)}
+                  className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                >
+                  <Star
+                    className={`w-6 h-6 ${
+                      star <= feedbackRating
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-slate-200 hover:text-amber-200'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider">
+              Detailed Feedback &amp; Suggestions
+            </label>
+            <textarea
+              rows={4}
+              value={feedbackContent}
+              onChange={(e) => setFeedbackContent(e.target.value)}
+              placeholder="Describe what is working well or what needs improvement in detail..."
+              className="mt-1.5 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] focus:border-[#2563EB] focus:outline-none transition-colors"
+              required
+            />
+          </div>
+
+          {/* Media Attachment */}
+          <div>
+            <label className="block text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1.5">
+              Supporting Photo or Video Evidence (Optional)
+            </label>
+            {postImageUrl ? (
+              <div className="relative rounded-xl border border-[#E2E8F0] bg-slate-950 p-2 overflow-hidden">
+                {mediaFileType === 'video' || isVideoMedia(postImageUrl) ? (
+                  <video src={postImageUrl} controls className="w-full max-h-64 object-contain rounded-lg bg-black" />
+                ) : (
+                  <img src={postImageUrl} alt="Feedback media" className="w-full max-h-64 object-cover rounded-lg" />
+                )}
+                <button
+                  type="button"
+                  onClick={removeMedia}
+                  className="absolute top-4 right-4 bg-[#0F172A]/90 hover:bg-black text-white rounded-full p-1.5 transition shadow-md"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-4 cursor-pointer hover:border-[#2563EB] transition">
+                <ImageIcon className="h-6 w-6 text-[#2563EB] mb-1" />
+                <span className="text-xs font-bold text-[#0F172A]">Attach evidence photo or video clip</span>
+                <span className="text-[10px] text-[#64748B]">PNG, JPG, MP4 under 50MB</span>
+                <input type="file" accept="image/*,video/*" onChange={handleMediaChange} className="hidden" />
+              </label>
+            )}
+          </div>
+
+          {/* Anonymous toggle */}
+          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
+            <input
+              type="checkbox"
+              id="anonFeedback"
+              checked={postAnonymous}
+              onChange={(e) => setPostAnonymous(e.target.checked)}
+              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
+            />
+            <label htmlFor="anonFeedback" className="text-[#64748B] cursor-pointer font-medium">
+              Submit as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity is protected)
+            </label>
+          </div>
+
+          {postError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs">
+              {postError}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="apple-button-primary w-full text-xs font-bold py-3 bg-amber-600 hover:bg-amber-700"
+          >
+            Submit Feedback to Dedicated Feed
           </button>
         </form>
       )}
