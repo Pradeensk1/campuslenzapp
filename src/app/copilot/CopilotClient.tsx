@@ -99,7 +99,7 @@ export default function CopilotClient() {
       id: 'welcome',
       role: 'model',
       text: `Hello ${currentUser?.fullName || 'Student'}! I am your **Campus Lenz Career Copilot**.\n\nI combine your academic profile, your skills, and **${studentCollege?.name || currentUser?.collegeName || 'your college'}**'s verified placement data to give you personalized, realistic career guidance and roadmaps.\n\nHow can I help accelerate your career preparation today?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: 'Just now'
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
