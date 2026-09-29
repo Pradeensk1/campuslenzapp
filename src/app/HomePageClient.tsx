@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useDeferredValue, useEffect } from 'react';
+import { useState, useRef, useDeferredValue, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -64,6 +64,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     currentUser,
     colleges,
     communities,
+    servers,
     toggleFollowUser,
     allUsers,
     repostToInstitution,
@@ -127,8 +128,12 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     }
   }, [currentUser?.role, currentUser?.id]);
 
-  // Bookmarks
+  // Bookmarks & Dynamic Filters
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
+
   const toggleSavePost = (postId: string) => {
     setSavedPosts(prev =>
       prev.includes(postId) ? prev.filter(id => id !== postId) : [...prev, postId]
@@ -147,10 +152,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
-  const [isInstitutionReviewOnly, setIsInstitutionReviewOnly] = useState(false);
+  const [postType, setPostType] = useState<'stream' | 'review'>('stream');
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
   const [institutionReviewCollegeId, setInstitutionReviewCollegeId] = useState('');
   const [institutionReviewCategory, setInstitutionReviewCategory] = useState('Academics & Faculty');
+  const [institutionReviewTitle, setInstitutionReviewTitle] = useState('');
+  const [institutionReviewPros, setInstitutionReviewPros] = useState('');
+  const [institutionReviewCons, setInstitutionReviewCons] = useState('');
 
   const handleMediaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -229,14 +237,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     const isAnonymous = currentUser.role === 'student' ? isAnonymousPost : false;
     const isKnowledgeBased = currentUser.role === 'faculty';
 
-    const targetCollegeId = isInstitutionReviewOnly
-      ? (institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id)
-      : currentUser.collegeId;
+    // OPTION 2: If student selected "Institution Review & Rating", submit structured review to institution ledger
+    // addReview automatically records in the institution platform review section AND broadcasts to Public Campus Stream
+    if (currentUser.role === 'student' && postType === 'review') {
+      const targetCollegeId = institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || 'col-psg';
+      const chosenCollege = colleges.find(c => c.id === targetCollegeId || c.name === currentUser.collegeName);
+      
+      const parsedPros = institutionReviewPros ? institutionReviewPros.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const parsedCons = institutionReviewCons ? institutionReviewCons.split(',').map(s => s.trim()).filter(Boolean) : [];
 
-    const chosenCollege = colleges.find(c => c.id === targetCollegeId || c.name === currentUser.collegeName);
-
-    // If student selected "Review for Institution Only", also submit official structured review to institution scorecard
-    if (currentUser.role === 'student' && isInstitutionReviewOnly && targetCollegeId) {
       addReview({
         collegeId: targetCollegeId,
         userId: currentUser.id,
@@ -254,50 +263,61 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           valueForMoney: institutionReviewRating,
           studentExperience: institutionReviewRating
         },
-        title: `${institutionReviewCategory} Evaluation`,
+        title: institutionReviewTitle.trim() || `${institutionReviewCategory} Evaluation`,
         experience: postContent.trim(),
-        pros: [],
-        cons: [],
+        pros: parsedPros,
+        cons: parsedCons,
         advice: '',
         recommendation: institutionReviewRating >= 3,
         course: currentUser.course || 'B.Tech / Student',
         department: currentUser.department || 'Academics',
         batch: currentUser.graduationBatch || '2026'
       });
+
+      setPostContent('');
+      handleRemoveMedia();
+      setIsAnonymousPost(false);
+      setPostType('stream');
+      setInstitutionReviewRating(5);
+      setInstitutionReviewTitle('');
+      setInstitutionReviewPros('');
+      setInstitutionReviewCons('');
+      setIsComposing(false);
+      setFeedFilter('all');
+      setFeedSentimentFilter('all');
+      setActionFeedback(
+        `🎉 Review posted to Campus Social Stream and added to ${chosenCollege?.name || 'Institution'}'s Review Section!`
+      );
+      setTimeout(() => setActionFeedback(null), 4000);
+      return;
     }
 
+    // OPTION 1: Standard Public Campus Social Stream Post
     const res = addPost({
       authorId: currentUser.id,
       authorUsername: isAnonymous ? 'anonymous_student' : currentUser.username,
       authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
       authorRole: currentUser.role,
-      authorHeadline: isAnonymous ? 'Verified Student (Anonymous Review)' : currentUser.headline,
+      authorHeadline: isAnonymous ? 'Verified Student (Anonymous Post)' : currentUser.headline,
       isVerifiedAuthor: isAnonymous ? false : currentUser.isVerified,
       isAnonymous,
       isKnowledgeBased,
-      collegeId: targetCollegeId,
-      collegeName: chosenCollege?.name || currentUser.collegeName,
+      collegeId: currentUser.collegeId,
+      collegeName: currentUser.collegeName,
       content: postContent.trim(),
-      topic: isInstitutionReviewOnly ? 'Review & Ratings' : postTopic,
-      imageUrl: postImageUrl.trim() || undefined,
-      isInstitutionReviewOnly: isInstitutionReviewOnly,
-      institutionRating: isInstitutionReviewOnly ? institutionReviewRating : undefined
+      topic: postTopic,
+      imageUrl: postImageUrl.trim() || undefined
     });
 
     if (res.success) {
       setPostContent('');
       handleRemoveMedia();
       setIsAnonymousPost(false);
-      setIsInstitutionReviewOnly(false);
-      setInstitutionReviewRating(5);
+      setPostType('stream');
       setIsComposing(false);
       setFeedFilter('all');
       setFeedSentimentFilter('all');
-      setActionFeedback(
-        isInstitutionReviewOnly
-          ? `🎉 Official review published for ${chosenCollege?.name || 'Institution'} in Reviews & Ratings!`
-          : '🎉 Post published to live campus stream!'
-      );
+      setActionFeedback('🎉 Post published to live campus stream!');
       setTimeout(() => setActionFeedback(null), 4000);
     } else {
       setActionFeedback(res.message || 'Could not publish post.');
@@ -321,6 +341,27 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     if (feedSentimentFilter === 'positive' && p.sentiment !== 'positive') return false;
     if (feedSentimentFilter === 'academic' && !p.isKnowledgeBased && !p.topic?.includes('Academic') && !p.topic?.includes('Research') && !p.topic?.includes('Placement') && !p.topic?.includes('Notes')) return false;
     if (feedSentimentFilter === 'sensitive' && !p.isSensitive) return false;
+
+    // Saved Bookmarks only filter
+    if (showSavedOnly && !savedPosts.includes(p.id)) return false;
+
+    // Active Topic / Tag filter
+    if (activeTagFilter) {
+      const tagLower = activeTagFilter.toLowerCase().replace('#', '');
+      const inContent = p.content?.toLowerCase().includes(tagLower);
+      const inTopic = p.topic?.toLowerCase().includes(tagLower);
+      if (!inContent && !inTopic) return false;
+    }
+
+    // Sidebar Live Search query
+    if (sidebarSearchQuery.trim()) {
+      const q = sidebarSearchQuery.toLowerCase().trim();
+      const inContent = p.content?.toLowerCase().includes(q);
+      const inAuthor = p.authorName?.toLowerCase().includes(q) || p.authorUsername?.toLowerCase().includes(q);
+      const inTopic = p.topic?.toLowerCase().includes(q);
+      const inCollege = p.collegeName?.toLowerCase().includes(q);
+      if (!inContent && !inAuthor && !inTopic && !inCollege) return false;
+    }
 
     return true;
   });
@@ -466,6 +507,30 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     );
   }
 
+  // Active Campus Channels Derived from Live Community Servers
+  const activeChannels = useMemo(() => {
+    if (servers && servers.length > 0) {
+      const flattened = servers.flatMap(s =>
+        (s.channels || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          description: c.description || s.name,
+          memberCount: c.memberCount || s.memberCount || 120,
+          isAnnouncement: c.isAnnouncementOnly,
+          serverName: s.collegeName || s.name,
+          serverId: s.id
+        }))
+      );
+      if (flattened.length > 0) return flattened.slice(0, 4);
+    }
+    return [
+      { id: 'ch-announcements', name: 'announcements', description: 'Official campus notices', memberCount: 1420, isAnnouncement: true, serverName: 'PSG Tech Official', serverId: 'server-psg-tech' },
+      { id: 'ch-placements', name: 'placements-2026', description: 'Hiring drives & CTC leads', memberCount: 890, isAnnouncement: false, serverName: 'PSG Tech Official', serverId: 'server-psg-tech' },
+      { id: 'ch-alumni', name: 'alumni-guidance', description: 'Career mentorship & advice', memberCount: 650, isAnnouncement: false, serverName: 'PSG Tech Official', serverId: 'server-psg-tech' },
+      { id: 'ch-tech', name: 'projects-hackathons', description: 'Tech build discussions', memberCount: 520, isAnnouncement: false, serverName: 'PSG Tech Official', serverId: 'server-psg-tech' }
+    ];
+  }, [servers]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Role Workspace Return Banner if browsing feed */}
@@ -492,11 +557,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
       {/* Admin Quick Governance Alert Banner */}
       {currentUser?.role === 'admin' && (
-        <div className="mb-6 p-3.5 rounded-2xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mb-6 p-3 rounded-2xl bg-[#E8F5FF] border border-[#CFEAFF] text-[#075080] shadow-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-[#0875BD] shrink-0" />
             <span className="text-xs font-bold">
-              Root Administrator Active: Full user account purge, post moderation & terminal privileges enabled
+              Root Administrator Active
             </span>
           </div>
           <Link
@@ -504,7 +569,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             className="px-3.5 py-1.5 rounded-xl bg-[#1687D4] hover:bg-[#0875BD] text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 shrink-0"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Open Admin Platform Console →</span>
+            <span>Admin Console →</span>
           </Link>
         </div>
       )}
@@ -512,101 +577,244 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         
         {/* ========================================================= */}
-        {/* LEFT COLUMN (Cols 1-3): Clean Profile & Shortcuts Hub */}
+        {/* LEFT COLUMN (Cols 1-3): Liquid Profile, Hub & Shortcuts   */}
         {/* ========================================================= */}
         <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
           
           {/* User Profile Card or Guest Welcome Card */}
           {currentUser ? (
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-              <div className="h-16 bg-gradient-to-r from-[#1687D4] via-[#0875BD] to-[#075080]" />
-              <div className="px-4 pb-4 text-center">
-                <div className="-mt-8 mb-2 flex justify-center">
-                  <Link href={`/user/${currentUser.username}`}>
-                    <div className="h-16 w-16 rounded-2xl border-3 border-white bg-slate-100 flex items-center justify-center text-xl font-bold text-[#1687D4] shadow-sm hover:scale-102 transition-transform">
-                      {currentUser.fullName[0] || 'U'}
+            <div className="rounded-3xl liquid-glass p-5 text-center transition-all duration-200 relative overflow-hidden group">
+              {/* Liquid Water Ripple Glow */}
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-white/20 rounded-full blur-xl pointer-events-none" />
+
+              {/* Glowing Liquid Water Ring Avatar */}
+              <div className="mb-3 flex justify-center">
+                <Link href={`/user/${currentUser.username}`}>
+                  <div className="relative">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] p-0.5 shadow-[0_8px_24px_rgba(22,135,212,0.35)] ring-4 ring-white/50 group-hover:scale-105 transition-all duration-300">
+                      <div className="w-full h-full rounded-[14px] bg-gradient-to-tr from-[#1687D4] to-[#075080] flex items-center justify-center text-xl font-extrabold text-white">
+                        {currentUser.fullName[0] || 'U'}
+                      </div>
                     </div>
-                  </Link>
-                </div>
-
-                <Link href={`/user/${currentUser.username}`} className="group block">
-                  <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-                    {currentUser.fullName}
-                  </h2>
+                    {currentUser.isVerified && (
+                      <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#1687D4]" />
+                      </div>
+                    )}
+                  </div>
                 </Link>
-                
-                <div className="mt-1 flex items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                    {currentUser.role}
-                  </span>
-                  {currentUser.isVerified && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                  )}
+              </div>
+
+              <Link href={`/user/${currentUser.username}`} className="group block">
+                <h2 className="text-base font-extrabold text-[#05233b] group-hover:text-[#1687D4] transition-colors truncate">
+                  {currentUser.fullName}
+                </h2>
+              </Link>
+              
+              <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/50 text-[#0875BD] border border-white/70 shadow-xs">
+                  {currentUser.role}
+                </span>
+              </div>
+
+              <p className="mt-2 text-[11px] leading-relaxed text-[#2d5a7d] line-clamp-2 font-medium">
+                {currentUser.headline || `${currentUser.collegeName || 'Campus Lenz'}`}
+              </p>
+
+              <div className="mt-4 pt-3 border-t border-white/40 grid grid-cols-2 text-center text-xs">
+                <div>
+                  <div className="font-extrabold text-[#05233b]">{currentUser.followersCount}</div>
+                  <div className="text-[10px] font-semibold text-[#2d5a7d]">Followers</div>
                 </div>
-
-                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500 line-clamp-2">
-                  {currentUser.headline}
-                </p>
-
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 text-center text-xs">
-                  <div>
-                    <div className="font-bold text-slate-900">{currentUser.followersCount}</div>
-                    <div className="text-[10px] text-slate-400">Followers</div>
-                  </div>
-                  <div className="border-l border-slate-100">
-                    <div className="font-bold text-slate-900">{currentUser.followingCount}</div>
-                    <div className="text-[10px] text-slate-400">Following</div>
-                  </div>
+                <div className="border-l border-white/40">
+                  <div className="font-extrabold text-[#05233b]">{currentUser.followingCount}</div>
+                  <div className="text-[10px] font-semibold text-[#2d5a7d]">Following</div>
                 </div>
+              </div>
 
-                <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+              <div className="mt-4 pt-3 border-t border-white/40 space-y-2">
+                <Link
+                  href={`/user/${currentUser.username}`}
+                  className="w-full py-2 px-3 rounded-2xl border border-white/60 hover:border-white bg-white/40 hover:bg-white/60 text-xs font-bold text-[#05233b] transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-95"
+                >
+                  <span>My Profile</span>
+                  <ArrowRight className="w-3 h-3 text-[#1687D4]" />
+                </Link>
+
+                {currentUser.role === 'student' && (
                   <Link
-                    href={`/user/${currentUser.username}`}
-                    className="w-full py-1.5 px-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1"
+                    href="/copilot"
+                    className="w-full py-2 px-3 rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white text-xs font-bold transition shadow-xs hover:opacity-95 flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    <span>My Profile</span>
-                    <ArrowRight className="w-3 h-3 text-slate-400" />
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Career Copilot ✨</span>
                   </Link>
-
-                  {currentUser.role === 'student' && (
-                    <Link
-                      href="/copilot"
-                      className="w-full py-2 px-3 rounded-xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white text-xs font-bold transition shadow-xs hover:opacity-95 flex items-center justify-center gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Career Copilot ✨</span>
-                    </Link>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-xs space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 font-black text-lg flex items-center justify-center mx-auto shadow-2xs">
+            <div className="rounded-3xl liquid-glass p-5 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-lg flex items-center justify-center mx-auto shadow-md">
                 CL
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Welcome to Campus Lenz</h3>
-                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                  Join verified college networks, connect with alumni mentors, and explore institutional analytics.
-                </p>
+                <h3 className="text-sm font-bold text-[#05233b]">Campus Lenz Ecosystem</h3>
+                <p className="text-[11px] text-[#2d5a7d] mt-0.5">Verified digital collegiate network</p>
               </div>
               <div className="pt-1 flex flex-col gap-2">
                 <Link
                   href="/register"
-                  className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition text-center"
+                  className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-[#1687D4] to-[#0875BD] hover:from-[#3B9FE8] hover:to-[#1687D4] text-white font-bold text-xs shadow-sm transition text-center"
                 >
                   Create Account
                 </Link>
                 <Link
                   href="/login"
-                  className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition text-center"
+                  className="w-full py-2 px-3 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/60 text-[#05233b] font-bold text-xs transition text-center"
                 >
                   Sign In
                 </Link>
               </div>
             </div>
           )}
+
+          {/* Quick Shortcuts & Navigation Hub */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
+              Campus Shortcuts
+            </h3>
+            
+            <div className="space-y-1">
+              <Link
+                href="/connect?tab=messages"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Direct Messages</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#1687D4] text-white font-bold shadow-xs">
+                  Chat
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setShowSavedOnly(!showSavedOnly)}
+                className={`w-full p-2 px-2.5 rounded-2xl transition-all flex items-center justify-between group text-left ${
+                  showSavedOnly ? 'bg-white/60 font-bold text-[#0875BD] border border-white/70' : 'hover:bg-white/40 text-[#05233b]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 text-xs font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
+                    <Bookmark className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Saved Bookmarks</span>
+                </div>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  showSavedOnly ? 'bg-white text-[#0875BD]' : 'bg-white/50 text-[#2d5a7d]'
+                }`}>
+                  {savedPosts.length}
+                </span>
+              </button>
+
+              <Link
+                href="/explore"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
+                    <Building2 className="w-3.5 h-3.5" />
+                  </div>
+                  <span>College Reviews</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/50 text-[#0875BD] font-bold">
+                  {colleges.length}
+                </span>
+              </Link>
+
+              <Link
+                href="/compare"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#1687D4] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
+                    <Scale className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Compare Campuses</span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-[#2d5a7d] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+
+              <Link
+                href="/connect?tab=grievance"
+                className="w-full p-2 px-2.5 rounded-2xl hover:bg-white/40 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2.5 text-xs text-[#05233b] font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-white/50 text-[#0875BD] flex items-center justify-center group-hover:scale-105 transition-transform border border-white/60 shadow-xs">
+                    <Shield className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Protected Grievance</span>
+                </div>
+                <span className="text-[9px] text-[#0875BD] font-bold">Shielded</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Trending Campus Topics Cloud */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-2.5">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d]">
+                Trending Topics
+              </h3>
+              {activeTagFilter && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTagFilter(null)}
+                  className="text-[10px] text-[#1687D4] hover:underline font-bold"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {[
+                'Placements2026',
+                'Academics',
+                'AlumniAdvice',
+                'CampusLife',
+                'Hackathon',
+                'Internships'
+              ].map((tag) => {
+                const isSelected = activeTagFilter === tag;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setActiveTagFilter(isSelected ? null : tag)}
+                    className={`text-xs px-2.5 py-1 rounded-full font-semibold transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-[#1687D4] text-white shadow-xs font-bold scale-105'
+                        : 'bg-white/40 text-[#05233b] hover:bg-white/60 hover:text-[#0875BD] border border-white/50'
+                    }`}
+                  >
+                    #{tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Protected Campus Lenz Verified Badge */}
+          <div className="rounded-2xl p-3 liquid-glass text-[#05233b] text-[11px] flex items-center gap-2 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="font-semibold truncate">
+              Ragebait Shield Active • Fast Synced
+            </span>
+          </div>
 
         </aside>
 
@@ -628,21 +836,48 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             </div>
           )}
 
+          {/* Active Filter Pill if tag, search, or saved filter is active */}
+          {(activeTagFilter || sidebarSearchQuery.trim() || showSavedOnly) && (
+            <div className="flex items-center justify-between p-2.5 px-4 rounded-3xl bg-white/90 backdrop-blur-xl border border-[#CFEAFF] shadow-xs text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="w-3.5 h-3.5 text-[#1687D4]" />
+                <span className="text-[#075080] font-semibold">
+                  {showSavedOnly ? 'Showing Saved Bookmarks' : activeTagFilter ? `Topic: #${activeTagFilter}` : `Search: "${sidebarSearchQuery}"`}
+                </span>
+                <span className="text-[10px] text-[#0875BD] bg-[#E8F5FF] px-2 py-0.5 rounded-full font-bold">
+                  {filteredPosts.length} posts
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTagFilter(null);
+                  setSidebarSearchQuery('');
+                  setShowSavedOnly(false);
+                }}
+                className="text-xs font-bold text-[#1687D4] hover:text-[#0875BD] hover:underline flex items-center gap-1 shrink-0"
+              >
+                <span>Reset</span>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           {/* Feed Stream Switcher: Campus Social Stream vs Students Social Stream */}
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-white/80 backdrop-blur-md border border-[#CFEAFF] shadow-xs">
-            <div className="flex items-center gap-1.5 p-1 bg-[#E8F5FF]/70 rounded-xl text-xs font-semibold w-full">
+          <div className="flex items-center justify-between p-1.5 rounded-3xl liquid-glass">
+            <div className="flex items-center gap-1.5 p-1 bg-white/20 rounded-2xl text-xs font-semibold w-full">
               <button
                 type="button"
                 onClick={() => setFeedStream('campus')}
                 className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
                   feedStream === 'campus'
-                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
-                    : 'text-[#075080]/70 hover:text-[#075080]'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 <Building2 className="w-4 h-4 text-[#1687D4]" />
                 <span>Campus Social Stream</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/50 text-[#0875BD] font-bold">
                   {posts.length}
                 </span>
               </button>
@@ -651,13 +886,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 onClick={() => setFeedStream('students')}
                 className={`flex-1 py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 ${
                   feedStream === 'students'
-                    ? 'bg-white text-[#075080] shadow-xs font-bold border border-[#CFEAFF]'
-                    : 'text-[#075080]/70 hover:text-[#075080]'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
                 <GraduationCap className="w-4 h-4 text-[#1687D4]" />
                 <span>Students Social Stream</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E8F5FF] text-[#0875BD] font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/50 text-[#0875BD] font-bold">
                   {posts.filter(p => p.authorRole === 'student').length}
                 </span>
               </button>
@@ -666,7 +901,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
           {/* 2. Interactive Dynamic Post Composer (All 5 Roles Supported with Permissions) */}
           {currentUser && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+            <div className="rounded-3xl liquid-glass p-4 space-y-3">
               {/* Role Context & Quota Banners */}
               {currentUser.role === 'alumni' && (() => {
                 const elig = checkAlumniPostEligibility(currentUser);
@@ -741,7 +976,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                   {!isComposing ? (
                     <button
                       onClick={() => setIsComposing(true)}
-                      className="w-full text-left rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 transition"
+                      className="w-full text-left rounded-2xl border border-white/60 bg-white/40 px-4 py-2.5 text-xs text-[#2d5a7d] hover:bg-white/60 hover:text-[#05233b] transition shadow-xs backdrop-blur-md"
                     >
                       {currentUser.role === 'faculty'
                         ? 'Publish academic research, curriculum notes, or lecture slides...'
@@ -766,46 +1001,206 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             ? 'Share mentorship advice, career insights, or industry interview tips...'
                             : "What's happening on campus? Share interview tips, symposium invites, or milestones..."
                         }
-                        className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden resize-none"
+                        className="w-full p-3 rounded-xl border border-white/60 bg-white/40 text-xs text-[#05233b] placeholder:text-[#2d5a7d] focus:bg-white/65 focus:ring-2 focus:ring-[#1687D4]/30 focus:outline-hidden resize-none backdrop-blur-md"
                         autoFocus
                       />
 
-                      {/* Live Open-Source AI Telemetry Pill */}
+                      {/* Safety Alert (only shown if policy warning or sensitive) */}
                       {deferredPostContent.trim().length > 3 && (() => {
                         const ai = runOpenSourceAIModeration(deferredPostContent, postImageUrl);
                         const isSevere = ai.toxicity.score >= 80;
                         const isSens = ai.isSensitive;
-                        const category = ai.classification?.category || 'General';
+                        if (!isSevere && !isSens) return null;
                         return (
-                          <div className={`p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between transition-all ${
+                          <div className={`p-2 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
                             isSevere
                               ? 'bg-rose-50 border border-rose-200 text-rose-800'
-                              : isSens
-                              ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                              : 'bg-amber-50 border border-amber-200 text-amber-800'
                           }`}>
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">
-                                {isSevere ? (
-                                  <>🚨 <strong>Critical Toxicity ({ai.toxicity.score}%):</strong> Submission rejected by policy</>
-                                ) : isSens ? (
-                                  <>⚠️ <strong>Sensitive ({category}):</strong> Post will be masked behind AI feed blur shield.</>
-                                ) : (
-                                  <>✨ <strong>Clean • {category}:</strong> Toxicity {ai.toxicity.score}% • {ai.sentiment.label} ({Math.round(ai.sentiment.score * 100)}%)</>
-                                )}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline shrink-0 ml-2">
-                              campus-lenz-ai • toxic-bert
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            <span>
+                              {isSevere
+                                ? `Warning: High toxicity (${ai.toxicity.score}%) violates campus guidelines.`
+                                : `Notice: Sensitive content will have safety blur applied.`}
                             </span>
                           </div>
                         );
                       })()}
 
-                      {/* Student Posting Options: Anonymous Toggle & Review for Institution Only Option */}
+                      {/* Student Posting Mode Dropdown: Public Campus Stream vs Institution Review */}
                       {currentUser.role === 'student' && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
+                          {/* Two-Option Dropdown */}
+                          <div className="p-3 rounded-2xl bg-gradient-to-r from-[#E8F5FF] via-white to-[#F0F8FF] border border-[#CFEAFF] shadow-2xs space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-[#075080] uppercase tracking-wider flex items-center gap-1.5">
+                                <Building2 className="w-3.5 h-3.5 text-[#1687D4]" />
+                                <span>Posting Option / Destination</span>
+                              </label>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
+                                postType === 'review'
+                                  ? 'bg-[#1687D4] text-white border-[#1687D4]'
+                                  : 'bg-white text-[#075080] border-[#CFEAFF]'
+                              }`}>
+                                {postType === 'review' ? '⭐ Option 2: Review' : '📢 Option 1: Public Stream'}
+                              </span>
+                            </div>
+
+                            <select
+                              value={postType}
+                              onChange={e => {
+                                const val = e.target.value as 'stream' | 'review';
+                                setPostType(val);
+                                if (val === 'review' && !institutionReviewCollegeId) {
+                                  setInstitutionReviewCollegeId(currentUser.collegeId || colleges[0]?.id || '');
+                                }
+                              }}
+                              className="w-full rounded-xl border border-[#CFEAFF] bg-white p-2.5 text-xs font-bold text-[#075080] shadow-xs focus:ring-2 focus:ring-[#1687D4]/30 focus:border-[#1687D4] focus:outline-none transition cursor-pointer"
+                            >
+                              <option value="stream">
+                                Option 1: 📢 Publish in Public Campus Stream (Campus Social Feed)
+                              </option>
+                              <option value="review">
+                                Option 2: ⭐ Institution Review &amp; Rating (Public Stream + Institution Review Section)
+                              </option>
+                            </select>
+                          </div>
+
+                          {/* If Option 2 (Review) is selected: Show full review parameters */}
+                          {postType === 'review' && (
+                            <div className="p-3.5 rounded-2xl bg-[#E8F5FF]/90 border border-[#72B7EB] shadow-xs space-y-3">
+                              <div className="flex items-start gap-2 text-[11px] text-[#075080] leading-snug">
+                                <Sparkles className="w-4 h-4 text-[#1687D4] shrink-0 mt-0.5" />
+                                <span>
+                                  <strong>Dual-Publish Guarantee:</strong> This evaluation will be posted to the <strong>Campus Social Stream</strong> &amp; <strong>Public Feed</strong>, and recorded directly in the selected institution&apos;s <strong>Platform Review Section</strong> for all students to explore.
+                                </span>
+                              </div>
+
+                              {/* Target Institution Selection */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
+                                  Select Target Institution
+                                </label>
+                                <select
+                                  value={institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || ''}
+                                  onChange={e => setInstitutionReviewCollegeId(e.target.value)}
+                                  className="w-full rounded-xl border border-[#CFEAFF] bg-white p-2.5 text-xs text-[#075080] font-semibold focus:outline-none focus:ring-1 focus:ring-[#1687D4]"
+                                >
+                                  {colleges.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.name} {c.id === currentUser.collegeId ? '(Your Enrolled College)' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Star Rating Selector */}
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
+                                    Overall Rating
+                                  </label>
+                                  <span className="text-xs font-bold text-[#1687D4]">
+                                    {institutionReviewRating} / 5 Stars
+                                    <span className="ml-1 text-[11px] text-slate-500 font-normal">
+                                      ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 rounded-xl bg-white border border-[#CFEAFF]">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() => setInstitutionReviewRating(star)}
+                                      className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                                      title={`Rate ${star} star`}
+                                    >
+                                      <Star
+                                        className={`w-5 h-5 transition-colors ${
+                                          star <= institutionReviewRating
+                                            ? 'fill-amber-400 text-amber-400'
+                                            : 'text-slate-200 hover:text-amber-200'
+                                        }`}
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Evaluation Category Focus */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
+                                  Review Category Focus
+                                </label>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {[
+                                    'Academics & Faculty',
+                                    'Placements & Training',
+                                    'Campus Infrastructure',
+                                    'Hostel & Amenities',
+                                    'Overall Student Life'
+                                  ].map(cat => (
+                                    <button
+                                      key={cat}
+                                      type="button"
+                                      onClick={() => setInstitutionReviewCategory(cat)}
+                                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                        institutionReviewCategory === cat
+                                          ? 'bg-[#1687D4] text-white border-[#1687D4] shadow-2xs'
+                                          : 'bg-white text-[#075080] border-[#CFEAFF] hover:bg-[#E8F5FF]'
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Review Headline & Optional Pros/Cons */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
+                                  Review Headline (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Great academic culture and top tier placement preparation"
+                                  value={institutionReviewTitle}
+                                  onChange={e => setInstitutionReviewTitle(e.target.value)}
+                                  className="w-full p-2.5 rounded-xl border border-[#CFEAFF] bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1687D4]"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-[#059669] uppercase tracking-wider mb-1">
+                                    Pros (comma separated)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. High placements, Modern labs"
+                                    value={institutionReviewPros}
+                                    onChange={e => setInstitutionReviewPros(e.target.value)}
+                                    className="w-full p-2 rounded-xl border border-emerald-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-[#D97706] uppercase tracking-wider mb-1">
+                                    Cons (comma separated)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Strict curfew, Average mess"
+                                    value={institutionReviewCons}
+                                    onChange={e => setInstitutionReviewCons(e.target.value)}
+                                    className="w-full p-2 rounded-xl border border-amber-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Anonymous Toggle */}
                           <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
                             <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
                               <input
@@ -816,131 +1211,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               />
                               <span>Post Anonymously (Hide Name & Profile)</span>
                             </label>
-                            <span className="text-[10px] text-slate-400">Protects student privacy</span>
-                          </div>
-
-                          {/* New Option: Put a Review for the Institution Only */}
-                          <div className={`p-3 rounded-2xl border transition-all ${
-                            isInstitutionReviewOnly
-                              ? 'bg-[#E8F5FF]/90 border-[#72B7EB] shadow-xs'
-                              : 'bg-white/80 border-slate-200 hover:border-[#CFEAFF]'
-                          }`}>
-                            <div className="flex items-center justify-between">
-                              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-[#075080]">
-                                <input
-                                  type="checkbox"
-                                  checked={isInstitutionReviewOnly}
-                                  onChange={e => {
-                                    const next = e.target.checked;
-                                    setIsInstitutionReviewOnly(next);
-                                    if (next && !institutionReviewCollegeId) {
-                                      setInstitutionReviewCollegeId(currentUser.collegeId || colleges[0]?.id || '');
-                                    }
-                                  }}
-                                  className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                                />
-                                <span className="flex items-center gap-1.5">
-                                  <Building2 className="w-3.5 h-3.5 text-[#1687D4]" />
-                                  <span>Put a Review for the Institution Only</span>
-                                </span>
-                              </label>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
-                                isInstitutionReviewOnly
-                                  ? 'bg-[#1687D4] text-white border-[#1687D4]'
-                                  : 'bg-slate-100 text-slate-500 border-slate-200'
-                              }`}>
-                                {isInstitutionReviewOnly ? 'Direct Scorecard' : 'Institution Option'}
-                              </span>
-                            </div>
-
-                            {isInstitutionReviewOnly && (
-                              <div className="mt-3 pt-3 border-t border-[#CFEAFF] space-y-3">
-                                <p className="text-[11px] text-[#075080] leading-relaxed">
-                                  ⭐ This evaluation will be submitted directly to the official <strong>Review &amp; Ratings</strong> ledger for the institution and update its campus rating scorecard.
-                                </p>
-
-                                {/* Institution Target Picker */}
-                                <div>
-                                  <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
-                                    Target Institution
-                                  </label>
-                                  <select
-                                    value={institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || ''}
-                                    onChange={e => setInstitutionReviewCollegeId(e.target.value)}
-                                    className="w-full rounded-xl border border-[#CFEAFF] bg-white p-2 text-xs text-[#075080] font-semibold focus:outline-none focus:ring-1 focus:ring-[#1687D4]"
-                                  >
-                                    {colleges.map(c => (
-                                      <option key={c.id} value={c.id}>
-                                        {c.name} {c.id === currentUser.collegeId ? '(Enrolled)' : ''}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
-                                {/* Star Rating Selector */}
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
-                                      Overall Institution Rating
-                                    </label>
-                                    <span className="text-xs font-bold text-[#1687D4]">
-                                      {institutionReviewRating} / 5 Stars
-                                      <span className="ml-1 text-[11px] text-slate-500 font-normal">
-                                        ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
-                                      </span>
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-[#CFEAFF]">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                      <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => setInstitutionReviewRating(star)}
-                                        className="p-1 hover:scale-110 transition-transform focus:outline-none"
-                                        title={`Rate ${star} star`}
-                                      >
-                                        <Star
-                                          className={`w-5 h-5 transition-colors ${
-                                            star <= institutionReviewRating
-                                              ? 'fill-amber-400 text-amber-400'
-                                              : 'text-slate-200 hover:text-amber-200'
-                                          }`}
-                                        />
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Evaluation Focus Topic */}
-                                <div>
-                                  <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
-                                    Evaluation Focus
-                                  </label>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {[
-                                      'Academics & Faculty',
-                                      'Placements & Training',
-                                      'Campus Infrastructure',
-                                      'Hostel & Amenities',
-                                      'Overall Student Life'
-                                    ].map(cat => (
-                                      <button
-                                        key={cat}
-                                        type="button"
-                                        onClick={() => setInstitutionReviewCategory(cat)}
-                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                                          institutionReviewCategory === cat
-                                            ? 'bg-[#1687D4] text-white border-[#1687D4] shadow-2xs'
-                                            : 'bg-white text-[#075080] border-[#CFEAFF] hover:bg-[#E8F5FF]'
-                                        }`}
-                                      >
-                                        {cat}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                            <span className="text-[10px] text-slate-400">Protects student identity</span>
                           </div>
                         </div>
                       )}
@@ -1076,8 +1347,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               setPostContent('');
                               setPostImageUrl('');
                               setIsAnonymousPost(false);
-                              setIsInstitutionReviewOnly(false);
+                              setPostType('stream');
                               setInstitutionReviewRating(5);
+                              setInstitutionReviewTitle('');
+                              setInstitutionReviewPros('');
+                              setInstitutionReviewCons('');
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
                           >
@@ -1088,8 +1362,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             disabled={!postContent.trim() || (currentUser.role === 'alumni' && !checkAlumniPostEligibility(currentUser).eligible)}
                             className="px-4 py-1.5 rounded-xl bg-[#1687D4] hover:bg-[#075080] disabled:opacity-50 text-white font-bold text-xs shadow-xs transition"
                           >
-                            {currentUser.role === 'student' && isInstitutionReviewOnly
-                              ? 'Publish Review for Institution Only'
+                            {currentUser.role === 'student' && postType === 'review'
+                              ? 'Post to Stream & Institution Review Section'
                               : 'Publish Post'}
                           </button>
                         </div>
@@ -1099,37 +1373,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                 </div>
               </div>
 
-              {!isComposing && (
-                <div className="flex items-center justify-around pt-2 border-t border-slate-100 text-xs text-slate-600">
-                  <button
-                    onClick={() => setIsComposing(true)}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition font-medium"
-                  >
-                    <ImageIcon className="w-4 h-4 text-blue-500" />
-                    <span>Media</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsComposing(true);
-                      setPostTopic('Hackathons & Projects');
-                    }}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-amber-600 transition font-medium"
-                  >
-                    <Calendar className="w-4 h-4 text-amber-500" />
-                    <span>Event</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsComposing(true);
-                      setPostTopic('Campus Placements');
-                    }}
-                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-slate-50 hover:text-emerald-600 transition font-medium"
-                  >
-                    <FileText className="w-4 h-4 text-emerald-500" />
-                    <span>Placement</span>
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -1155,127 +1398,65 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
             </div>
           )}
 
-          {/* 3. Feed Filter & AI Safety Controls Bar */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-2.5">
-            {/* Row 1: Role tabs + AI Content Shield Switch */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl text-xs font-semibold">
-                <button
-                  onClick={() => setFeedFilter('all')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
-                    feedFilter === 'all'
-                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  All Posts ({posts.length})
-                </button>
-                <button
-                  onClick={() => setFeedFilter('students')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
-                    feedFilter === 'students'
-                      ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Students ({posts.filter(p => p.authorRole === 'student').length})
-                </button>
-                <button
-                  onClick={() => setFeedFilter('alumni')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
-                    feedFilter === 'alumni'
-                      ? 'bg-white text-emerald-600 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Alumni ({posts.filter(p => p.authorRole === 'alumni').length})
-                </button>
-                <button
-                  onClick={() => setFeedFilter('institution')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
-                    feedFilter === 'institution'
-                      ? 'bg-white text-purple-600 shadow-2xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Circulars
-                </button>
-              </div>
-
-              {/* AI Content Shield Toggle Button */}
+          {/* 3. Feed Filter & Content Safety Controls */}
+          <div className="rounded-3xl liquid-glass p-2.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-1 bg-white/20 p-1 rounded-2xl text-xs font-semibold">
               <button
-                type="button"
-                onClick={toggleSensitiveContentShield}
-                title={sensitiveContentShieldActive ? 'AI Sensitive Content Shield is Active' : 'AI Shield is Paused'}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                  sensitiveContentShieldActive
-                    ? 'bg-[#E8F5FF] text-[#0875BD] border border-[#CFEAFF] hover:bg-[#CFEAFF]'
-                    : 'bg-slate-100 text-[#075080] border border-slate-200 hover:bg-slate-200'
+                onClick={() => setFeedFilter('all')}
+                className={`px-3 py-1 rounded-xl transition-all ${
+                  feedFilter === 'all'
+                    ? 'bg-white/60 text-[#05233b] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
                 }`}
               >
-                <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-[#1687D4]' : 'text-[#628CA8]'}`} />
-                <span>AI Shield: {sensitiveContentShieldActive ? 'Active' : 'Off'}</span>
+                All
+              </button>
+              <button
+                onClick={() => setFeedFilter('students')}
+                className={`px-3 py-1 rounded-xl transition-all ${
+                  feedFilter === 'students'
+                    ? 'bg-white/60 text-[#1687D4] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
+                }`}
+              >
+                Students
+              </button>
+              <button
+                onClick={() => setFeedFilter('alumni')}
+                className={`px-3 py-1 rounded-xl transition-all ${
+                  feedFilter === 'alumni'
+                    ? 'bg-white/60 text-[#0875BD] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
+                }`}
+              >
+                Alumni
+              </button>
+              <button
+                onClick={() => setFeedFilter('institution')}
+                className={`px-3 py-1 rounded-xl transition-all ${
+                  feedFilter === 'institution'
+                    ? 'bg-white/60 text-[#1687D4] shadow-xs font-bold border border-white/70'
+                    : 'text-[#05233b]/80 hover:text-[#05233b] hover:bg-white/30'
+                }`}
+              >
+                Circulars
               </button>
             </div>
 
-            {/* Row 2: Sentiment & AI Classification Filter Pills */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-2 flex-wrap gap-2 text-xs">
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[11px] font-bold text-[#628CA8] mr-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-[#1687D4]" /> AI Filter:
-                </span>
-                <button
-                  onClick={() => setFeedSentimentFilter('all')}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition ${
-                    feedSentimentFilter === 'all'
-                      ? 'bg-[#1687D4] text-white font-bold shadow-2xs'
-                      : 'text-[#075080] hover:bg-[#E8F5FF]'
-                  }`}
-                >
-                  All Sentiments
-                </button>
-                <button
-                  onClick={() => setFeedSentimentFilter('positive')}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
-                    feedSentimentFilter === 'positive'
-                      ? 'bg-[#0875BD] text-white font-bold shadow-2xs'
-                      : 'text-[#075080] hover:bg-[#E8F5FF]'
-                  }`}
-                >
-                  <span>🌟 Positive & Inspiring</span>
-                  <span className="text-[10px] opacity-75">
-                    ({posts.filter(p => p.sentiment === 'positive').length})
-                  </span>
-                </button>
-                <button
-                  onClick={() => setFeedSentimentFilter('academic')}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
-                    feedSentimentFilter === 'academic'
-                      ? 'bg-[#1687D4] text-white font-bold shadow-2xs'
-                      : 'text-[#075080] hover:bg-[#E8F5FF]'
-                  }`}
-                >
-                  <span>📘 Academic Guidance</span>
-                </button>
-                <button
-                  onClick={() => setFeedSentimentFilter('sensitive')}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${
-                    feedSentimentFilter === 'sensitive'
-                      ? 'bg-[#075080] text-white font-bold shadow-2xs'
-                      : 'text-[#075080] hover:bg-[#E8F5FF]'
-                  }`}
-                >
-                  <span>⚠️ Sensitive / Flagged</span>
-                  <span className="text-[10px] px-1 rounded-full bg-[#CFEAFF] text-[#075080] font-bold">
-                    {posts.filter(p => p.isSensitive).length}
-                  </span>
-                </button>
-              </div>
-
-              <span className="text-[11px] text-slate-400 font-medium">
-                {filteredPosts.length} posts matching AI filters
-              </span>
-            </div>
+            {/* AI Content Shield Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleSensitiveContentShield}
+              title={sensitiveContentShieldActive ? 'Content Shield is Active' : 'Content Shield is Off'}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all shadow-xs border ${
+                sensitiveContentShieldActive
+                  ? 'bg-white/50 text-[#0875BD] border-white/70 hover:bg-white/70'
+                  : 'bg-white/20 text-[#2d5a7d] border-white/40 hover:bg-white/40'
+              }`}
+            >
+              <ShieldCheck className={`w-3.5 h-3.5 ${sensitiveContentShieldActive ? 'text-[#1687D4]' : 'text-[#2d5a7d]'}`} />
+              <span>Safety Shield: {sensitiveContentShieldActive ? 'On' : 'Off'}</span>
+            </button>
           </div>
 
           {/* 4. Stream of Dynamic Post Cards */}
@@ -1299,11 +1480,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     key={post.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-slate-300/80 transition-colors"
+                    className="rounded-3xl liquid-glass overflow-hidden hover:shadow-[0_20px_48px_rgba(0,0,0,0.32)] transition-all duration-200"
                   >
                     {/* Top Micro-Banner for Institution Repost */}
                     {post.repostedByInstitution && (
-                      <div className="bg-purple-50/60 border-b border-purple-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-purple-900">
+                      <div className="bg-purple-500/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
                         <Repeat className="w-3.5 h-3.5 text-purple-600" />
                         <span>Reposted by {post.repostedByInstitution.institutionName}</span>
                       </div>
@@ -1311,7 +1492,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                     {/* Top Micro-Banner for Faculty Repost */}
                     {post.repostedByFaculty && (
-                      <div className="bg-indigo-50/60 border-b border-indigo-100/80 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-indigo-900">
+                      <div className="bg-indigo-500/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
                         <Repeat className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Recommended by Faculty ({post.repostedByFaculty.facultyName})</span>
                       </div>
@@ -1319,15 +1500,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                     {/* Top Micro-Banner for Knowledge-Based Post */}
                     {post.isKnowledgeBased && (
-                      <div className="bg-blue-50/50 border-b border-blue-100/60 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-900">
-                        <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                      <div className="bg-[#1687D4]/20 border-b border-white/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] font-bold text-[#05233b]">
+                        <BookOpen className="w-3.5 h-3.5 text-[#1687D4]" />
                         <span>Academic & Peer-Reviewed Resource</span>
                       </div>
                     )}
 
                     {/* Top Micro-Banner for Flagged Posts */}
                     {post.reportedByInstitution && (
-                      <div className="bg-rose-50 border-b border-rose-100 px-4 py-1.5 flex items-center gap-1.5 text-[11px] text-rose-800">
+                      <div className="bg-rose-500/20 border-b border-rose-300/40 px-4 py-1.5 flex items-center gap-1.5 text-[11px] text-rose-900 font-bold">
                         <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                         <span>Flagged by institution: <em>"{post.reportedByInstitution.reason}"</em></span>
                       </div>
@@ -1338,40 +1519,40 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <Link href={post.isAnonymous ? '#' : `/user/${post.authorUsername}`}>
-                            <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 shrink-0 hover:border-blue-500 transition-colors">
+                            <div className="h-10 w-10 rounded-xl bg-white/40 border border-white/60 flex items-center justify-center text-sm font-bold text-[#05233b] shrink-0 hover:border-white shadow-xs transition-colors">
                               {post.isAnonymous ? '?' : post.authorName[0]}
                             </div>
                           </Link>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {post.isAnonymous ? (
-                                <span className="text-sm font-bold text-slate-900">Anonymous Student</span>
+                                <span className="text-sm font-bold text-[#05233b]">Anonymous Student</span>
                               ) : (
                                 <Link
                                   href={`/user/${post.authorUsername}`}
-                                  className="text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors truncate"
+                                  className="text-sm font-bold text-[#05233b] hover:text-[#1687D4] transition-colors truncate"
                                 >
                                   {post.authorName}
                                 </Link>
                               )}
 
                               {post.isVerifiedAuthor && !post.isAnonymous && (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#1687D4] flex-shrink-0" />
                               )}
 
-                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/40 border border-white/50 text-[#0875BD]">
                                 {post.authorRole}
                               </span>
                             </div>
 
-                            <p className="text-[11px] text-slate-500 truncate mt-0.5 max-w-sm">
+                            <p className="text-[11px] text-[#2d5a7d] truncate mt-0.5 max-w-sm">
                               {post.authorHeadline}
                             </p>
 
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#487394] mt-0.5">
                               <span suppressHydrationWarning>{formatTimeAgo(post.createdAt)}</span>
                               <span>•</span>
-                              <span className="text-blue-600 font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
+                              <span className="text-[#0875BD] font-medium truncate">{post.collegeName || 'Campus Lenz'}</span>
                             </div>
                           </div>
                         </div>
@@ -1381,10 +1562,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                           {!isAuthorSelf && !post.isAnonymous && currentUser && currentUser.role !== 'institution' && (
                             <button
                               onClick={() => toggleFollowUser(post.authorId || post.authorUsername)}
-                              className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 ${
+                              className={`text-xs font-bold px-3 py-1 rounded-full transition-all shrink-0 border ${
                                 isFollowingAuthor
-                                  ? 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                  ? 'border-white/60 bg-white/40 text-[#2d5a7d] hover:bg-white/60'
+                                  : 'bg-[#1687D4] text-white hover:bg-[#0875BD] shadow-xs'
                               }`}
                             >
                               {isFollowingAuthor ? 'Following' : '+ Follow'}
@@ -1571,23 +1752,23 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Reactions & Engagement Summary Bar */}
-                    <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                    <div className="px-4 py-2 flex items-center justify-between text-xs text-[#2d5a7d] border-t border-white/40">
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] flex items-center justify-center">
                           👍
                         </span>
-                        <span>{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
+                        <span className="font-semibold">{post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}</span>
                         {post.sharesCount > 0 && (
-                          <span className="text-purple-600 font-semibold">• {post.sharesCount} reposts</span>
+                          <span className="text-[#0875BD] font-bold">• {post.sharesCount} reposts</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-[#487394]">
                           👁 {post.likesCount * 14 + 115} views
                         </span>
                         <button
                           onClick={() => handleToggleComments(post.id)}
-                          className="hover:text-slate-900 transition-colors font-medium"
+                          className="hover:text-[#05233b] transition-colors font-semibold"
                         >
                           {post.commentsCount} {post.commentsCount === 1 ? 'comment' : 'comments'}
                         </button>
@@ -1595,11 +1776,11 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     </div>
 
                     {/* Action Bar (LinkedIn & Instagram Interaction Suite) */}
-                    <div className="grid grid-cols-5 border-t border-slate-100 text-xs font-semibold text-slate-600">
+                    <div className="grid grid-cols-5 border-t border-white/40 text-xs font-semibold text-[#05233b]">
                       <button
                         onClick={() => toggleLikePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                          isLiked ? 'text-blue-600 font-bold' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                          isLiked ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
                         <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
@@ -1608,8 +1789,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleToggleComments(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                          isCommentsOpen ? 'text-blue-600 font-bold' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                          isCommentsOpen ? 'text-[#1687D4] font-bold' : ''
                         }`}
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
@@ -1618,9 +1799,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleRepost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150 ${
                           post.repostedByInstitution || post.repostedByFaculty || post.repostedByStudent
-                            ? 'text-purple-600 font-bold'
+                            ? 'text-[#1687D4] font-bold'
                             : ''
                         }`}
                         title={
@@ -1645,8 +1826,8 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => toggleSavePost(post.id)}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 transition-colors ${
-                          isSaved ? 'text-amber-600 font-bold' : ''
+                        className={`flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 active:scale-90 transition-all duration-150 ${
+                          isSaved ? 'text-[#0875BD] font-bold' : ''
                         }`}
                       >
                         <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
@@ -1655,7 +1836,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
                       <button
                         onClick={() => handleSharePost(post.id)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        className="flex items-center justify-center gap-1.5 py-2.5 hover:bg-white/40 hover:text-[#1687D4] active:scale-90 transition-all duration-150"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Share</span>
@@ -1844,96 +2025,153 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         </main>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN (Cols 10-12): Circles & Peer Suggestions */}
+        {/* RIGHT COLUMN (Cols 10-12): Channels, Search & Peers       */}
         {/* ========================================================= */}
         <aside className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
           
-          {/* Quick Search Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-2">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Campus Search
+          {/* Quick Search Card with Instant Live Filter */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
+              Instant Campus Search
             </h3>
-            <p className="text-xs text-slate-500">
-              Find classmates, seniors, professors, or colleges across Tamil Nadu.
-            </p>
-            <Link
-              href="/search"
-              className="mt-2 w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between transition-colors"
-            >
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Search className="w-3.5 h-3.5 text-blue-600" />
-                <span>Search alumni, students...</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#1687D4] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={sidebarSearchQuery}
+                onChange={(e) => setSidebarSearchQuery(e.target.value)}
+                placeholder="Filter by student, topic, keyword..."
+                className="w-full pl-9 pr-8 py-2 rounded-2xl border border-white/60 bg-white/40 text-xs text-[#05233b] placeholder:text-[#2d5a7d] focus:outline-none focus:bg-white/65 focus:border-white transition-all shadow-xs"
+              />
+              {sidebarSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSidebarSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#2d5a7d] hover:text-[#05233b]"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <Link
+                  href="/search"
+                  title="Advanced search page"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#2d5a7d] hover:text-[#1687D4]"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
           </div>
 
-          {/* Active Campus Circles */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          {/* Active Campus Channels (Populated from servers with pulse status) */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d]">
                 Campus Channels
               </h3>
-              <Link href="/servers" className="text-xs text-blue-600 font-semibold hover:underline">
-                View All
+              <Link href="/connect" className="text-xs text-[#1687D4] font-bold hover:underline">
+                View All →
               </Link>
             </div>
             
             <div className="space-y-2">
-              {communities.slice(0, 3).map((comm) => (
-                <div key={comm.id} className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/80 text-xs">
-                  <div className="font-bold text-slate-800 line-clamp-1">{comm.name}</div>
-                  <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{comm.description}</div>
-                  <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>{comm.membersCount} members</span>
-                    <Link href="/servers" className="text-blue-600 font-semibold hover:underline">
-                      Join →
-                    </Link>
+              {activeChannels.map((channel) => (
+                <Link
+                  key={channel.id}
+                  href="/connect"
+                  className="block p-2.5 rounded-2xl bg-white/40 hover:bg-white/65 border border-white/50 transition-all duration-200 group shadow-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-[#05233b] group-hover:text-[#1687D4] truncate">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="truncate">#{channel.name}</span>
+                    </div>
+                    <span className="text-[10px] text-[#1687D4] font-bold group-hover:translate-x-0.5 transition-transform shrink-0">
+                      Open →
+                    </span>
                   </div>
-                </div>
+                  <div className="text-[11px] text-[#2d5a7d] truncate mt-0.5">
+                    {channel.description}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-[#487394]">
+                    <span>{channel.memberCount} members</span>
+                    <span className="text-[#0875BD] font-semibold">{channel.serverName}</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
 
-          {/* Suggested Peers */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          {/* Trending Discussions & Topic Analytics */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-2.5">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
+              Active Discussions
+            </h3>
+            
+            <div className="space-y-1.5 text-xs">
+              {[
+                { tag: 'Academics', count: 34, desc: 'Curriculum & exam guides' },
+                { tag: 'Placements', count: 28, desc: 'Interview experiences & packages' },
+                { tag: 'Hackathons', count: 19, desc: 'Teams & project releases' },
+                { tag: 'Internships', count: 14, desc: 'Stipends & direct applications' }
+              ].map((disc) => (
+                <button
+                  key={disc.tag}
+                  type="button"
+                  onClick={() => setActiveTagFilter(activeTagFilter === disc.tag ? null : disc.tag)}
+                  className={`w-full p-2 rounded-2xl text-left transition-colors flex items-center justify-between group ${
+                    activeTagFilter === disc.tag
+                      ? 'bg-white/60 font-bold text-[#0875BD] border border-white/70 shadow-xs'
+                      : 'hover:bg-white/40 text-[#05233b]'
+                  }`}
+                >
+                  <div className="truncate">
+                    <p className="font-bold truncate">#{disc.tag}</p>
+                    <p className="text-[10px] text-[#487394] truncate">{disc.desc}</p>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/60 text-[#1687D4] font-bold shrink-0 border border-white/60 shadow-xs">
+                    {disc.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Suggested Peers to Connect */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
               Peers to Connect
             </h3>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {allUsers.filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni')).length === 0 ? (
-                <div className="text-center py-4 px-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-xs font-semibold text-slate-700">No other users registered yet</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Invite batchmates or register a test account.</p>
-                  {!currentUser && (
-                    <Link href="/register" className="inline-block mt-2 text-xs font-bold text-blue-600 hover:underline">
-                      Register Now →
-                    </Link>
-                  )}
+                <div className="text-center py-4 px-2 bg-white/30 rounded-2xl border border-white/50">
+                  <p className="text-xs font-semibold text-[#05233b]">No other users registered yet</p>
+                  <p className="text-[10px] text-[#487394] mt-0.5">Invite batchmates or register a test account.</p>
                 </div>
               ) : (
                 allUsers
                   .filter(u => (!currentUser || u.id !== currentUser.id) && (u.role === 'student' || u.role === 'alumni'))
-                  .slice(0, 3)
+                  .slice(0, 4)
                   .map(peer => {
                     const isFollowing = currentUser ? currentUser.following.includes(peer.id) : false;
                     return (
-                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs">
+                      <div key={peer.id} className="flex items-center justify-between gap-2 text-xs p-1.5 rounded-2xl hover:bg-white/40 transition-colors">
                         <Link href={`/user/${peer.username}`} className="flex items-center gap-2 min-w-0">
-                          <div className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 shrink-0">
+                          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                             {peer.fullName[0] || 'U'}
                           </div>
                           <div className="truncate">
-                            <p className="font-bold text-slate-900 truncate hover:text-blue-600">{peer.fullName}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{peer.course || peer.role}</p>
+                            <p className="font-bold text-[#05233b] truncate hover:text-[#1687D4]">{peer.fullName}</p>
+                            <p className="text-[10px] text-[#487394] truncate">{peer.course || peer.role}</p>
                           </div>
                         </Link>
                         <button
+                          type="button"
                           onClick={() => toggleFollowUser(peer.id)}
-                          className={`text-[10px] font-bold px-2 py-1 rounded-md transition-colors shrink-0 ${
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all shrink-0 border ${
                             isFollowing
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                              ? 'bg-white/40 text-[#2d5a7d] border-white/60'
+                              : 'bg-[#1687D4] text-white hover:bg-[#0875BD] shadow-xs border-transparent'
                           }`}
                         >
                           {isFollowing ? 'Following' : '+ Follow'}
@@ -1942,6 +2180,29 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                     );
                   })
               )}
+            </div>
+          </div>
+
+          {/* Upcoming Campus Milestones Card */}
+          <div className="rounded-3xl liquid-glass p-4 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#2d5a7d] px-1">
+              Campus Spotlight
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="p-2.5 rounded-2xl bg-white/35 border border-white/50 shadow-xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#05233b]">
+                  <Sparkles className="w-3.5 h-3.5 text-[#1687D4]" />
+                  <span>Campus Placement Season</span>
+                </div>
+                <p className="text-[10px] text-[#2d5a7d] mt-0.5">Top tech tier-1 recruitment drives live</p>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-white/35 border border-white/50 shadow-xs">
+                <div className="flex items-center gap-1.5 font-bold text-[#05233b]">
+                  <Calendar className="w-3.5 h-3.5 text-[#0875BD]" />
+                  <span>Inter-Collegiate Hackathon</span>
+                </div>
+                <p className="text-[10px] text-[#2d5a7d] mt-0.5">Registrations open in Connect Hub</p>
+              </div>
             </div>
           </div>
 

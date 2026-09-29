@@ -83,25 +83,25 @@ export default function Navigation() {
     <>
       {/* Apple-Styled Floating Island Navigation (Desktop) */}
       <header className="sticky top-3 z-50 w-full px-3 sm:px-6 pointer-events-none transition-all">
-        <div className="pointer-events-auto mx-auto max-w-6xl rounded-2xl sm:rounded-full bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
+        <div className="pointer-events-auto mx-auto max-w-7xl 2xl:max-w-[1480px] rounded-2xl sm:rounded-full liquid-glass px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 transition-all duration-300">
           
           {/* Apple Squircle Brand Glyph */}
           <Link href="/" className="group flex items-center space-x-2.5 flex-shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-sm shadow-[0_4px_12px_rgba(22,135,212,0.35)] transition-transform duration-300 group-hover:scale-105">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-black text-sm shadow-[0_4px_16px_rgba(22,135,212,0.4)] transition-transform duration-300 group-hover:scale-105">
               CL
             </div>
             <div className="flex flex-col">
-              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#075080] leading-none">
+              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[#05233b] leading-none">
                 CAMPUS<span className="text-[#1687D4]">LENZ</span>
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#628CA8] mt-0.5">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#2d5a7d] mt-0.5">
                 Ecosystem
               </span>
             </div>
           </Link>
 
           {/* Apple macOS Segmented Dock Navigation Items */}
-          <nav className="hidden md:flex items-center bg-slate-100/60 p-1 rounded-full border border-slate-200/40">
+          <nav className="hidden md:flex items-center bg-white/25 backdrop-blur-md p-1 rounded-full border border-white/40">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isConnect = item.href === '/connect';
@@ -117,8 +117,8 @@ export default function Navigation() {
                   href={item.href}
                   className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'text-[#1687D4] font-bold'
-                      : 'text-[#075080] hover:text-[#1687D4] hover:bg-white/60'
+                      ? 'text-[#0875BD] font-bold'
+                      : 'text-[#05233b] hover:text-[#0875BD] hover:bg-white/40'
                   }`}
                 >
                   <Icon className={`h-3.5 w-3.5 transition-transform duration-200 ${isActive ? 'scale-110 stroke-[2.2]' : ''}`} />
@@ -126,7 +126,7 @@ export default function Navigation() {
                   {isActive && (
                     <motion.div
                       layoutId="appleNavPill"
-                      className="absolute inset-0 bg-white rounded-full shadow-[0_2px_8px_rgba(7,80,128,0.08),0_1px_2px_rgba(7,80,128,0.04)] -z-10"
+                      className="absolute inset-0 bg-white/60 backdrop-blur-md rounded-full border border-white/60 shadow-xs -z-10"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
@@ -142,13 +142,13 @@ export default function Navigation() {
                 {/* User Info Capsule */}
                 <Link
                   href={`/user/${currentUser.username}`}
-                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-[#E8F5FF]/80 hover:bg-[#CFEAFF]/70 border border-[#CFEAFF] transition-all duration-200 group"
+                  className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full bg-white/35 hover:bg-white/55 backdrop-blur-md border border-white/50 transition-all duration-200 group shadow-xs"
                 >
                   <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#1687D4] to-[#0875BD] text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
                     {currentUser.fullName.charAt(0)}
                   </div>
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs font-bold text-[#075080] leading-none truncate max-w-[110px]">
+                    <div className="text-xs font-bold text-[#05233b] leading-none truncate max-w-[110px]">
                       {currentUser.fullName}
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -164,7 +164,7 @@ export default function Navigation() {
                 <button
                   onClick={handleLogout}
                   title="Sign out of active account"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#CFEAFF] bg-white/80 hover:bg-[#E8F5FF] hover:border-[#8CCCF5] hover:text-[#0875BD] text-xs font-semibold text-[#075080] transition-all shadow-2xs"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-white/50 bg-white/35 hover:bg-white/55 hover:border-white/80 hover:text-[#0875BD] text-xs font-bold text-[#05233b] transition-all shadow-xs"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign Out</span>

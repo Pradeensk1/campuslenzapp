@@ -5,6 +5,8 @@ import Navigation from "@/components/Navigation";
 import PageTransition from "@/components/PageTransition";
 import EmergencyBroadcastBanner from "@/components/EmergencyBroadcastBanner";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import AutoReloadManager from "@/components/AutoReloadManager";
+import RolePersonaSwitcher from "@/components/RolePersonaSwitcher";
 
 export const viewport: Viewport = {
   themeColor: "#2563EB",
@@ -35,38 +37,39 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="text-[#075080] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#F5FBFF]">
-        {/* Apple-Inspired Liquid Frosted Glass Ambient Canvas (Strictly Monochromatic Ocean Blue & Frosted White) */}
-        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#F5FBFF]">
-          {/* Liquid Base Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#F5FBFF] via-[#E8F5FF] to-[#E0F2FE]" />
-          
-          {/* Liquid Orb 1: Primary Ocean Blue & Cyan Wave */}
-          <div className="absolute -top-40 left-1/4 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tr from-[#3B9FE8]/25 via-[#8CCCF5]/30 to-[#1687D4]/20 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
-          
-          {/* Liquid Orb 2: Soft Light Ocean Blue Caustic */}
-          <div className="absolute top-1/3 -right-20 w-[42rem] h-[42rem] rounded-full bg-gradient-to-bl from-[#8CCCF5]/25 via-[#CFEAFF]/30 to-[#3B9FE8]/20 blur-[140px]" />
-          
-          {/* Liquid Orb 3: Deep Ocean Navy Ambient Mist */}
-          <div className="absolute -bottom-32 -left-20 w-[50rem] h-[50rem] rounded-full bg-gradient-to-tr from-[#0875BD]/15 via-[#8CCCF5]/25 to-[#CFEAFF]/30 blur-[150px]" />
+      <body className="text-[#05233b] antialiased min-h-screen relative overflow-x-hidden selection:bg-[#CFEAFF] selection:text-[#075080] bg-[#0c1824]">
+        {/* Apple iOS 27 Liquid Glass Ambient Canvas with Ultra High-Definition 6K Fluid Wallpaper */}
+        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden bg-[#0c1824]">
+          {/* Pristine 6000x4000 Full-Fidelity Wallpaper (Zero Quality Loss) */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
+            style={{
+              backgroundImage: "url('/background-ui.jpg')",
+            }}
+          />
 
-          {/* Liquid Orb 4: Center Specular Luster Glow */}
-          <div className="absolute top-1/2 left-1/3 w-[38rem] h-[38rem] rounded-full bg-gradient-to-r from-[#CFEAFF]/30 via-[#E8F5FF]/40 to-transparent blur-[120px]" />
+          {/* Ultra-Subtle Ambient Lighting (No background blur to preserve 100% pin-sharp image resolution) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/25 pointer-events-none" />
 
-          {/* Specular Micro-Texture */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.85),transparent_70%)]" />
+          {/* Soft Center Top Specular Luster Glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.25),transparent_75%)] pointer-events-none" />
+
+          {/* Deep Ambient Vignette Around Viewport Borders for Contrast */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,transparent_65%,rgba(7,24,39,0.3)_100%)] pointer-events-none" />
         </div>
 
         <AppProvider>
           <div className="flex min-h-screen flex-col pb-20 md:pb-0">
             <EmergencyBroadcastBanner />
             <Navigation />
-            <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <main className="flex-1 w-full max-w-7xl 2xl:max-w-[1480px] mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7">
               <PageTransition>
                 {children}
               </PageTransition>
             </main>
             <PWAInstallPrompt />
+            <AutoReloadManager />
+            <RolePersonaSwitcher />
           </div>
         </AppProvider>
       </body>

@@ -1,6 +1,6 @@
 export type UserRole = 'student' | 'alumni' | 'institution' | 'faculty' | 'staff' | 'admin';
 
-export type ReviewerType = 'student' | 'alumni';
+export type ReviewerType = 'student' | 'alumni' | 'faculty' | 'institution';
 
 export type VerificationStatus = 'pending' | 'admin_review' | 'approved' | 'rejected';
 
@@ -350,6 +350,80 @@ export interface AIModelSettings {
   autoBanEnabled: boolean;
   activeTextModel: string;
   activeVisionModel: string;
+}
+
+export interface ReviewSummaryResult {
+  summary: string;
+  positive_points: string[];
+  negative_points: string[];
+  aspect_summary: {
+    Academics?: string | null;
+    Faculty?: string | null;
+    Placements?: string | null;
+    Infrastructure?: string | null;
+    Hostel?: string | null;
+    'Campus Life'?: string | null;
+    'Value for Money'?: string | null;
+    'Student Experience'?: string | null;
+    [key: string]: string | null | undefined;
+  };
+  model: string;
+}
+
+export interface DuplicateDetectionResult {
+  similarity: number;
+  likely_duplicate: boolean;
+  threshold: number;
+  model: string;
+}
+
+export interface SemanticCollegeMatch {
+  collegeId: string;
+  collegeName: string;
+  slug: string;
+  score: number;
+  matchedAttributes: string[];
+  snippet: string;
+  location?: string;
+  rating?: number;
+}
+
+export interface SemanticSearchResult {
+  query: string;
+  matches: SemanticCollegeMatch[];
+  totalMatches: number;
+  model: string;
+}
+
+export interface MessageAnalysisResult {
+  sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
+  category: 'general' | 'harassment' | 'threat' | 'spam' | 'personal' | 'academic' | 'event' | 'other';
+  moderation: 'normal' | 'sensitive' | 'spam' | 'potentially_harmful';
+  is_safe: boolean;
+  action: 'allow' | 'warn' | 'block';
+  status?: 'allow' | 'warn' | 'block';
+  flagReason?: string;
+  flag_reason?: string;
+  model: string;
+}
+
+export interface ImageAnalysisResult {
+  category: 'college' | 'campus' | 'event' | 'document' | 'person' | 'food' | 'infrastructure' | 'other';
+  description: string;
+  ocr_text: string;
+  college_related: boolean;
+  relevance: 'relevant' | 'possibly_relevant' | 'not_relevant';
+  model: string;
+}
+
+export interface AIServiceHealth {
+  service: string;
+  status: 'healthy' | 'degraded' | 'offline';
+  version: string;
+  isExternalServiceActive: boolean;
+  activeEngine: string;
+  availableModels: string[];
+  latencyMs?: number;
 }
 
 export interface Community {

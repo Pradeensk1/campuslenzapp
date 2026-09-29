@@ -16,7 +16,7 @@ export default function CreateClient({
   const queryTab = searchParams.get('tab');
   const queryCollegeId = searchParams.get('collegeId');
 
-  const { colleges, currentUser, addPost, addReview, runOpenSourceAIModeration } = useApp();
+  const { colleges, posts, currentUser, addPost, addReview, runOpenSourceAIModeration, detectDuplicateWithAI, analyzeImageWithAI } = useApp();
 
   const [activeTab, setActiveTab] = useState<'post' | 'review'>(
     queryTab === 'review' ? 'review' : 'post'
@@ -35,12 +35,81 @@ export default function CreateClient({
   const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
   const [postAnonymous, setPostAnonymous] = useState(false);
-  const [isInstitutionReviewOnly, setIsInstitutionReviewOnly] = useState(false);
+  const [postType, setPostType] = useState<'stream' | 'review'>('stream');
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
+  const [institutionReviewCategory, setInstitutionReviewCategory] = useState('Academics & Faculty');
+  const [institutionReviewTitle, setInstitutionReviewTitle] = useState('');
+  const [institutionReviewPros, setInstitutionReviewPros] = useState('');
+  const [institutionReviewCons, setInstitutionReviewCons] = useState('');
   const [postImageUrl, setPostImageUrl] = useState<string>('');
   const [mediaFileName, setMediaFileName] = useState<string>('');
   const [mediaFileSize, setMediaFileSize] = useState<number>(0);
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
+
+  // AI Duplicate & Image Analysis state
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    similarity: number;
+    matchedPostContent: string;
+    matchedAuthor: string;
+  } | null>(null);
+  const [imageAIResult, setImageAIResult] = useState<any | null>(null);
+
+  // Real-time duplicate detection across campus stream
+  useEffect(() => {
+    if (deferredPostContent.trim().length < 15 || !posts || posts.length === 0) {
+      setDuplicateWarning(null);
+      return;
+    }
+
+    let isMounted = true;
+    const runCheck = async () => {
+      try {
+        const candidates = posts.slice(0, 15);
+        for (const p of candidates) {
+          if (!p.content || p.content === deferredPostContent) continue;
+          const res = await detectDuplicateWithAI(deferredPostContent, p.content, 0.78);
+          if (res.likely_duplicate && isMounted) {
+            setDuplicateWarning({
+              similarity: res.similarity,
+              matchedPostContent: p.content,
+              matchedAuthor: p.authorUsername || p.authorName || 'Campus Student',
+            });
+            return;
+          }
+        }
+        if (isMounted) setDuplicateWarning(null);
+      } catch {
+        // safe fallback
+      }
+    };
+
+    const timer = setTimeout(runCheck, 350);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [deferredPostContent, posts, detectDuplicateWithAI]);
+
+  // Real-time AI image analysis
+  useEffect(() => {
+    if (!postImageUrl) {
+      setImageAIResult(null);
+      return;
+    }
+    let isMounted = true;
+    const analyze = async () => {
+      try {
+        const res = await analyzeImageWithAI(postImageUrl, mediaFileName);
+        if (isMounted) setImageAIResult(res);
+      } catch {
+        // safe
+      }
+    };
+    analyze();
+    return () => {
+      isMounted = false;
+    };
+  }, [postImageUrl, mediaFileName, analyzeImageWithAI]);
 
   // Handle optimized image or video selection
   const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,7 +217,10 @@ export default function CreateClient({
     setPostError(null);
     const chosenCollege = activeColleges.find(c => c.id === postCollegeId);
 
-    if (isInstitutionReviewOnly && postCollegeId) {
+    if (postType === 'review' && postCollegeId) {
+      const parsedPros = institutionReviewPros ? institutionReviewPros.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const parsedCons = institutionReviewCons ? institutionReviewCons.split(',').map(s => s.trim()).filter(Boolean) : [];
+
       addReview({
         collegeId: postCollegeId,
         userId: currentUser?.id || 'guest',
@@ -166,16 +238,20 @@ export default function CreateClient({
           valueForMoney: institutionReviewRating,
           studentExperience: institutionReviewRating
         },
-        title: `Student Review: ${postTopic || 'Campus Life'}`,
+        title: institutionReviewTitle.trim() || `${institutionReviewCategory} Evaluation`,
         experience: postContent.trim(),
-        pros: [],
-        cons: [],
+        pros: parsedPros,
+        cons: parsedCons,
         advice: '',
         recommendation: institutionReviewRating >= 3,
         course: currentUser?.course || 'Student',
         department: currentUser?.department || 'Academics',
         batch: currentUser?.graduationBatch || '2026'
       });
+
+      setIsSubmitting(false);
+      router.push(`/colleges/${chosenCollege?.slug || 'explore'}#reviews`);
+      return;
     }
 
     const res = addPost({
@@ -189,10 +265,8 @@ export default function CreateClient({
       collegeId: postCollegeId,
       collegeName: chosenCollege?.name,
       content: postContent,
-      topic: isInstitutionReviewOnly ? 'Review & Ratings' : postTopic,
+      topic: postTopic,
       imageUrl: postImageUrl || undefined,
-      isInstitutionReviewOnly: isInstitutionReviewOnly,
-      institutionRating: isInstitutionReviewOnly ? institutionReviewRating : undefined
     });
 
     setIsSubmitting(false);
@@ -202,11 +276,7 @@ export default function CreateClient({
       return;
     }
 
-    if (isInstitutionReviewOnly) {
-      router.push(`/colleges/${chosenCollege?.slug || 'explore'}#reviews`);
-    } else {
-      router.push('/');
-    }
+    router.push('/');
   };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
@@ -489,12 +559,191 @@ export default function CreateClient({
                     <span>✨ Content Approved: Verified clean for campus-wide distribution in {ai.classification?.category || 'General'}.</span>
                   </div>
                 )}
+
+                {/* AI Duplicate Detection Alert */}
+                {duplicateWarning ? (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-semibold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">⚠️ High Similarity Alert ({Math.round(duplicateWarning.similarity * 100)}% Match)</span>
+                      <p className="font-normal text-amber-800 text-[10px] mt-0.5">
+                        Very similar to a recent campus post by @{duplicateWarning.matchedAuthor}: &ldquo;{duplicateWarning.matchedPostContent.slice(0, 85)}...&rdquo;. Please ensure your post provides original questions or perspectives.
+                      </p>
+                    </div>
+                  </div>
+                ) : deferredPostContent.trim().length > 30 ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium px-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Original Discussion Verified (Cosine similarity &lt; 78% against campus feed)</span>
+                  </div>
+                ) : null}
+
+                {/* AI Image Recognition Telemetry */}
+                {imageAIResult && (
+                  <div className="p-2 rounded-xl bg-blue-50/80 border border-blue-200/80 flex items-center justify-between text-[11px] text-blue-900">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                      <span>AI Visual Recognition: <strong className="capitalize">{imageAIResult.category?.replace(/_/g, ' ')}</strong></span>
+                      {imageAIResult.college_related && (
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[9px]">
+                          Campus Relevant
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-mono text-blue-600/80">{imageAIResult.model}</span>
+                  </div>
+                )}
               </div>
             );
           })()}
 
-          {/* Student Posting Options: Anonymous Toggle & Review for Institution Only Option */}
+          {/* Student Posting Options: Two Dropdown Options */}
           <div className="space-y-3">
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#E8F5FF] via-white to-[#F0F8FF] border border-[#CFEAFF] shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#075080] uppercase tracking-wider flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-[#1687D4]" />
+                  <span>Posting Option & Destination</span>
+                </label>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-colors ${
+                  postType === 'review'
+                    ? 'bg-[#1687D4] text-white border-[#1687D4]'
+                    : 'bg-white text-[#075080] border-[#CFEAFF]'
+                }`}>
+                  {postType === 'review' ? '⭐ Option 2: Review' : '📢 Option 1: Public Stream'}
+                </span>
+              </div>
+
+              <select
+                value={postType}
+                onChange={(e) => setPostType(e.target.value as 'stream' | 'review')}
+                className="w-full rounded-xl border border-[#CFEAFF] bg-white p-3 text-xs font-bold text-[#075080] shadow-xs focus:ring-2 focus:ring-[#1687D4]/30 focus:border-[#1687D4] focus:outline-none transition cursor-pointer"
+              >
+                <option value="stream">
+                  Option 1: 📢 Publish in Public Campus Stream (Campus Social Feed)
+                </option>
+                <option value="review">
+                  Option 2: ⭐ Institution Review &amp; Rating (Public Stream + Institution Review Section)
+                </option>
+              </select>
+            </div>
+
+            {/* When Option 2 (Review) is selected: Show institution review controls */}
+            {postType === 'review' && (
+              <div className="p-4 rounded-2xl bg-[#E8F5FF]/90 border border-[#72B7EB] shadow-xs space-y-3.5">
+                <div className="flex items-start gap-2 text-xs text-[#075080] leading-relaxed">
+                  <Sparkles className="w-4 h-4 text-[#1687D4] shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Dual-Publish Guarantee:</strong> This evaluation will be posted to the <strong>Campus Social Stream</strong> &amp; <strong>Public Feed</strong>, and recorded directly in the review section of <strong>{activeColleges.find(c => c.id === postCollegeId)?.name || 'Selected Institution'}</strong>.
+                  </span>
+                </div>
+
+                {/* Star Rating Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
+                      Overall Institution Rating
+                    </label>
+                    <span className="text-xs font-bold text-[#1687D4]">
+                      {institutionReviewRating} / 5 Stars
+                      <span className="ml-1 text-[11px] text-slate-500 font-normal">
+                        ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-[#CFEAFF]">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setInstitutionReviewRating(star)}
+                        className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            star <= institutionReviewRating
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200 hover:text-amber-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Review Category Focus */}
+                <div>
+                  <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
+                    Review Category Focus
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      'Academics & Faculty',
+                      'Placements & Training',
+                      'Campus Infrastructure',
+                      'Hostel & Amenities',
+                      'Overall Student Life'
+                    ].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setInstitutionReviewCategory(cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                          institutionReviewCategory === cat
+                            ? 'bg-[#1687D4] text-white border-[#1687D4] shadow-2xs'
+                            : 'bg-white text-[#075080] border-[#CFEAFF] hover:bg-[#E8F5FF]'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Review Headline & Optional Pros/Cons */}
+                <div>
+                  <label className="block text-[10px] font-bold text-[#075080] uppercase tracking-wider mb-1">
+                    Review Headline (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Great academic culture and top tier placement preparation"
+                    value={institutionReviewTitle}
+                    onChange={e => setInstitutionReviewTitle(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#CFEAFF] bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1687D4]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#059669] uppercase tracking-wider mb-1">
+                      Pros (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. High placements, Modern labs"
+                      value={institutionReviewPros}
+                      onChange={e => setInstitutionReviewPros(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-emerald-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#D97706] uppercase tracking-wider mb-1">
+                      Cons (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Strict curfew, Average mess"
+                      value={institutionReviewCons}
+                      onChange={e => setInstitutionReviewCons(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-amber-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Anonymous Toggle */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
               <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
                 <input
@@ -503,87 +752,20 @@ export default function CreateClient({
                   onChange={(e) => setPostAnonymous(e.target.checked)}
                   className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
                 />
-                <span>Post Anonymously (Hide Name & Profile)</span>
+                <span>Post Anonymously (Hide Name &amp; Profile)</span>
               </label>
-              <span className="text-[10px] text-slate-400">Protects student privacy</span>
-            </div>
-
-            {/* New Option: Put a Review for the Institution Only */}
-            <div className={`p-3.5 rounded-2xl border transition-all ${
-              isInstitutionReviewOnly
-                ? 'bg-[#E8F5FF] border-[#72B7EB] shadow-xs'
-                : 'bg-white border-slate-200 hover:border-[#CFEAFF]'
-            }`}>
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-[#075080]">
-                  <input
-                    type="checkbox"
-                    checked={isInstitutionReviewOnly}
-                    onChange={(e) => setIsInstitutionReviewOnly(e.target.checked)}
-                    className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                  />
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-[#1687D4]" />
-                    <span>Put a Review for the Institution Only</span>
-                  </span>
-                </label>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  isInstitutionReviewOnly
-                    ? 'bg-[#1687D4] text-white border-[#1687D4]'
-                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}>
-                  {isInstitutionReviewOnly ? 'Direct Scorecard' : 'Institution Option'}
-                </span>
-              </div>
-
-              {isInstitutionReviewOnly && (
-                <div className="mt-3 pt-3 border-t border-[#CFEAFF] space-y-3">
-                  <p className="text-[11px] text-[#075080] leading-relaxed">
-                    ⭐ This evaluation directly updates the official ratings and review scorecard for <strong>{activeColleges.find(c => c.id === postCollegeId)?.name || 'Selected Institution'}</strong>.
-                  </p>
-
-                  {/* Star Rating Selector */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] font-bold text-[#075080] uppercase tracking-wider">
-                        Overall Rating
-                      </label>
-                      <span className="text-xs font-bold text-[#1687D4]">
-                        {institutionReviewRating} / 5 Stars
-                        <span className="ml-1 text-[11px] text-slate-500 font-normal">
-                          ({institutionReviewRating === 5 ? 'Exceptional' : institutionReviewRating === 4 ? 'Very Good' : institutionReviewRating === 3 ? 'Average' : institutionReviewRating === 2 ? 'Below Average' : 'Poor'})
-                        </span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white border border-[#CFEAFF]">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setInstitutionReviewRating(star)}
-                          className="p-1 hover:scale-110 transition-transform focus:outline-none"
-                        >
-                          <Star
-                            className={`w-5 h-5 ${
-                              star <= institutionReviewRating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-slate-200 hover:text-amber-200'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              <span className="text-[10px] text-slate-400">Protects student identity</span>
             </div>
           </div>
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="apple-button-primary w-full text-xs font-bold py-3"
           >
-            {isInstitutionReviewOnly ? 'Publish Review for Institution Only' : 'Publish to Campus Feed'}
+            {postType === 'review'
+              ? 'Post to Stream & Institution Review Section'
+              : 'Publish to Campus Social Stream'}
           </button>
         </form>
       ) : (

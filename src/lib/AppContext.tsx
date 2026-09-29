@@ -35,7 +35,13 @@ import {
   PostAnalysisResult,
   CampusLenzCategoryClassification,
   ReviewAnalysisResult,
-  StudentCareerProfile
+  StudentCareerProfile,
+  ReviewSummaryResult,
+  DuplicateDetectionResult,
+  SemanticSearchResult,
+  MessageAnalysisResult,
+  ImageAnalysisResult,
+  AIServiceHealth
 } from '@/types';
 import {
   runUnifiedAIModeration,
@@ -44,6 +50,14 @@ import {
   analyzeReviewAspects,
   DEFAULT_AI_MODEL_SETTINGS
 } from './aiModerationModels';
+import {
+  checkAIServiceHealth,
+  summarizeReviewsAI,
+  detectDuplicateAI,
+  semanticSearchAI,
+  analyzeMessageAI,
+  analyzeImageAI
+} from './aiServiceClient';
 import { supabase, isSupabaseConfigured } from './supabase';
 import {
   INITIAL_USERS,
@@ -200,6 +214,7 @@ interface AppContextType {
   applyUnreadLivePosts: () => void;
   triggerLiveActivity: () => void;
   resetAllUserData: () => void;
+  reloadWebappData: () => Promise<void>;
   // --- Advanced Role Features ---
   studyRooms: StudyRoom[];
   addStudyRoom: (room: Omit<StudyRoom, 'id' | 'createdAt'>) => { success: boolean; message: string };
@@ -249,6 +264,13 @@ interface AppContextType {
   analyzePostWithAI: (postContent: string, authorId?: string, collegeId?: string) => PostAnalysisResult;
   classifyTextCategory: (text: string) => CampusLenzCategoryClassification;
   analyzeReviewWithAI: (reviewText: string) => ReviewAnalysisResult;
+  summarizeReviewsWithAI: (collegeId: string, reviews: string[]) => Promise<ReviewSummaryResult>;
+  detectDuplicateWithAI: (textA: string, textB: string, threshold?: number) => Promise<DuplicateDetectionResult>;
+  semanticSearchCollegesWithAI: (query: string, limit?: number) => Promise<SemanticSearchResult>;
+  analyzeMessageWithAI: (message: string, senderId?: string, recipientId?: string) => Promise<MessageAnalysisResult>;
+  analyzeImageWithAI: (imageUrl?: string, fileName?: string) => Promise<ImageAnalysisResult>;
+  aiServiceStatus: AIServiceHealth | null;
+  refreshAIServiceStatus: () => Promise<AIServiceHealth>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -327,17 +349,17 @@ const DYNAMIC_CAMPUS_FEED_POOL: Array<Omit<Post, 'id' | 'createdAt' | 'likes' | 
 ];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [colleges, setColleges] = useState<College[]>(INITIAL_COLLEGES);
-  const [reviews, setReviews] = useState<CollegeReview[]>([]);
+  const [reviews, setReviews] = useState<CollegeReview[]>(INITIAL_REVIEWS);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const [communities, setCommunities] = useState<Community[]>(INITIAL_COMMUNITIES);
   const [servers, setServers] = useState<DiscordServer[]>(INITIAL_DISCORD_SERVERS);
-  const [serverMessages, setServerMessages] = useState<ServerMessage[]>([]);
-  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
-  const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>([]);
+  const [serverMessages, setServerMessages] = useState<ServerMessage[]>(INITIAL_SERVER_MESSAGES);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>(INITIAL_DIRECT_MESSAGES);
+  const [grievanceReports, setGrievanceReports] = useState<PrivateGrievanceReport[]>(INITIAL_GRIEVANCE_REPORTS);
   const [savedCollegeIds, setSavedCollegeIds] = useState<string[]>([]);
   const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
 
@@ -383,6 +405,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const analyzeReviewWithAI = (reviewText: string) => {
     return analyzeReviewAspects(reviewText);
+  };
+
+  const [aiServiceStatus, setAiServiceStatus] = useState<AIServiceHealth | null>(null);
+
+  const refreshAIServiceStatus = async (): Promise<AIServiceHealth> => {
+    try {
+      const status = await checkAIServiceHealth();
+      setAiServiceStatus(status);
+      return status;
+    } catch {
+      const fallback: AIServiceHealth = {
+        service: 'Campus Lenz AI Local Engine',
+        status: 'healthy',
+        version: '1.0.0',
+        isExternalServiceActive: false,
+        activeEngine: 'Edge WASM + Local Heuristic Model Matrix',
+        availableModels: ['campus-lenz-ai', 'unitary/toxic-bert', 'distilbert-sst-2', 'nsfwjs-mobilenet-v2'],
+        latencyMs: 1
+      };
+      setAiServiceStatus(fallback);
+      return fallback;
+    }
+  };
+
+  useEffect(() => {
+    refreshAIServiceStatus();
+  }, []);
+
+  const summarizeReviewsWithAI = async (collegeId: string, reviews: string[]): Promise<ReviewSummaryResult> => {
+    return summarizeReviewsAI(collegeId, reviews);
+  };
+
+  const detectDuplicateWithAI = async (textA: string, textB: string, threshold = 0.85): Promise<DuplicateDetectionResult> => {
+    return detectDuplicateAI(textA, textB, threshold);
+  };
+
+  const semanticSearchCollegesWithAI = async (query: string, limit = 5): Promise<SemanticSearchResult> => {
+    return semanticSearchAI(query, colleges, limit);
+  };
+
+  const analyzeMessageWithAI = async (message: string, senderId?: string, recipientId?: string): Promise<MessageAnalysisResult> => {
+    return analyzeMessageAI(message, senderId, recipientId);
+  };
+
+  const analyzeImageWithAI = async (imageUrl?: string, fileName?: string): Promise<ImageAnalysisResult> => {
+    return analyzeImageAI(imageUrl, fileName);
   };
 
   // Dynamic Live Feed & Real-Time Engine State
@@ -493,7 +561,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(rawDb);
 
         if (parsed.allUsers && Array.isArray(parsed.allUsers)) {
-          setAllUsers(parsed.allUsers);
+          const userMap = new Map<string, UserProfile>();
+          INITIAL_USERS.forEach(u => userMap.set(u.id, u));
+          parsed.allUsers.forEach((u: UserProfile) => userMap.set(u.id, u));
+          setAllUsers(Array.from(userMap.values()));
+        } else {
+          setAllUsers(INITIAL_USERS);
         }
         if (parsed.currentUser) {
           setCurrentUser(parsed.currentUser);
@@ -513,22 +586,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setPosts(INITIAL_POSTS);
         }
         if (parsed.reviews && Array.isArray(parsed.reviews)) {
-          setReviews(parsed.reviews);
+          const revMap = new Map<string, CollegeReview>();
+          INITIAL_REVIEWS.forEach(r => revMap.set(r.id, r));
+          parsed.reviews.forEach((r: CollegeReview) => revMap.set(r.id, r));
+          setReviews(Array.from(revMap.values()));
+        } else {
+          setReviews(INITIAL_REVIEWS);
         }
         if (parsed.communities && Array.isArray(parsed.communities)) {
-          setCommunities(parsed.communities);
+          const commMap = new Map<string, Community>();
+          INITIAL_COMMUNITIES.forEach(c => commMap.set(c.id, c));
+          parsed.communities.forEach((c: Community) => commMap.set(c.id, c));
+          setCommunities(Array.from(commMap.values()));
+        } else {
+          setCommunities(INITIAL_COMMUNITIES);
         }
         if (parsed.servers && Array.isArray(parsed.servers)) {
           setServers(parsed.servers);
         }
         if (parsed.serverMessages && Array.isArray(parsed.serverMessages)) {
-          setServerMessages(parsed.serverMessages);
+          const smsgMap = new Map<string, ServerMessage>();
+          INITIAL_SERVER_MESSAGES.forEach(m => smsgMap.set(m.id, m));
+          parsed.serverMessages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
+          setServerMessages(Array.from(smsgMap.values()));
+        } else {
+          setServerMessages(INITIAL_SERVER_MESSAGES);
         }
         if (parsed.directMessages && Array.isArray(parsed.directMessages)) {
-          setDirectMessages(parsed.directMessages);
+          const dmMap = new Map<string, DirectMessage>();
+          INITIAL_DIRECT_MESSAGES.forEach(m => dmMap.set(m.id, m));
+          parsed.directMessages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
+          setDirectMessages(Array.from(dmMap.values()));
+        } else {
+          setDirectMessages(INITIAL_DIRECT_MESSAGES);
         }
         if (parsed.grievanceReports && Array.isArray(parsed.grievanceReports)) {
-          setGrievanceReports(parsed.grievanceReports);
+          const grvMap = new Map<string, PrivateGrievanceReport>();
+          INITIAL_GRIEVANCE_REPORTS.forEach(g => grvMap.set(g.id, g));
+          parsed.grievanceReports.forEach((g: PrivateGrievanceReport) => grvMap.set(g.id, g));
+          setGrievanceReports(Array.from(grvMap.values()));
+        } else {
+          setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
         }
         if (parsed.savedCollegeIds && Array.isArray(parsed.savedCollegeIds)) {
           setSavedCollegeIds(parsed.savedCollegeIds);
@@ -555,14 +653,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) setAuditLogs(parsed.auditLogs);
       } else {
-        setAllUsers([]);
+        setAllUsers(INITIAL_USERS);
         setPosts(INITIAL_POSTS);
-        setReviews([]);
-        setCommunities([]);
+        setReviews(INITIAL_REVIEWS);
+        setCommunities(INITIAL_COMMUNITIES);
         setServers(INITIAL_DISCORD_SERVERS);
-        setServerMessages([]);
-        setDirectMessages([]);
-        setGrievanceReports([]);
+        setServerMessages(INITIAL_SERVER_MESSAGES);
+        setDirectMessages(INITIAL_DIRECT_MESSAGES);
+        setGrievanceReports(INITIAL_GRIEVANCE_REPORTS);
         setStudyRooms([]);
         setCourseQuestions([]);
         setMarketplaceItems([]);
@@ -580,9 +678,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.error('Storage hydration error:', e);
-      setAllUsers([]);
+      setAllUsers(INITIAL_USERS);
       setServers(INITIAL_DISCORD_SERVERS);
-      setPosts([]);
+      setPosts(INITIAL_POSTS);
+      setServerMessages(INITIAL_SERVER_MESSAGES);
+      setDirectMessages(INITIAL_DIRECT_MESSAGES);
       setEmergencyBroadcast(null);
     } finally {
       setHasHydrated(true);
@@ -651,7 +751,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (userRes.status === 'fulfilled' && userRes.value.ok) {
           const userData = await userRes.value.json();
           if (userData.success && Array.isArray(userData.users)) {
-            setAllUsers(userData.users);
+            setAllUsers(prev => {
+              const userMap = new Map<string, UserProfile>();
+              INITIAL_USERS.forEach(u => userMap.set(u.id, u));
+              prev.forEach(u => userMap.set(u.id, u));
+              userData.users.forEach((u: UserProfile) => userMap.set(u.id, u));
+              return Array.from(userMap.values());
+            });
             setCurrentUser(prevUser => {
               if (!prevUser) return null;
               const fresh = userData.users.find((u: UserProfile) =>
@@ -691,15 +797,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (dmRes.status === 'fulfilled' && dmRes.value.ok) {
           const dmData = await dmRes.value.json();
-          if (dmData.success && Array.isArray(dmData.messages) && dmData.messages.length > 0) {
-            setDirectMessages(dmData.messages);
+          if (dmData.success && Array.isArray(dmData.messages)) {
+            setDirectMessages(prev => {
+              const dmMap = new Map<string, DirectMessage>();
+              INITIAL_DIRECT_MESSAGES.forEach(m => dmMap.set(m.id, m));
+              prev.forEach(m => dmMap.set(m.id, m));
+              dmData.messages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
+              return Array.from(dmMap.values());
+            });
           }
         }
 
         if (smsgRes.status === 'fulfilled' && smsgRes.value.ok) {
           const smsgData = await smsgRes.value.json();
-          if (smsgData.success && Array.isArray(smsgData.messages) && smsgData.messages.length > 0) {
-            setServerMessages(smsgData.messages);
+          if (smsgData.success && Array.isArray(smsgData.messages)) {
+            setServerMessages(prev => {
+              const smsgMap = new Map<string, ServerMessage>();
+              INITIAL_SERVER_MESSAGES.forEach(m => smsgMap.set(m.id, m));
+              prev.forEach(m => smsgMap.set(m.id, m));
+              smsgData.messages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
+              return Array.from(smsgMap.values());
+            });
           }
         }
 
@@ -732,6 +850,150 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // 1.6. Real-Time 3-Second Webapp Auto-Reload Engine (Seamless Cloud Sync)
+  const reloadWebappData = async () => {
+    try {
+      const [colRes, postRes, revRes, userRes, commRes, grvRes, dmRes, smsgRes] = await Promise.allSettled([
+        fetch('/api/colleges'),
+        fetch('/api/posts'),
+        fetch('/api/reviews'),
+        fetch('/api/users'),
+        fetch('/api/communities'),
+        fetch('/api/grievances'),
+        fetch('/api/direct-messages'),
+        fetch('/api/server-messages')
+      ]);
+
+      if (postRes.status === 'fulfilled' && postRes.value.ok) {
+        const postData = await postRes.value.json();
+        if (postData.success && Array.isArray(postData.posts)) {
+          setPosts(prev => {
+            const cloudMap = new Map(postData.posts.map((cp: Post) => [cp.id, cp]));
+            const merged = postData.posts.map((cp: Post) => {
+              const localMatch = prev.find(p => p.id === cp.id || p.content === cp.content);
+              return {
+                ...cp,
+                imageUrl: cp.imageUrl || localMatch?.imageUrl || null
+              };
+            });
+            prev.forEach(localP => {
+              if (!cloudMap.has(localP.id) && !merged.some((m: Post) => m.content === localP.content)) {
+                merged.push(localP);
+              }
+            });
+            if (merged.length !== prev.length || (merged[0]?.id !== prev[0]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (dmRes.status === 'fulfilled' && dmRes.value.ok) {
+        const dmData = await dmRes.value.json();
+        if (dmData.success && Array.isArray(dmData.messages)) {
+          setDirectMessages(prev => {
+            const dmMap = new Map<string, DirectMessage>();
+            INITIAL_DIRECT_MESSAGES.forEach(m => dmMap.set(m.id, m));
+            prev.forEach(m => dmMap.set(m.id, m));
+            dmData.messages.forEach((m: DirectMessage) => dmMap.set(m.id, m));
+            const merged = Array.from(dmMap.values());
+            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (smsgRes.status === 'fulfilled' && smsgRes.value.ok) {
+        const smsgData = await smsgRes.value.json();
+        if (smsgData.success && Array.isArray(smsgData.messages)) {
+          setServerMessages(prev => {
+            const smsgMap = new Map<string, ServerMessage>();
+            INITIAL_SERVER_MESSAGES.forEach(m => smsgMap.set(m.id, m));
+            prev.forEach(m => smsgMap.set(m.id, m));
+            smsgData.messages.forEach((m: ServerMessage) => smsgMap.set(m.id, m));
+            const merged = Array.from(smsgMap.values());
+            if (merged.length !== prev.length || (merged.length > 0 && merged[merged.length - 1].id !== prev[prev.length - 1]?.id)) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (userRes.status === 'fulfilled' && userRes.value.ok) {
+        const userData = await userRes.value.json();
+        if (userData.success && Array.isArray(userData.users)) {
+          setAllUsers(prev => {
+            const userMap = new Map<string, UserProfile>();
+            INITIAL_USERS.forEach(u => userMap.set(u.id, u));
+            prev.forEach(u => userMap.set(u.id, u));
+            userData.users.forEach((u: UserProfile) => userMap.set(u.id, u));
+            const merged = Array.from(userMap.values());
+            if (merged.length !== prev.length) {
+              return merged;
+            }
+            return prev;
+          });
+        }
+      }
+
+      if (commRes.status === 'fulfilled' && commRes.value.ok) {
+        const commData = await commRes.value.json();
+        if (commData.success && Array.isArray(commData.communities) && commData.communities.length > 0) {
+          setCommunities(commData.communities);
+        }
+      }
+
+      if (grvRes.status === 'fulfilled' && grvRes.value.ok) {
+        const grvData = await grvRes.value.json();
+        if (grvData.success && Array.isArray(grvData.grievances) && grvData.grievances.length > 0) {
+          setGrievanceReports(grvData.grievances);
+        }
+      }
+
+      if (revRes.status === 'fulfilled' && revRes.value.ok) {
+        const revData = await revRes.value.json();
+        if (revData.success && Array.isArray(revData.reviews) && revData.reviews.length > 0) {
+          setReviews(revData.reviews);
+        }
+      }
+
+      if (colRes.status === 'fulfilled' && colRes.value.ok) {
+        const colData = await colRes.value.json();
+        if (colData.success && colData.colleges?.length > 0) {
+          setColleges(colData.colleges);
+        }
+      }
+    } catch {
+      // silent background reload notice
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        reloadWebappData();
+      }
+    }, 3000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMounted) {
+        reloadWebappData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -866,24 +1128,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const initializeTestUser = (
     role: UserRole
   ): { user: UserProfile; redirectUrl: string; message: string } => {
-    const existing = allUsers.find(u => u.role === role);
-    if (existing) {
-      setCurrentUser(existing);
+    const CANONICAL_ROLE_MAP: Partial<Record<UserRole, { id: string; username: string }>> = {
+      student: { id: 'user-student-demo', username: 'student_scholar' },
+      alumni: { id: 'user-alumni-demo', username: 'alumni_mentor' },
+      faculty: { id: 'user-faculty-demo', username: 'academic_faculty' },
+      staff: { id: 'user-faculty-demo', username: 'academic_faculty' },
+      institution: { id: 'user-inst-demo', username: 'institution_admin' },
+      admin: { id: 'user-admin-system', username: 'system_admin' }
+    };
+
+    const targetInfo = CANONICAL_ROLE_MAP[role];
+    let matchedUser = allUsers.find(
+      u => (targetInfo && (u.id === targetInfo.id || u.username === targetInfo.username))
+    ) || allUsers.find(u => u.role === role);
+
+    if (!matchedUser && targetInfo) {
+      matchedUser = INITIAL_USERS.find(
+        u => u.id === targetInfo.id || u.username === targetInfo.username || u.role === role
+      );
+      if (matchedUser) {
+        setAllUsers(prev => [matchedUser!, ...prev.filter(p => p.id !== matchedUser!.id)]);
+      }
+    }
+
+    if (matchedUser) {
+      setCurrentUser(matchedUser);
       setIsAuthenticated(true);
       try {
-        localStorage.setItem('campus_lenz_user', JSON.stringify(existing));
+        localStorage.setItem('campus_lenz_user', JSON.stringify(matchedUser));
         localStorage.setItem('campus_lenz_auth', 'true');
       } catch {}
       return {
-        user: existing,
-        redirectUrl: getRedirectUrlForRole(existing.role),
-        message: `Signed in as [${role.toUpperCase()}]: ${existing.fullName}`
+        user: matchedUser,
+        redirectUrl: getRedirectUrlForRole(matchedUser.role),
+        message: `Signed in as [${role.toUpperCase()}]: ${matchedUser.fullName}`
       };
     }
 
     const testPersona: UserProfile = {
-      id: `user-${role}-${Date.now()}`,
-      username: `${role}_demo`,
+      id: targetInfo?.id || `user-${role}-${Date.now()}`,
+      username: targetInfo?.username || `${role}_demo`,
       email: `${role}@campuslenz.edu`,
       role,
       fullName:
@@ -920,7 +1204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString()
     };
 
-    setAllUsers(prev => [testPersona, ...prev]);
+    setAllUsers(prev => [testPersona, ...prev.filter(p => p.id !== testPersona.id)]);
     setCurrentUser(testPersona);
     setIsAuthenticated(true);
 
@@ -1336,7 +1620,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       collegeId: newRev.collegeId,
       collegeName: targetCollege?.name,
       topic: 'Review & Ratings',
-      content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`
+      content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`,
+      isInstitutionReviewOnly: true,
+      institutionRating: newRev.overallRating
     });
 
     fetch('/api/reviews', {
@@ -3269,6 +3555,7 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         applyUnreadLivePosts,
         triggerLiveActivity,
         resetAllUserData,
+        reloadWebappData,
         studyRooms,
         addStudyRoom,
         courseQuestions,
@@ -3316,7 +3603,14 @@ ${grievanceReports.map(g => `  - [${g.id}] to ${g.collegeName} (${g.category}) -
         runOpenSourceAIModeration,
         analyzePostWithAI,
         classifyTextCategory,
-        analyzeReviewWithAI
+        analyzeReviewWithAI,
+        summarizeReviewsWithAI,
+        detectDuplicateWithAI,
+        semanticSearchCollegesWithAI,
+        analyzeMessageWithAI,
+        analyzeImageWithAI,
+        aiServiceStatus,
+        refreshAIServiceStatus
       }}
     >
       {children}
