@@ -349,6 +349,20 @@ export interface UnifiedAIModerationResult {
   postAnalysis?: PostAnalysisResult;
 }
 
+export interface ContentPurificationResult {
+  originalText: string;
+  purifiedText: string;
+  isNegative: boolean;
+  isPurified: boolean;
+  sentiment: 'positive' | 'neutral' | 'negative' | 'ragebait' | 'toxic';
+  toxicityScore: number;
+  flaggedTerms: string[];
+  reasons: string[];
+  shouldAlertCollege: boolean;
+  alertEmailRecipient: string;
+  action: 'publish' | 'purify' | 'quarantine';
+}
+
 export interface AIModelSettings {
   autoBanThreshold: number;
   blurThreshold: number;

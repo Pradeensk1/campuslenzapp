@@ -50,6 +50,7 @@ import { useApp } from '@/lib/AppContext';
 import { Post } from '@/types';
 import { isVideoMedia, formatFileSize, compressImageToDataUrl } from '@/lib/mediaUtils';
 import PinterestImageModal from '@/components/PinterestImageModal';
+import { purifyContentText, classifyImageSafety, COLLEGE_INCIDENT_EMAIL_RECIPIENT } from '@/lib/aiModerationModels';
 import AlumniHomeView from '@/components/home/AlumniHomeView';
 import FacultyHomeView from '@/components/home/FacultyHomeView';
 import InstitutionHomeView from '@/components/home/InstitutionHomeView';
@@ -158,7 +159,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAnonymousPost, setIsAnonymousPost] = useState(false);
   const [postType, setPostType] = useState<'stream' | 'review' | 'feedback'>('stream');
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
   const [institutionReviewCollegeId, setInstitutionReviewCollegeId] = useState('');
@@ -237,7 +237,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     }
   };
 
-  const handleQuickPostSubmit = (e: React.FormEvent) => {
+  const handleQuickPostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       setActionFeedback('⚠️ Please sign in or register to publish a post.');
@@ -246,11 +246,57 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     }
     if (!postContent.trim()) return;
 
-    const isAnonymous = currentUser.role === 'student' ? isAnonymousPost : false;
+    // 1. Text Classification & AI Content Purification
+    const fullTextToAnalyze = `${institutionReviewTitle} ${postContent} ${institutionReviewPros} ${institutionReviewCons}`.trim();
+    const purification = purifyContentText(fullTextToAnalyze);
+    const contentPurification = purifyContentText(postContent.trim());
+    const purifiedPostContent = contentPurification.purifiedText;
+
+    // 2. Image Safety & Visual Classification
+    const imageSafety = postImageUrl ? classifyImageSafety(postImageUrl, mediaFile?.name) : undefined;
+
+    // 3. Automated Redirection & Incident Alert to College Mail (pkeditxoffical@gmail.com)
+    const hasViolation = purification.shouldAlertCollege || purification.isPurified || (imageSafety && imageSafety.status !== 'safe');
+    if (hasViolation) {
+      try {
+        fetch('/api/moderation/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: {
+              fullName: currentUser.fullName,
+              username: currentUser.username,
+              studentRollNo: currentUser.studentRollNo || (currentUser as any)?.rollNo || 'REG-STUDENT-VERIFIED',
+              collegeName: currentUser.collegeName,
+              department: currentUser.department || currentUser.course || 'School of Engineering',
+              graduationBatch: currentUser.graduationBatch || '2026',
+              role: currentUser.role
+            },
+            purification: {
+              ...purification,
+              originalText: postContent.trim(),
+              purifiedText: purifiedPostContent
+            },
+            imageSafety,
+            source: postType === 'review' ? 'college_review' : postType === 'feedback' ? 'feed_feedback' : 'feed_post',
+            targetEmail: COLLEGE_INCIDENT_EMAIL_RECIPIENT
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Automated college incident alert error:', err);
+      }
+    }
+
+    // Anonymous posting is completely disabled — all posts carry verified student attribution
+    const isAnonymous = false;
     const isKnowledgeBased = currentUser.role === 'faculty';
 
+    // Feedback message customized based on whether content was purified
+    const moderationFeedbackMessage = purification.isPurified
+      ? `✨ Content purified by AI safety filter. An incident report has been dispatched to college administration (${COLLEGE_INCIDENT_EMAIL_RECIPIENT}).`
+      : null;
+
     // OPTION 2: If student selected "Institution Review & Rating", submit structured review to institution ledger
-    // addReview automatically records in the institution platform review section AND broadcasts to Public Campus Stream
     if (currentUser.role === 'student' && postType === 'review') {
       const targetCollegeId = institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || 'col-psg';
       const chosenCollege = colleges.find(c => c.id === targetCollegeId || c.name === currentUser.collegeName);
@@ -262,8 +308,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
         collegeId: targetCollegeId,
         userId: currentUser.id,
         reviewerType: 'student',
-        authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
-        isAnonymous,
+        authorName: currentUser.fullName,
+        authorUsername: currentUser.username,
+        isAnonymous: false,
         overallRating: institutionReviewRating,
         dimensions: {
           academics: institutionReviewRating,
@@ -276,7 +323,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
           studentExperience: institutionReviewRating
         },
         title: institutionReviewTitle.trim() || `${institutionReviewCategory} Evaluation`,
-        experience: postContent.trim(),
+        experience: purifiedPostContent,
         pros: parsedPros,
         cons: parsedCons,
         advice: '',
@@ -288,7 +335,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
       setPostContent('');
       handleRemoveMedia();
-      setIsAnonymousPost(false);
       setPostType('stream');
       setInstitutionReviewRating(5);
       setInstitutionReviewTitle('');
@@ -298,9 +344,10 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       setFeedFilter('all');
       setFeedSentimentFilter('all');
       setActionFeedback(
+        moderationFeedbackMessage ||
         `🎉 Review posted to Campus Social Stream and added to ${chosenCollege?.name || 'Institution'}'s Review Section!`
       );
-      setTimeout(() => setActionFeedback(null), 4000);
+      setTimeout(() => setActionFeedback(null), 5000);
       return;
     }
 
@@ -311,15 +358,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
       const res = addPost({
         authorId: currentUser.id,
-        authorUsername: isAnonymous ? 'anonymous_student' : currentUser.username,
-        authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
+        authorUsername: currentUser.username,
+        authorName: currentUser.fullName,
         authorRole: currentUser.role,
-        authorHeadline: isAnonymous ? 'Verified Student (Feedback)' : currentUser.headline,
-        isVerifiedAuthor: isAnonymous ? false : currentUser.isVerified,
-        isAnonymous,
+        authorHeadline: currentUser.headline,
+        isVerifiedAuthor: currentUser.isVerified,
+        isAnonymous: false,
         collegeId: targetCollegeId,
         collegeName: chosenCollege?.name || currentUser.collegeName,
-        content: postContent.trim(),
+        content: purifiedPostContent,
         topic: `Feedback: ${quickFeedbackCategory}`,
         postType: 'feedback',
         rating: quickFeedbackRating,
@@ -331,14 +378,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       if (res.success) {
         setPostContent('');
         handleRemoveMedia();
-        setIsAnonymousPost(false);
         setPostType('stream');
         setQuickFeedbackTarget('');
         setQuickFeedbackRating(4);
         setIsComposing(false);
         setFeedFilter('feedback');
-        setActionFeedback('🎉 Feedback submitted to the Dedicated Campus Feedback Portal!');
-        setTimeout(() => setActionFeedback(null), 4000);
+        setActionFeedback(
+          moderationFeedbackMessage ||
+          '🎉 Feedback submitted to the Dedicated Campus Feedback Portal!'
+        );
+        setTimeout(() => setActionFeedback(null), 5000);
       } else {
         setActionFeedback(res.message || 'Could not submit feedback.');
         setTimeout(() => setActionFeedback(null), 4000);
@@ -349,16 +398,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     // OPTION 1: Standard Public Campus Social Stream Post
     const res = addPost({
       authorId: currentUser.id,
-      authorUsername: isAnonymous ? 'anonymous_student' : currentUser.username,
-      authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
+      authorUsername: currentUser.username,
+      authorName: currentUser.fullName,
       authorRole: currentUser.role,
-      authorHeadline: isAnonymous ? 'Verified Student (Anonymous Post)' : currentUser.headline,
-      isVerifiedAuthor: isAnonymous ? false : currentUser.isVerified,
-      isAnonymous,
+      authorHeadline: currentUser.headline,
+      isVerifiedAuthor: currentUser.isVerified,
+      isAnonymous: false,
       isKnowledgeBased,
       collegeId: currentUser.collegeId,
       collegeName: currentUser.collegeName,
-      content: postContent.trim(),
+      content: purifiedPostContent,
       topic: postTopic,
       imageUrl: postImageUrl.trim() || undefined
     });
@@ -366,13 +415,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
     if (res.success) {
       setPostContent('');
       handleRemoveMedia();
-      setIsAnonymousPost(false);
       setPostType('stream');
       setIsComposing(false);
       setFeedFilter('all');
       setFeedSentimentFilter('all');
-      setActionFeedback('🎉 Post published to live campus stream!');
-      setTimeout(() => setActionFeedback(null), 4000);
+      setActionFeedback(
+        moderationFeedbackMessage ||
+        '🎉 Post published to live campus stream!'
+      );
+      setTimeout(() => setActionFeedback(null), 5000);
     } else {
       setActionFeedback(res.message || 'Could not publish post.');
       setTimeout(() => setActionFeedback(null), 4000);
@@ -1415,18 +1466,15 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             </div>
                           )}
 
-                          {/* Anonymous Toggle */}
-                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-slate-200 text-xs">
-                            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                              <input
-                                type="checkbox"
-                                checked={isAnonymousPost}
-                                onChange={e => setIsAnonymousPost(e.target.checked)}
-                                className="h-3.5 w-3.5 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                              />
-                              <span>Post Anonymously (Hide Name & Profile)</span>
-                            </label>
-                            <span className="text-[10px] text-slate-400">Protects student identity</span>
+                          {/* Verified Contributor Identity Badge */}
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
+                            <div className="flex items-center gap-2 font-semibold text-blue-900">
+                              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                              <span>Posting as <strong>{currentUser.fullName}</strong> (@{currentUser.username})</span>
+                            </div>
+                            <span className="text-[10px] font-medium text-blue-700 bg-white/90 px-2 py-0.5 rounded-full border border-blue-200">
+                              Verified Student Identity
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1561,7 +1609,6 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               setIsComposing(false);
                               setPostContent('');
                               setPostImageUrl('');
-                              setIsAnonymousPost(false);
                               setPostType('stream');
                               setInstitutionReviewRating(5);
                               setInstitutionReviewTitle('');

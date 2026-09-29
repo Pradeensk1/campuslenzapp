@@ -16,15 +16,18 @@ import {
   Briefcase,
   GraduationCap,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Palette
 } from 'lucide-react';
 import { useApp } from '@/lib/AppContext';
+import { useTheme } from '@/lib/ThemeContext';
 import { motion } from 'framer-motion';
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, isAuthenticated, logout } = useApp();
+  const { setIsCustomizerOpen, themeConfig } = useTheme();
 
   // Hide navigation bar completely on auth pages (Login & Register)
   const isAuthPage =
@@ -137,6 +140,17 @@ export default function Navigation() {
 
           {/* Apple Identity & Sign Out Section */}
           <div className="flex items-center space-x-2 flex-shrink-0">
+            {/* Theme Customizer Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsCustomizerOpen(true)}
+              title={`Theme: ${themeConfig.name} (Click to customize)`}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-full border border-white/60 bg-white/40 hover:bg-white/70 hover:border-white/90 text-xs font-bold text-[#05233b] backdrop-blur-md transition-all shadow-xs flex items-center gap-1.5 touch-manipulation active:scale-95"
+            >
+              <Palette className="w-3.5 h-3.5 text-[#1687D4]" />
+              <span className="hidden lg:inline text-[11px] font-bold">Theme</span>
+            </button>
+
             {isAuthenticated && currentUser ? (
               <div className="flex items-center gap-2">
                 {/* User Info Capsule */}
@@ -235,6 +249,16 @@ export default function Navigation() {
               </Link>
             );
           })}
+          {/* Mobile Theme Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsCustomizerOpen(true)}
+            aria-label="Customize Theme"
+            className="flex flex-col items-center justify-center py-2 px-2.5 rounded-2xl text-[#075080]/75 hover:text-[#1687D4] transition-all duration-150 active:scale-90 touch-manipulation min-w-[48px]"
+          >
+            <Palette className="h-4 w-4" />
+            <span className="mt-0.5 text-[9.5px] font-bold tracking-tight">Theme</span>
+          </button>
         </nav>
       </div>
     </>

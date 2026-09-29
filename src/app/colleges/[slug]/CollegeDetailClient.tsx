@@ -7,6 +7,7 @@ import {
   MapPin,
   Award,
   Shield,
+  ShieldCheck,
   Star,
   ThumbsUp,
   ThumbsDown,
@@ -31,6 +32,7 @@ import {
 import { useApp } from '@/lib/AppContext';
 import { ReviewSummaryResult } from '@/types';
 import { INITIAL_COLLEGES } from '@/lib/mockData';
+import { purifyContentText, COLLEGE_INCIDENT_EMAIL_RECIPIENT } from '@/lib/aiModerationModels';
 
 export default function CollegeDetailClient({
   slug,
@@ -161,29 +163,53 @@ export default function CollegeDetailClient({
   const [courseInput, setCourseInput] = useState(currentUser?.course || 'Computer Science & Engineering');
   const [batchInput, setBatchInput] = useState(currentUser?.graduationBatch || '2026');
   const [departmentInput, setDepartmentInput] = useState(currentUser?.department || 'School of Engineering');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [recommendation, setRecommendation] = useState(true);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !experience.trim()) return;
+
+    // AI Text Classification & Content Purification
+    const fullReviewText = `${title} ${experience} ${prosInput} ${consInput} ${adviceInput}`.trim();
+    const purification = purifyContentText(fullReviewText);
+    const purifiedExperience = purifyContentText(experience.trim()).purifiedText;
+
+    // Automated College Incident Alert Dispatch to pkeditxoffical@gmail.com
+    if (purification.shouldAlertCollege || purification.isPurified) {
+      try {
+        fetch('/api/moderation/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: {
+              fullName: currentUser?.fullName || 'Campus Contributor',
+              username: currentUser?.username || 'reviewer_user',
+              studentRollNo: (currentUser as any)?.studentRollNo || (currentUser as any)?.rollNo || 'REG-VERIFIED',
+              collegeName: college.name,
+              department: departmentInput || currentUser?.department || 'Academics',
+              graduationBatch: batchInput || '2026',
+              role: reviewerType
+            },
+            purification,
+            source: 'college_review',
+            targetEmail: COLLEGE_INCIDENT_EMAIL_RECIPIENT
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Moderation dispatch error:', err);
+      }
+    }
 
     const parsedPros = prosInput ? prosInput.split(',').map((s) => s.trim()).filter(Boolean) : [];
     const parsedCons = consInput ? consInput.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
-    const authorDisplayName = isAnonymous
-      ? reviewerType === 'student'
-        ? 'Anonymous Student'
+    const authorDisplayName = currentUser?.fullName ||
+      (reviewerType === 'student'
+        ? 'Student Reviewer'
         : reviewerType === 'alumni'
-        ? 'Anonymous Alumni'
-        : 'Anonymous Faculty'
-      : currentUser?.fullName ||
-        (reviewerType === 'student'
-          ? 'Student Reviewer'
-          : reviewerType === 'alumni'
-          ? 'Alumni Mentor'
-          : 'Faculty Member');
+        ? 'Alumni Mentor'
+        : 'Faculty Member');
 
     addReview({
       collegeId: college.id,
@@ -191,7 +217,7 @@ export default function CollegeDetailClient({
       reviewerType,
       authorName: authorDisplayName,
       authorUsername: currentUser?.username || 'verified_reviewer',
-      isAnonymous,
+      isAnonymous: false,
       overallRating: rating,
       dimensions: {
         academics: rating,
@@ -204,7 +230,7 @@ export default function CollegeDetailClient({
         studentExperience: rating,
       },
       title: title.trim(),
-      experience: experience.trim(),
+      experience: purifiedExperience,
       pros: parsedPros,
       cons: parsedCons,
       advice: adviceInput.trim(),
@@ -221,9 +247,12 @@ export default function CollegeDetailClient({
     setConsInput('');
     setAdviceInput('');
     setRating(5);
-    setIsAnonymous(false);
 
-    setFeedbackSuccess('🎉 Review posted to Campus Social Stream and added to institution ledger!');
+    const feedbackMsg = purification.isPurified
+      ? `✨ Review purified by AI safety filter. An incident report has been forwarded to administration (${COLLEGE_INCIDENT_EMAIL_RECIPIENT}).`
+      : '🎉 Review posted to Campus Social Stream and added to institution ledger!';
+
+    setFeedbackSuccess(feedbackMsg);
     setTimeout(() => setFeedbackSuccess(null), 5000);
   };
 
@@ -976,18 +1005,17 @@ export default function CollegeDetailClient({
                 />
               </div>
 
-              {/* Anonymous Checkbox */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                  />
-                  <span>Post Review Anonymously (Hide Name &amp; Profile)</span>
-                </label>
-                <span className="text-[10px] text-slate-400">Protects identity</span>
+              {/* Verified Reviewer Identity Badge */}
+              <div className="flex items-center space-x-3 rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-xs">
+                <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-blue-950 font-semibold text-xs">
+                    Verified Attribution: <strong className="text-blue-900">{currentUser?.fullName || 'Verified Contributor'}</strong>
+                  </p>
+                  <p className="text-[10px] text-blue-700/80 mt-0.5">
+                    Reviews carry verified identity for authentic institutional feedback.
+                  </p>
+                </div>
               </div>
 
               {/* Modal Actions */}

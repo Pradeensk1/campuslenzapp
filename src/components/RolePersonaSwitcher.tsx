@@ -35,8 +35,8 @@ const PERSONA_OPTIONS: PersonaOption[] = [
     username: 'student_scholar',
     icon: GraduationCap,
     color: 'from-[#1687D4] to-[#0875BD] text-[#1687D4] bg-[#E8F5FF] border-[#CFEAFF]',
-    badge: 'Social & Anonymous',
-    summary: 'Full social feed, anonymous posting switch, join/leave communities freely'
+    badge: 'Verified Campus Social',
+    summary: 'Full campus feed, automated AI content purification, verified student identity'
   },
   {
     role: 'alumni',

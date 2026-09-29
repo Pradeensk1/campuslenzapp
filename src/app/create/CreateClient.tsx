@@ -3,8 +3,9 @@
 import { useState, useDeferredValue, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/AppContext';
-import { Star, Shield, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip, Building2 } from 'lucide-react';
+import { Star, Shield, ShieldCheck, MessageSquare, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, Image as ImageIcon, X, AlertTriangle, Video, Paperclip, Building2 } from 'lucide-react';
 import { isVideoMedia, formatFileSize, compressImageToDataUrl } from '@/lib/mediaUtils';
+import { purifyContentText, classifyImageSafety, COLLEGE_INCIDENT_EMAIL_RECIPIENT } from '@/lib/aiModerationModels';
 
 export default function CreateClient({
   initialColleges = [],
@@ -34,7 +35,6 @@ export default function CreateClient({
   const [postContent, setPostContent] = useState('');
   const deferredPostContent = useDeferredValue(postContent);
   const [postTopic, setPostTopic] = useState('Campus Life');
-  const [postAnonymous, setPostAnonymous] = useState(false);
   const [postType, setPostType] = useState<'stream' | 'review' | 'feedback'>(
     queryTab === 'feedback' ? 'feedback' : 'stream'
   );
@@ -182,7 +182,6 @@ export default function CreateClient({
   const [reviewAdvice, setReviewAdvice] = useState('');
   const [reviewCourse, setReviewCourse] = useState('MCA');
   const [reviewBatch, setReviewBatch] = useState('2025');
-  const [reviewAnonymous, setReviewAnonymous] = useState(false);
   const [ratingOverall, setRatingOverall] = useState(5);
   const [ratings, setRatings] = useState({
     academics: 5,
@@ -224,7 +223,7 @@ export default function CreateClient({
     }
   }, [queryCollegeId, activeColleges, postCollegeId, reviewCollegeId, feedbackCollegeId]);
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedbackContent.trim()) return;
     if (isOptimizingMedia) {
@@ -236,17 +235,49 @@ export default function CreateClient({
     setPostError(null);
     const chosenCollege = activeColleges.find(c => c.id === feedbackCollegeId);
 
+    // AI Text Classification & Purification
+    const purification = purifyContentText(feedbackContent.trim());
+    const purifiedContent = purification.purifiedText;
+    const imageSafety = postImageUrl ? classifyImageSafety(postImageUrl, mediaFileName) : undefined;
+
+    // Automated Redirection / Dispatch to College Mail (pkeditxoffical@gmail.com)
+    if (purification.shouldAlertCollege || purification.isPurified || (imageSafety && imageSafety.status !== 'safe')) {
+      try {
+        fetch('/api/moderation/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: {
+              fullName: currentUser?.fullName || 'Student Contributor',
+              username: currentUser?.username || 'student_user',
+              studentRollNo: (currentUser as any)?.studentRollNo || (currentUser as any)?.rollNo || 'REG-VERIFIED',
+              collegeName: chosenCollege?.name || currentUser?.collegeName || 'Campus',
+              department: currentUser?.department || currentUser?.course || 'Academics',
+              graduationBatch: currentUser?.graduationBatch || '2026',
+              role: currentUser?.role || 'student'
+            },
+            purification,
+            imageSafety,
+            source: 'feed_feedback',
+            targetEmail: COLLEGE_INCIDENT_EMAIL_RECIPIENT
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Moderation dispatch error:', err);
+      }
+    }
+
     const res = addPost({
       authorId: currentUser?.id || 'guest',
-      authorUsername: postAnonymous ? 'anonymous_student' : (currentUser?.username || 'student_guest'),
-      authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor'),
+      authorUsername: currentUser?.username || 'student_guest',
+      authorName: currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor',
       authorRole: currentUser?.role || 'student',
-      authorHeadline: postAnonymous ? 'Anonymous Student Contributor' : (currentUser?.headline || 'Campus Contributor'),
-      isVerifiedAuthor: postAnonymous ? false : Boolean(currentUser?.isVerified),
-      isAnonymous: postAnonymous,
+      authorHeadline: currentUser?.headline || 'Campus Contributor',
+      isVerifiedAuthor: Boolean(currentUser?.isVerified),
+      isAnonymous: false,
       collegeId: feedbackCollegeId,
       collegeName: chosenCollege?.name,
-      content: feedbackContent.trim(),
+      content: purifiedContent,
       topic: `Feedback: ${feedbackCategory}`,
       postType: 'feedback',
       rating: feedbackRating,
@@ -265,7 +296,7 @@ export default function CreateClient({
     router.push('/?filter=feedback');
   };
 
-  const handlePostSubmit = (e: React.FormEvent) => {
+  const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postContent.trim()) return;
     if (isOptimizingMedia) {
@@ -277,18 +308,56 @@ export default function CreateClient({
     setPostError(null);
     const chosenCollege = activeColleges.find(c => c.id === postCollegeId);
 
+    // AI Text Classification & Purification
+    const fullText = `${institutionReviewTitle} ${postContent} ${institutionReviewPros} ${institutionReviewCons}`.trim();
+    const purification = purifyContentText(fullText);
+    const contentPurification = purifyContentText(postContent.trim());
+    const purifiedPostContent = contentPurification.purifiedText;
+    const imageSafety = postImageUrl ? classifyImageSafety(postImageUrl, mediaFileName) : undefined;
+
+    // Automated College Incident Dispatch to pkeditxoffical@gmail.com
+    if (purification.shouldAlertCollege || purification.isPurified || (imageSafety && imageSafety.status !== 'safe')) {
+      try {
+        fetch('/api/moderation/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: {
+              fullName: currentUser?.fullName || 'Student Contributor',
+              username: currentUser?.username || 'student_user',
+              studentRollNo: (currentUser as any)?.studentRollNo || (currentUser as any)?.rollNo || 'REG-VERIFIED',
+              collegeName: chosenCollege?.name || currentUser?.collegeName || 'Campus',
+              department: currentUser?.department || currentUser?.course || 'Academics',
+              graduationBatch: currentUser?.graduationBatch || '2026',
+              role: currentUser?.role || 'student'
+            },
+            purification: {
+              ...purification,
+              originalText: postContent.trim(),
+              purifiedText: purifiedPostContent
+            },
+            imageSafety,
+            source: postType === 'review' ? 'college_review' : postType === 'feedback' ? 'feed_feedback' : 'feed_post',
+            targetEmail: COLLEGE_INCIDENT_EMAIL_RECIPIENT
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Moderation dispatch error:', err);
+      }
+    }
+
     if (postType === 'feedback') {
       const res = addPost({
         authorId: currentUser?.id || 'guest',
-        authorUsername: postAnonymous ? 'anonymous_student' : (currentUser?.username || 'student_guest'),
-        authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor'),
+        authorUsername: currentUser?.username || 'student_guest',
+        authorName: currentUser?.fullName || (currentUser as any)?.name || 'Student Contributor',
         authorRole: currentUser?.role || 'student',
-        authorHeadline: postAnonymous ? 'Anonymous Student Contributor' : (currentUser?.headline || 'Campus Contributor'),
-        isVerifiedAuthor: postAnonymous ? false : Boolean(currentUser?.isVerified),
-        isAnonymous: postAnonymous,
+        authorHeadline: currentUser?.headline || 'Campus Contributor',
+        isVerifiedAuthor: Boolean(currentUser?.isVerified),
+        isAnonymous: false,
         collegeId: postCollegeId,
         collegeName: chosenCollege?.name,
-        content: postContent.trim(),
+        content: purifiedPostContent,
         topic: `Feedback: ${feedbackCategory}`,
         postType: 'feedback',
         rating: feedbackRating,
@@ -316,8 +385,9 @@ export default function CreateClient({
         collegeId: postCollegeId,
         userId: currentUser?.id || 'guest',
         reviewerType: 'student',
-        authorName: postAnonymous ? 'Anonymous Student' : (currentUser?.fullName || 'Student Contributor'),
-        isAnonymous: postAnonymous,
+        authorName: currentUser?.fullName || 'Student Contributor',
+        authorUsername: currentUser?.username || 'student_user',
+        isAnonymous: false,
         overallRating: institutionReviewRating,
         dimensions: {
           academics: institutionReviewRating,
@@ -330,7 +400,7 @@ export default function CreateClient({
           studentExperience: institutionReviewRating
         },
         title: institutionReviewTitle.trim() || `${institutionReviewCategory} Evaluation`,
-        experience: postContent.trim(),
+        experience: purifiedPostContent,
         pros: parsedPros,
         cons: parsedCons,
         advice: '',
@@ -352,10 +422,10 @@ export default function CreateClient({
       authorRole: currentUser?.role || 'student',
       authorHeadline: currentUser?.headline || 'Student Contributor',
       isVerifiedAuthor: Boolean(currentUser?.isVerified),
-      isAnonymous: postAnonymous,
+      isAnonymous: false,
       collegeId: postCollegeId,
       collegeName: chosenCollege?.name,
-      content: postContent,
+      content: purifiedPostContent,
       topic: postTopic,
       imageUrl: postImageUrl || undefined,
     });
@@ -370,20 +440,53 @@ export default function CreateClient({
     router.push('/');
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewTitle.trim() || !reviewExperience.trim()) return;
+
+    // AI Text Classification & Purification
+    const fullReviewText = `${reviewTitle} ${reviewExperience} ${reviewPros} ${reviewCons} ${reviewAdvice}`.trim();
+    const purification = purifyContentText(fullReviewText);
+    const purifiedExperience = purifyContentText(reviewExperience.trim()).purifiedText;
+    const chosen = activeColleges.find(c => c.id === reviewCollegeId);
+
+    // Automated Incident Alert to pkeditxoffical@gmail.com
+    if (purification.shouldAlertCollege || purification.isPurified) {
+      try {
+        fetch('/api/moderation/email-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: {
+              fullName: currentUser?.fullName || 'Contributor',
+              username: currentUser?.username || 'reviewer_user',
+              studentRollNo: (currentUser as any)?.studentRollNo || (currentUser as any)?.rollNo || 'REG-VERIFIED',
+              collegeName: chosen?.name || currentUser?.collegeName || 'Campus',
+              department: currentUser?.department || currentUser?.course || 'Academics',
+              graduationBatch: currentUser?.graduationBatch || '2026',
+              role: currentUser?.role || 'student'
+            },
+            purification,
+            source: 'college_review',
+            targetEmail: COLLEGE_INCIDENT_EMAIL_RECIPIENT
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.error('Moderation dispatch error:', err);
+      }
+    }
 
     addReview({
       collegeId: reviewCollegeId,
       userId: currentUser?.id || 'guest',
       reviewerType: currentUser?.role === 'alumni' ? 'alumni' : 'student',
       authorName: currentUser?.fullName || 'Contributor',
-      isAnonymous: reviewAnonymous,
+      authorUsername: currentUser?.username || 'verified_reviewer',
+      isAnonymous: false,
       overallRating: ratingOverall,
       dimensions: ratings,
       title: reviewTitle,
-      experience: reviewExperience,
+      experience: purifiedExperience,
       pros: reviewPros ? reviewPros.split(',').map(s => s.trim()) : [],
       cons: reviewCons ? reviewCons.split(',').map(s => s.trim()) : [],
       advice: reviewAdvice,
@@ -393,8 +496,8 @@ export default function CreateClient({
       batch: reviewBatch
     });
 
-    const chosen = activeColleges.find(c => c.id === reviewCollegeId);
-    router.push(chosen?.slug ? `/colleges/${chosen.slug}#reviews` : '/explore');
+    const chosenCollege = activeColleges.find(c => c.id === reviewCollegeId);
+    router.push(chosenCollege?.slug ? `/colleges/${chosenCollege.slug}#reviews` : '/explore');
   };
 
   return (
@@ -555,18 +658,17 @@ export default function CreateClient({
             )}
           </div>
 
-          {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
-            <input
-              type="checkbox"
-              id="anonPost"
-              checked={postAnonymous}
-              onChange={(e) => setPostAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
-            />
-            <label htmlFor="anonPost" className="text-[#64748B] cursor-pointer font-medium">
-              Post as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity remains strictly protected publicly while audit accountability is preserved)
-            </label>
+          {/* Verified Contributor Identity Badge */}
+          <div className="flex items-center space-x-3 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-xs">
+            <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-blue-950 font-semibold">
+                Posting with Verified Identity: <strong className="text-blue-900">{currentUser?.fullName || 'Verified Contributor'}</strong> (@{currentUser?.username || 'user'})
+              </p>
+              <p className="text-[11px] text-blue-700/80 mt-0.5">
+                Anonymous posting has been disabled. Automated AI content purification protects respectful campus discourse.
+              </p>
+            </div>
           </div>
 
           {/* Post Submission Error Alert */}
@@ -945,18 +1047,15 @@ export default function CreateClient({
               </div>
             )}
 
-            {/* Anonymous Toggle */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={postAnonymous}
-                  onChange={(e) => setPostAnonymous(e.target.checked)}
-                  className="h-4 w-4 rounded text-[#1687D4] focus:ring-[#1687D4]"
-                />
-                <span>Post Anonymously (Hide Name &amp; Profile)</span>
-              </label>
-              <span className="text-[10px] text-slate-400">Protects student identity</span>
+            {/* Verified Contributor Identity Badge */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
+              <div className="flex items-center gap-2 font-semibold text-blue-900">
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Posting as <strong>{currentUser?.fullName || 'Verified Student'}</strong></span>
+              </div>
+              <span className="text-[10px] font-medium text-blue-700 bg-white/90 px-2 py-0.5 rounded-full border border-blue-200">
+                Verified Identity
+              </span>
             </div>
           </div>
 
@@ -1086,18 +1185,17 @@ export default function CreateClient({
             </div>
           </div>
 
-          {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
-            <input
-              type="checkbox"
-              id="anonRev"
-              checked={reviewAnonymous}
-              onChange={(e) => setReviewAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
-            />
-            <label htmlFor="anonRev" className="text-[#64748B] cursor-pointer font-medium">
-              Publish as <strong className="text-[#0F172A]">Anonymous Contributor</strong>
-            </label>
+          {/* Verified Reviewer Identity Badge */}
+          <div className="flex items-center space-x-3 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-xs">
+            <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-blue-950 font-semibold">
+                Publishing Review as <strong className="text-blue-900">{currentUser?.fullName || 'Verified Reviewer'}</strong>
+              </p>
+              <p className="text-[11px] text-blue-700/80 mt-0.5">
+                Authentic reviews increase campus transparency. All content is analyzed by AI purification filters.
+              </p>
+            </div>
           </div>
 
           <button
@@ -1254,18 +1352,17 @@ export default function CreateClient({
             )}
           </div>
 
-          {/* Anonymous toggle */}
-          <div className="flex items-center space-x-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-xs">
-            <input
-              type="checkbox"
-              id="anonFeedback"
-              checked={postAnonymous}
-              onChange={(e) => setPostAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded accent-[#2563EB] cursor-pointer"
-            />
-            <label htmlFor="anonFeedback" className="text-[#64748B] cursor-pointer font-medium">
-              Submit as <strong className="text-[#0F172A]">Anonymous Student</strong> (Your identity is protected)
-            </label>
+          {/* Verified Feedback Identity Badge */}
+          <div className="flex items-center space-x-3 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-xs">
+            <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-blue-950 font-semibold">
+                Verified Student Feedback from <strong className="text-blue-900">{currentUser?.fullName || 'Student'}</strong>
+              </p>
+              <p className="text-[11px] text-blue-700/80 mt-0.5">
+                Official grievance tracking connects directly with campus administration.
+              </p>
+            </div>
           </div>
 
           {postError && (

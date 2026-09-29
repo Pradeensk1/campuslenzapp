@@ -22,7 +22,8 @@ import {
   SemanticSearchResult,
   SemanticCollegeMatch,
   MessageAnalysisResult,
-  ImageAnalysisResult
+  ImageAnalysisResult,
+  ContentPurificationResult
 } from '@/types';
 
 export const DEFAULT_AI_MODEL_SETTINGS: AIModelSettings = {
@@ -1143,6 +1144,110 @@ export function analyzeImageContent(
     college_related,
     relevance,
     model: 'campus-lenz-ai (vision-analyzer)'
+  };
+}
+
+// ============================================================================
+// 13. Automated Negative Content Purification & College Email Alert Engine
+// ============================================================================
+
+export const COLLEGE_INCIDENT_EMAIL_RECIPIENT = 'pkeditxoffical@gmail.com';
+
+const PURIFICATION_SUBSTITUTIONS: Array<{ pattern: RegExp; replacement: string; label: string }> = [
+  // Institutional ragebait & harsh assertions
+  { pattern: /\bworst college\b/gi, replacement: '[institution needing operational improvement]', label: 'institutional complaint' },
+  { pattern: /\bscam college\b/gi, replacement: '[institution under administrative review]', label: 'institutional defamation' },
+  { pattern: /\bcomplete waste\b/gi, replacement: '[demanding academic environment]', label: 'harsh grievance' },
+  { pattern: /\bruined my life\b/gi, replacement: '[has caused severe student distress]', label: 'distress trigger' },
+  { pattern: /\bdisaster campus\b/gi, replacement: '[campus facing operational challenges]', label: 'institutional complaint' },
+  { pattern: /\bfake placement(s)?\b/gi, replacement: '[unverified placement reports]', label: 'placement dispute' },
+  { pattern: /\bfraud degree\b/gi, replacement: '[accreditation dispute]', label: 'defamatory claim' },
+  { pattern: /\bboycott class(es)?\b/gi, replacement: '[student academic dialogue requested]', label: 'disruption call' },
+  { pattern: /\bscam administration\b/gi, replacement: '[administrative dispute]', label: 'administrative complaint' },
+
+  // Threats & severe hostility
+  { pattern: /\b(kill|murder)\s+(you|him|her|them|everyone)\b/gi, replacement: '[unacceptable threat - redacted]', label: 'violent threat' },
+  { pattern: /\b(beat|punch|shoot|stab)\s+(you|him|her|them|up)\b/gi, replacement: '[physical threat - redacted]', label: 'physical threat' },
+  { pattern: /\bhang yourself\b/gi, replacement: '[self-harm incitement - redacted]', label: 'self-harm threat' },
+
+  // Severe Slurs & Hate Speech
+  { pattern: /\b(fag|nigger|cunt|chink|slut|whore|raghead|subhuman)\b/gi, replacement: '[hate speech - redacted]', label: 'hate speech' },
+  { pattern: /\bretard\b/gi, replacement: '[inappropriate slur - redacted]', label: 'offensive slur' },
+
+  // Insults & Personal Attacks
+  { pattern: /\bidiot\b/gi, replacement: '[peer with differing view]', label: 'personal insult' },
+  { pattern: /\bstupid\b/gi, replacement: '[unconstructive]', label: 'personal insult' },
+  { pattern: /\bloser\b/gi, replacement: '[struggling student]', label: 'personal insult' },
+  { pattern: /\bmoron\b/gi, replacement: '[disagreeable individual]', label: 'personal insult' },
+  { pattern: /\bshut up\b/gi, replacement: '[please consider listening]', label: 'dismissive language' },
+  { pattern: /\bbastard\b/gi, replacement: '[unacceptable term - redacted]', label: 'hostile insult' },
+  { pattern: /\bbitch\b/gi, replacement: '[derogatory term - redacted]', label: 'hostile insult' },
+
+  // Obscenities & Vulgarities
+  { pattern: /\b(fuck|f\*\*\*|fucking)\b/gi, replacement: '[expletive - sanitized]', label: 'vulgar language' },
+  { pattern: /\bshit\b/gi, replacement: '[unfortunate matter]', label: 'vulgar language' },
+  { pattern: /\basshole\b/gi, replacement: '[uncooperative person]', label: 'vulgar insult' },
+  { pattern: /\b(dick|pussy|prick)\b/gi, replacement: '[inappropriate language - redacted]', label: 'vulgarity' },
+  { pattern: /\bbullshit\b/gi, replacement: '[unsubstantiated claims]', label: 'vulgar language' }
+];
+
+export function purifyContentText(rawText: string): ContentPurificationResult {
+  if (!rawText || !rawText.trim()) {
+    return {
+      originalText: '',
+      purifiedText: '',
+      isNegative: false,
+      isPurified: false,
+      sentiment: 'neutral',
+      toxicityScore: 0,
+      flaggedTerms: [],
+      reasons: [],
+      shouldAlertCollege: false,
+      alertEmailRecipient: COLLEGE_INCIDENT_EMAIL_RECIPIENT,
+      action: 'publish'
+    };
+  }
+
+  const sentiment = analyzeTextSentiment(rawText);
+  const toxicity = analyzeTextToxicity(rawText);
+
+  let purified = rawText;
+  const flaggedTerms: string[] = [];
+  const reasons: string[] = [];
+
+  for (const sub of PURIFICATION_SUBSTITUTIONS) {
+    if (sub.pattern.test(purified)) {
+      purified = purified.replace(sub.pattern, sub.replacement);
+      flaggedTerms.push(sub.label);
+      if (!reasons.includes(sub.label)) {
+        reasons.push(sub.label);
+      }
+    }
+  }
+
+  const isPurified = purified !== rawText;
+  const isNegative = sentiment.label === 'negative' || sentiment.label === 'ragebait' || toxicity.score >= 35 || isPurified;
+  const shouldAlertCollege = isNegative || isPurified || toxicity.severity === 'severe' || toxicity.severity === 'moderate';
+
+  let action: ContentPurificationResult['action'] = 'publish';
+  if (toxicity.score >= 80) {
+    action = 'quarantine';
+  } else if (isPurified || isNegative) {
+    action = 'purify';
+  }
+
+  return {
+    originalText: rawText,
+    purifiedText: purified,
+    isNegative,
+    isPurified,
+    sentiment: sentiment.label,
+    toxicityScore: toxicity.score,
+    flaggedTerms: Array.from(new Set([...flaggedTerms, ...toxicity.flaggedKeywords])),
+    reasons,
+    shouldAlertCollege,
+    alertEmailRecipient: COLLEGE_INCIDENT_EMAIL_RECIPIENT,
+    action
   };
 }
 
