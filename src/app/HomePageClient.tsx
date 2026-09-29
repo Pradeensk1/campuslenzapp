@@ -93,8 +93,19 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [reportReason, setReportReason] = useState<string>('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  // Feed Filter Tabs: 'all' | 'students' | 'alumni' | 'institution'
-  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution'>('all');
+  // Feed Filter Tabs: 'all' | 'students' | 'alumni' | 'institution' | 'feedback' | 'reviews'
+  const [feedFilter, setFeedFilter] = useState<'all' | 'students' | 'alumni' | 'institution' | 'feedback' | 'reviews'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const qf = urlParams.get('filter');
+      if (qf === 'feedback') return 'feedback';
+      if (qf === 'reviews') return 'reviews';
+      if (qf === 'students') return 'students';
+      if (qf === 'alumni') return 'alumni';
+      if (qf === 'institution') return 'institution';
+    }
+    return 'all';
+  });
 
   // AI Sentiment & Safety Feed Filter: 'all' | 'positive' | 'academic' | 'sensitive'
   const [feedSentimentFilter, setFeedSentimentFilter] = useState<'all' | 'positive' | 'academic' | 'sensitive'>('all');
@@ -120,6 +131,13 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
+      const qf = urlParams.get('filter');
+      if (qf === 'feedback') {
+        setFeedFilter('feedback');
+      } else if (qf === 'reviews') {
+        setFeedFilter('reviews');
+      }
+
       if (urlParams.get('stream') === 'students' || currentUser?.role === 'student') {
         setFeedStream('students');
       }
@@ -152,13 +170,18 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const [mediaFileType, setMediaFileType] = useState<'image' | 'video' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAnonymousPost, setIsAnonymousPost] = useState(false);
-  const [postType, setPostType] = useState<'stream' | 'review'>('stream');
+  const [postType, setPostType] = useState<'stream' | 'review' | 'feedback'>('stream');
   const [institutionReviewRating, setInstitutionReviewRating] = useState(5);
   const [institutionReviewCollegeId, setInstitutionReviewCollegeId] = useState('');
   const [institutionReviewCategory, setInstitutionReviewCategory] = useState('Academics & Faculty');
   const [institutionReviewTitle, setInstitutionReviewTitle] = useState('');
   const [institutionReviewPros, setInstitutionReviewPros] = useState('');
   const [institutionReviewCons, setInstitutionReviewCons] = useState('');
+
+  // Feedback specific composer state
+  const [quickFeedbackCategory, setQuickFeedbackCategory] = useState('Hostel & Mess');
+  const [quickFeedbackTarget, setQuickFeedbackTarget] = useState('');
+  const [quickFeedbackRating, setQuickFeedbackRating] = useState(4);
 
   const handleMediaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -292,6 +315,48 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
       return;
     }
 
+    // OPTION 3: If student selected "Campus Feedback & Grievance", publish to dedicated feedback portal & campus stream
+    if (currentUser.role === 'student' && postType === 'feedback') {
+      const targetCollegeId = institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || 'col-psg';
+      const chosenCollege = colleges.find(c => c.id === targetCollegeId || c.name === currentUser.collegeName);
+
+      const res = addPost({
+        authorId: currentUser.id,
+        authorUsername: isAnonymous ? 'anonymous_student' : currentUser.username,
+        authorName: isAnonymous ? 'Anonymous Student' : currentUser.fullName,
+        authorRole: currentUser.role,
+        authorHeadline: isAnonymous ? 'Verified Student (Feedback)' : currentUser.headline,
+        isVerifiedAuthor: isAnonymous ? false : currentUser.isVerified,
+        isAnonymous,
+        collegeId: targetCollegeId,
+        collegeName: chosenCollege?.name || currentUser.collegeName,
+        content: postContent.trim(),
+        topic: `Feedback: ${quickFeedbackCategory}`,
+        postType: 'feedback',
+        rating: quickFeedbackRating,
+        feedbackCategory: quickFeedbackCategory,
+        feedbackTarget: quickFeedbackTarget.trim() || undefined,
+        imageUrl: postImageUrl.trim() || undefined
+      });
+
+      if (res.success) {
+        setPostContent('');
+        handleRemoveMedia();
+        setIsAnonymousPost(false);
+        setPostType('stream');
+        setQuickFeedbackTarget('');
+        setQuickFeedbackRating(4);
+        setIsComposing(false);
+        setFeedFilter('feedback');
+        setActionFeedback('🎉 Feedback submitted to the Dedicated Campus Feedback Portal!');
+        setTimeout(() => setActionFeedback(null), 4000);
+      } else {
+        setActionFeedback(res.message || 'Could not submit feedback.');
+        setTimeout(() => setActionFeedback(null), 4000);
+      }
+      return;
+    }
+
     // OPTION 1: Standard Public Campus Social Stream Post
     const res = addPost({
       authorId: currentUser.id,
@@ -328,6 +393,16 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
   const filteredPosts = posts.filter((p) => {
     // Hide quarantined posts from non-admin users
     if (p.isQuarantined && currentUser?.role !== 'admin') return false;
+
+    // Dedicated Feedback Feed filter: show only feedback posts
+    if (feedFilter === 'feedback') {
+      return p.postType === 'feedback' || p.topic?.toLowerCase().includes('feedback') || p.topic?.toLowerCase().includes('grievance');
+    }
+
+    // Dedicated Reviews Feed filter: show only review posts
+    if (feedFilter === 'reviews') {
+      return p.postType === 'review' || Boolean(p.rating || p.institutionRating || p.isInstitutionReviewOnly || p.topic?.toLowerCase().includes('review'));
+    }
 
     // Feed Stream filter: If in Students Social Stream, strictly show student peer posts
     if (feedStream === 'students' && p.authorRole !== 'student') return false;
@@ -1026,7 +1101,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                       {/* Student Posting Mode Dropdown: Public Campus Stream vs Institution Review */}
                       {currentUser.role === 'student' && (
                         <div className="space-y-3">
-                          {/* Two-Option Dropdown */}
+                          {/* Two/Three-Option Dropdown */}
                           <div className="p-3 rounded-2xl bg-gradient-to-r from-[#E8F5FF] via-white to-[#F0F8FF] border border-[#CFEAFF] shadow-2xs space-y-2">
                             <div className="flex items-center justify-between">
                               <label className="text-[11px] font-bold text-[#075080] uppercase tracking-wider flex items-center gap-1.5">
@@ -1036,18 +1111,20 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
                                 postType === 'review'
                                   ? 'bg-[#1687D4] text-white border-[#1687D4]'
+                                  : postType === 'feedback'
+                                  ? 'bg-amber-600 text-white border-amber-600'
                                   : 'bg-white text-[#075080] border-[#CFEAFF]'
                               }`}>
-                                {postType === 'review' ? '⭐ Option 2: Review' : '📢 Option 1: Public Stream'}
+                                {postType === 'review' ? '⭐ Option 2: Review' : postType === 'feedback' ? '💡 Option 3: Feedback' : '📢 Option 1: Public Stream'}
                               </span>
                             </div>
 
                             <select
                               value={postType}
                               onChange={e => {
-                                const val = e.target.value as 'stream' | 'review';
+                                const val = e.target.value as 'stream' | 'review' | 'feedback';
                                 setPostType(val);
-                                if (val === 'review' && !institutionReviewCollegeId) {
+                                if ((val === 'review' || val === 'feedback') && !institutionReviewCollegeId) {
                                   setInstitutionReviewCollegeId(currentUser.collegeId || colleges[0]?.id || '');
                                 }
                               }}
@@ -1059,8 +1136,117 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               <option value="review">
                                 Option 2: ⭐ Institution Review &amp; Rating (Public Stream + Institution Review Section)
                               </option>
+                              <option value="feedback">
+                                Option 3: 💡 Campus Feedback &amp; Grievance (Dedicated Feedback Feed + Department Action)
+                              </option>
                             </select>
                           </div>
+
+                          {/* If Option 3 (Feedback) is selected: Show feedback parameters */}
+                          {postType === 'feedback' && (
+                            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 shadow-xs space-y-3">
+                              <div className="flex items-start gap-2 text-[11px] text-amber-900 leading-snug">
+                                <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <span>
+                                  <strong>Dedicated Feedback Portal:</strong> This report will be cataloged directly in the <strong>Campus Feedback Feed</strong> with rating indicators for administration visibility and campus community transparency.
+                                </span>
+                              </div>
+
+                              {/* Target Institution Selection */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                                  Target Institution
+                                </label>
+                                <select
+                                  value={institutionReviewCollegeId || currentUser.collegeId || colleges[0]?.id || ''}
+                                  onChange={e => setInstitutionReviewCollegeId(e.target.value)}
+                                  className="w-full rounded-xl border border-amber-200 bg-white p-2.5 text-xs text-amber-900 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                >
+                                  {colleges.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.name} {c.id === currentUser.collegeId ? '(Your Enrolled College)' : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Satisfaction Rating */}
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
+                                    Rating / Satisfaction Score
+                                  </label>
+                                  <span className="text-xs font-bold text-amber-700">
+                                    {quickFeedbackRating} / 5 Stars
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 rounded-xl bg-white border border-amber-200">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      onClick={() => setQuickFeedbackRating(star)}
+                                      className="p-1 hover:scale-110 transition-transform focus:outline-none"
+                                      title={`Rate ${star} star`}
+                                    >
+                                      <Star
+                                        className={`w-5 h-5 transition-colors ${
+                                          star <= quickFeedbackRating
+                                            ? 'fill-amber-400 text-amber-400'
+                                            : 'text-slate-200 hover:text-amber-200'
+                                        }`}
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Feedback Category */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                                  Category Focus
+                                </label>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {[
+                                    'Hostel & Mess',
+                                    'Academics & Faculty',
+                                    'Infrastructure & Labs',
+                                    'Placements & Training',
+                                    'Campus Facilities',
+                                    'Administration',
+                                    'Transport & Parking'
+                                  ].map(cat => (
+                                    <button
+                                      key={cat}
+                                      type="button"
+                                      onClick={() => setQuickFeedbackCategory(cat)}
+                                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                        quickFeedbackCategory === cat
+                                          ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                                          : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Target Facility / Unit */}
+                              <div>
+                                <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wider mb-1">
+                                  Specific Facility or Location (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Block D WiFi, 3rd Floor Lab Air Conditioning, South Mess"
+                                  value={quickFeedbackTarget}
+                                  onChange={e => setQuickFeedbackTarget(e.target.value)}
+                                  className="w-full p-2.5 rounded-xl border border-amber-200 bg-white text-xs text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                />
+                              </div>
+                            </div>
+                          )}
 
                           {/* If Option 2 (Review) is selected: Show full review parameters */}
                           {postType === 'review' && (
@@ -1359,7 +1545,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                             className="px-4 py-1.5 rounded-xl bg-[#1687D4] hover:bg-[#075080] disabled:opacity-50 text-white font-bold text-xs shadow-xs transition"
                           >
                             {currentUser.role === 'student' && postType === 'review'
-                              ? 'Post to Stream & Institution Review Section'
+                              ? 'Post Review & Rating'
+                              : currentUser.role === 'student' && postType === 'feedback'
+                              ? 'Submit Campus Feedback'
                               : 'Publish Post'}
                           </button>
                         </div>
@@ -1396,7 +1584,7 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
 
           {/* 3. Feed Filter & Content Safety Controls */}
           <div className="rounded-3xl liquid-glass p-2.5 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-1 bg-white/20 p-1 rounded-2xl text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-white/20 p-1 rounded-2xl text-xs font-semibold flex-wrap">
               <button
                 onClick={() => setFeedFilter('all')}
                 className={`px-3 py-1 rounded-xl transition-all ${
@@ -1437,6 +1625,26 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               >
                 Circulars
               </button>
+              <button
+                onClick={() => setFeedFilter('feedback')}
+                className={`px-3 py-1 rounded-xl transition-all flex items-center gap-1 ${
+                  feedFilter === 'feedback'
+                    ? 'bg-amber-500 text-white shadow-xs font-bold border border-amber-400'
+                    : 'text-[#05233b]/80 hover:text-amber-600 hover:bg-white/30'
+                }`}
+              >
+                <span>💡 Feedback</span>
+              </button>
+              <button
+                onClick={() => setFeedFilter('reviews')}
+                className={`px-3 py-1 rounded-xl transition-all flex items-center gap-1 ${
+                  feedFilter === 'reviews'
+                    ? 'bg-[#1687D4] text-white shadow-xs font-bold border border-[#1687D4]'
+                    : 'text-[#05233b]/80 hover:text-[#1687D4] hover:bg-white/30'
+                }`}
+              >
+                <span>⭐ Reviews</span>
+              </button>
             </div>
 
             {/* AI Content Shield Toggle Button */}
@@ -1454,6 +1662,74 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
               <span>Safety Shield: {sensitiveContentShieldActive ? 'On' : 'Off'}</span>
             </button>
           </div>
+
+          {/* Dedicated Campus Feedback Portal Banner */}
+          {feedFilter === 'feedback' && (
+            <div className="rounded-3xl p-5 bg-gradient-to-r from-amber-500/15 via-white/50 to-orange-500/10 border border-amber-200/80 shadow-xs backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold">💡</span>
+                  <h3 className="text-sm font-bold text-slate-900">Dedicated Campus Feedback &amp; Grievance Feed</h3>
+                </div>
+                <p className="text-xs text-slate-600 max-w-xl">
+                  Explore verified, transparent student feedback on hostel amenities, mess food, labs, syllabus, and administration.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsComposing(true);
+                    setPostType('feedback');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Post Feedback</span>
+                </button>
+                <Link
+                  href="/create?tab=feedback"
+                  className="px-3.5 py-2 rounded-xl bg-white/70 hover:bg-white text-amber-900 border border-amber-300 text-xs font-bold shadow-xs transition"
+                >
+                  Full Form
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Dedicated Reviews Feed Banner */}
+          {feedFilter === 'reviews' && (
+            <div className="rounded-3xl p-5 bg-gradient-to-r from-blue-500/15 via-white/50 to-indigo-500/10 border border-blue-200/80 shadow-xs backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-xl bg-[#1687D4] text-white text-xs font-bold">⭐</span>
+                  <h3 className="text-sm font-bold text-slate-900">Verified College Reviews &amp; Ratings Feed</h3>
+                </div>
+                <p className="text-xs text-slate-600 max-w-xl">
+                  Real multi-dimensional ratings and honest experiences scored by verified enrolled students and alumni.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsComposing(true);
+                    setPostType('review');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#1687D4] hover:bg-[#075080] text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Write Review</span>
+                </button>
+                <Link
+                  href="/create?tab=review"
+                  className="px-3.5 py-2 rounded-xl bg-white/70 hover:bg-white text-[#075080] border border-blue-300 text-xs font-bold shadow-xs transition"
+                >
+                  Full Form
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* 4. Stream of Dynamic Post Cards */}
           <div className="space-y-4">
@@ -1539,6 +1815,18 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/40 border border-white/50 text-[#0875BD]">
                                 {post.authorRole}
                               </span>
+
+                              {Boolean(post.rating || post.institutionRating) && (
+                                <span className={`inline-flex items-center gap-1 text-[10.5px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${
+                                  post.postType === 'feedback'
+                                    ? 'bg-amber-100/90 text-amber-900 border-amber-300'
+                                    : 'bg-blue-100/90 text-blue-900 border-blue-300'
+                                }`}>
+                                  <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
+                                  <span>{(post.rating || post.institutionRating || 5).toFixed(1)}</span>
+                                  <span className="text-[9px] font-semibold text-slate-500">/ 5.0</span>
+                                </span>
+                              )}
                             </div>
 
                             <p className="text-[11px] text-[#2d5a7d] truncate mt-0.5 max-w-sm">
@@ -1720,31 +2008,84 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                         </div>
                       </div>
 
-                      {/* Institutional Review & Ratings Direct Link */}
-                      {(post.topic === 'Review & Ratings' || post.topic?.toLowerCase().includes('review') || post.isInstitutionReviewOnly) && (
-                        <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-[#E8F5FF] to-[#F0F9FF] border border-[#CFEAFF] flex items-center justify-between gap-3 shadow-2xs">
+                      {/* Campus Feedback & Grievance Scorecard */}
+                      {(post.postType === 'feedback' || post.topic?.toLowerCase().includes('feedback')) && (
+                        <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/50 to-amber-50/80 border border-amber-200 flex items-center justify-between gap-3 shadow-2xs">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="h-8 w-8 rounded-lg bg-white/90 border border-[#CFEAFF] flex items-center justify-center shrink-0">
-                              <Building2 className="w-4 h-4 text-[#1687D4]" />
+                            <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-200 flex items-center justify-center shrink-0 text-amber-600 font-bold">
+                              💡
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] uppercase font-bold text-[#0875BD] tracking-wider bg-white/80 px-1.5 py-0.5 rounded border border-[#CFEAFF]">
-                                  {post.isInstitutionReviewOnly ? 'Institution Review Only' : 'Institutional Review'}
+                                <span className="text-[10px] uppercase font-bold text-amber-900 tracking-wider bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                                  Campus Feedback
                                 </span>
-                                {post.institutionRating && (
+                                {post.feedbackCategory && (
+                                  <span className="text-[10px] font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                    {post.feedbackCategory}
+                                  </span>
+                                )}
+                                {(post.rating || post.institutionRating) && (
                                   <div className="flex items-center text-amber-500 text-xs font-black">
                                     {Array.from({ length: 5 }).map((_, i) => (
                                       <Star
                                         key={i}
-                                        className={`w-3 h-3 ${i < (post.institutionRating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                                        className={`w-3.5 h-3.5 ${i < (post.rating || post.institutionRating || 4) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
                                       />
                                     ))}
-                                    <span className="ml-1 text-[11px] text-[#075080] font-bold">{post.institutionRating}.0</span>
+                                    <span className="ml-1 text-[11px] text-amber-900 font-bold">
+                                      {(post.rating || post.institutionRating || 4).toFixed(1)} / 5.0
+                                    </span>
                                   </div>
                                 )}
                               </div>
-                              <p className="text-[11px] font-semibold text-[#075080] truncate mt-0.5">
+                              <p className="text-[11px] font-semibold text-slate-700 truncate mt-1">
+                                {post.feedbackTarget ? (
+                                  <>Target Unit: <strong className="text-amber-900">{post.feedbackTarget}</strong> • {post.collegeName || 'Campus'}</>
+                                ) : (
+                                  <>Facility Report for <strong className="text-amber-900">{post.collegeName || 'Campus'}</strong></>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFeedFilter('feedback')}
+                            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
+                          >
+                            <span>Feedback Feed</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Institutional Review & Ratings Direct Link */}
+                      {(post.postType === 'review' || post.topic === 'Review & Ratings' || post.topic?.toLowerCase().includes('review') || post.isInstitutionReviewOnly || (post.institutionRating && post.postType !== 'feedback')) && (
+                        <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-[#E8F5FF] to-[#F0F9FF] border border-[#CFEAFF] flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="h-9 w-9 rounded-xl bg-white/90 border border-[#CFEAFF] flex items-center justify-center shrink-0">
+                              <Building2 className="w-4 h-4 text-[#1687D4]" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] uppercase font-bold text-[#0875BD] tracking-wider bg-white/80 px-2 py-0.5 rounded-md border border-[#CFEAFF]">
+                                  {post.isInstitutionReviewOnly ? 'Institution Review Only' : 'College Review'}
+                                </span>
+                                {(post.rating || post.institutionRating) && (
+                                  <div className="flex items-center text-amber-500 text-xs font-black">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={`w-3.5 h-3.5 ${i < (post.rating || post.institutionRating || 5) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                                      />
+                                    ))}
+                                    <span className="ml-1 text-[11px] text-[#075080] font-bold">
+                                      {(post.rating || post.institutionRating || 5).toFixed(1)} / 5.0
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-[11px] font-semibold text-[#075080] truncate mt-1">
                                 Official scorecard evaluation for <strong className="text-[#1687D4]">{post.collegeName || 'Verified College'}</strong>
                               </p>
                             </div>
@@ -1754,9 +2095,9 @@ export default function HomePageClient({ initialPosts = [] }: { initialPosts?: P
                               const foundCol = colleges.find(c => c.id === post.collegeId || c.name === post.collegeName);
                               return foundCol?.slug ? `/colleges/${foundCol.slug}#reviews` : '/explore';
                             })()}
-                            className="px-3 py-1.5 rounded-lg bg-[#1687D4] hover:bg-[#075080] text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
+                            className="px-3 py-1.5 rounded-xl bg-[#1687D4] hover:bg-[#075080] text-white text-[10px] font-bold shadow-xs transition flex items-center gap-1 shrink-0"
                           >
-                            <span>Reviews & Ratings</span>
+                            <span>Reviews &amp; Ratings</span>
                             <ArrowRight className="w-3 h-3" />
                           </Link>
                         </div>

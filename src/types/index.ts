@@ -237,6 +237,10 @@ export interface Post {
   isKnowledgeBased?: boolean;
   isInstitutionReviewOnly?: boolean;
   institutionRating?: number;
+  postType?: 'general' | 'review' | 'feedback' | 'stream';
+  rating?: number;
+  feedbackCategory?: string;
+  feedbackTarget?: string;
   reportedByInstitution?: {
     reportedAt: string;
     reason: string;

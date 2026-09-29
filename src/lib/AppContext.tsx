@@ -1647,7 +1647,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     addPost({
       authorId: newRev.userId,
-      authorUsername: newRev.isAnonymous ? 'anonymous_reviewer' : (currentUser?.username || 'verified_student'),
+      authorUsername: newRev.isAnonymous ? 'anonymous_reviewer' : (newRev.authorUsername || currentUser?.username || 'verified_student'),
       authorName: newRev.isAnonymous ? 'Anonymous Student' : (newRev.authorName || currentUser?.fullName || 'Student Reviewer'),
       authorRole: newRev.reviewerType || 'student',
       authorHeadline: `${newRev.overallRating}★ Verified Review for ${targetCollege?.name || 'Institution'}`,
@@ -1656,6 +1656,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       collegeId: newRev.collegeId,
       collegeName: targetCollege?.name,
       topic: 'Review & Ratings',
+      postType: 'review',
+      rating: newRev.overallRating,
       content: `⭐ Review for ${targetCollege?.name || 'College'} (${newRev.overallRating}/5 Rating)\n\n"${newRev.title}"\n${newRev.experience}${prosText}${consText}${adviceText}`,
       isInstitutionReviewOnly: true,
       institutionRating: newRev.overallRating
